@@ -11,7 +11,8 @@ backend/.tmp/
 backend/.cache/
 backend/build/
 backend/exports/
-backend/public/uploads/
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
 backend/.strapi-updater.json
 
 # Env
