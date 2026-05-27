@@ -1,0 +1,63 @@
+{
+  "kind": "collectionType",
+  "collectionName": "services",
+  "info": {
+    "singularName": "service",
+    "pluralName": "services",
+    "displayName": "Service",
+    "description": "Servicios ejecutados (historial real)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "datetime",
+      "required": true
+    },
+    "notes": {
+      "type": "text"
+    },
+    "totalAmount": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "vehicle": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::vehicle.vehicle"
+    },
+    "package": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::package.package"
+    },
+    "extraServices": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::extra-service.extra-service"
+    },
+    "isWalkIn": {
+      "type": "boolean",
+      "default": false
+    },
+    "customerName": {
+      "type": "string"
+    },
+    "vehicleType": {
+      "type": "enumeration",
+      "enum": ["chico", "sedan", "suv", "camioneta_grande", "combi"]
+    },
+    "isUberTaxi": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

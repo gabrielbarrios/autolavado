@@ -1,0 +1,89 @@
+{
+  "kind": "singleType",
+  "collectionName": "site_settings",
+  "info": {
+    "singularName": "site-setting",
+    "pluralName": "site-settings",
+    "displayName": "Site Setting",
+    "description": "Configuración general del autolavado"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "businessName": {
+      "type": "string"
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "logo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "heroVideo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["videos"]
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "gallery": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "bookingSlotDuration": {
+      "type": "integer",
+      "default": 60,
+      "min": 5
+    },
+    "maxBookingsPerSlot": {
+      "type": "integer",
+      "default": 2,
+      "min": 1
+    },
+    "visitsForReward": {
+      "type": "integer",
+      "default": 3,
+      "min": 1
+    },
+    "businessHours": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.business-hour"
+    },
+    "closedDates": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.closed-date"
+    },
+    "faqs": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.faq"
+    },
+    "testimonials": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.testimonial"
+    },
+    "contactInfo": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.contact-info"
+    }
+  }
+}

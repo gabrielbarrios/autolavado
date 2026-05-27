@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "packages",
+  "info": {
+    "singularName": "package",
+    "pluralName": "packages",
+    "displayName": "Package",
+    "description": "Paquetes de servicio del autolavado"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "durationMinutes": {
+      "type": "integer",
+      "required": true,
+      "default": 30,
+      "min": 5
+    },
+    "description": {
+      "type": "text"
+    },
+    "benefits": {
+      "type": "json"
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "bookingNumberSlot": {
+      "type": "integer"
+    },
+    "pricing": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.vehicle-type-price"
+    },
+    "uberTaxiPrice": {
+      "type": "decimal",
+      "min": 0
+    }
+  }
+}

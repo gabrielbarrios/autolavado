@@ -1,0 +1,26 @@
+{
+  "collectionName": "components_shared_business_hours",
+  "info": {
+    "displayName": "Business Hour",
+    "icon": "clock",
+    "description": "Horario de un día de la semana"
+  },
+  "options": {},
+  "attributes": {
+    "day": {
+      "type": "enumeration",
+      "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+      "required": true
+    },
+    "open": {
+      "type": "time"
+    },
+    "close": {
+      "type": "time"
+    },
+    "closed": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

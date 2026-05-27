@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "loyalty_progresses",
+  "info": {
+    "singularName": "loyalty-progress",
+    "pluralName": "loyalty-progresses",
+    "displayName": "Loyalty Progress",
+    "description": "Progreso de visitas por usuario hacia próxima promoción"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "currentCount": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "cycleStartedAt": {
+      "type": "datetime"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+import "server-only";
+import { cache } from "react";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE_NAME } from "../constants";
+import { strapiMe } from "../strapi/auth";
+import type { User, UserRole } from "@/types/models";
+
+export interface Session {
+  user: User;
+  role: UserRole;
+}
+
+function resolveRole(user: User): UserRole {
+  if (typeof user.role === "string") return user.role;
+  const name = user.role?.name?.toLowerCase() ?? "";
+  if (name.includes("admin")) return "admin";
+  return "cliente";
+}
+
+/**
+ * Sesión actual (cacheada por request). Devuelve null si no hay cookie o el JWT es inválido.
+ * Hace fetch a Strapi /users/me para confirmar la identidad — Strapi es la fuente de verdad.
+ */
+export const getSession = cache(async (): Promise<Session | null> => {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) return null;
+
+  const user = await strapiMe();
+  if (!user) return null;
+
+  return { user, role: resolveRole(user) };
+});
+
+export async function hasSession(): Promise<boolean> {
+  const store = await cookies();
+  return Boolean(store.get(SESSION_COOKIE_NAME)?.value);
+}

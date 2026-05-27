@@ -1,0 +1,26 @@
+{
+  "collectionName": "components_shared_vehicle_type_prices",
+  "info": {
+    "displayName": "Vehicle Type Price",
+    "icon": "car",
+    "description": "Precio del paquete según el tipo de vehículo"
+  },
+  "options": {},
+  "attributes": {
+    "vehicleType": {
+      "type": "enumeration",
+      "enum": ["chico", "sedan", "suv", "camioneta_grande", "combi", "uber_taxi"],
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
+    },
+    "uberTaxiPrice": {
+      "type": "decimal",
+      "min": 0,
+      "description": "Precio especial cuando el auto está marcado como Uber/Taxi. Si está vacío, se usa el precio normal del tipo de auto."
+    }
+  }
+}

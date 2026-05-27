@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_shared_closed_dates",
+  "info": {
+    "displayName": "Closed Date",
+    "icon": "calendar-times",
+    "description": "Día cerrado (feriado, evento, mantenimiento, etc.)"
+  },
+  "options": {},
+  "attributes": {
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "reason": {
+      "type": "string"
+    }
+  }
+}

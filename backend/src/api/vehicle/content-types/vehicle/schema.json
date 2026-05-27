@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "vehicles",
+  "info": {
+    "singularName": "vehicle",
+    "pluralName": "vehicles",
+    "displayName": "Vehicle",
+    "description": "Vehículos registrados por los clientes"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "brand": {
+      "type": "string",
+      "required": true
+    },
+    "model": {
+      "type": "string",
+      "required": true
+    },
+    "year": {
+      "type": "integer",
+      "required": true,
+      "min": 1950
+    },
+    "color": {
+      "type": "string",
+      "required": true
+    },
+    "plate": {
+      "type": "string",
+      "unique": true
+    },
+    "notes": {
+      "type": "text"
+    },
+    "vehicleType": {
+      "type": "enumeration",
+      "enum": ["chico", "sedan", "suv", "camioneta_grande", "combi"],
+      "default": "sedan",
+      "required": true
+    },
+    "isUberTaxi": {
+      "type": "boolean",
+      "default": false
+    },
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}
