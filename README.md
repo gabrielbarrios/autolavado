@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Autolavado — Sistema de Gestión Full-Stack
 
-## Getting Started
+Monorepo con frontend Next.js 16 + backend Strapi 5 + PostgreSQL.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Frontend**: Next.js 16 (App Router, React 19.2), TypeScript, Tailwind v4, shadcn/ui, React Hook Form, Zod, TanStack Query/Table
+- **Backend**: Strapi 5 (TypeScript) con PostgreSQL
+- **Auth**: JWT nativo de Strapi consumido vía cookies httpOnly desde Next.js
+- **DB**: PostgreSQL 16 vía Docker Compose
+
+## Estructura
+
+```
+autolavado/
+├── frontend/              # Next.js 16
+├── backend/               # Strapi 5
+├── docker-compose.yml     # PostgreSQL
+├── .env.example
+└── README.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup inicial
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. PostgreSQL
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.example .env
+docker compose up -d
+```
 
-## Learn More
+Verifica que esté corriendo:
+```bash
+docker compose ps
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 2. Backend (Strapi)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd backend
+cp .env.example .env
+npm install
+npm run develop
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Abre `http://localhost:1337/admin` y crea el primer usuario admin.
 
-## Deploy on Vercel
+Después en la UI:
+1. **Content-Type Builder** → crear los content types listados en `backend/CONTENT_TYPES.md`.
+2. **Settings → API Tokens** → crear un token "Full access", copiarlo a `frontend/.env.local` como `STRAPI_ADMIN_API_TOKEN`.
+3. **Settings → Users & Permissions → Roles** → configurar permisos `Public` y `Authenticated`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 3. Frontend (Next.js)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Abre `http://localhost:3000`.
+
+## Scripts
+
+| Comando | Descripción |
+|---|---|
+| `docker compose up -d` | Levantar PostgreSQL |
+| `docker compose down` | Detener PostgreSQL |
+| `cd backend && npm run develop` | Strapi en modo dev |
+| `cd backend && npm run build && npm start` | Strapi producción |
+| `cd frontend && npm run dev` | Next.js dev (puerto 3000) |
+| `cd frontend && npm run build` | Build producción Next.js |
+| `cd frontend && npm run typecheck` | Verificar tipos TS |
+
+## Flujo de desarrollo
+
+1. PostgreSQL levantado en Docker
+2. Strapi corriendo en `:1337` (con sus content types y permisos configurados)
+3. Next.js corriendo en `:3000`, consumiendo Strapi vía cookies httpOnly
+# autolavado
