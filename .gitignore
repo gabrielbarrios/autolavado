@@ -6,7 +6,9 @@ node_modules/
 dist/
 build/
 
-# Strapi
+# Strapi — el backend usa npm (package-lock.json); ignorar lockfiles de pnpm
+# para que Railway/Railpack no detecte pnpm y falle con frozen-lockfile.
+backend/pnpm-lock.yaml
 backend/.tmp/
 backend/.cache/
 backend/build/
