@@ -34,7 +34,8 @@ export default async function PromocionesAdminPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop: tabla */}
+          <div className="hidden md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
@@ -73,6 +74,45 @@ export default async function PromocionesAdminPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: cards */}
+          <div className="divide-y divide-border/40 md:hidden">
+            {promos.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">Sin promociones.</p>
+            ) : (
+              promos.map((p) => {
+                const tipo =
+                  p.discountType === "percent"
+                    ? `${p.discountValue}%`
+                    : p.discountType === "fixed"
+                      ? `-$${p.discountValue}`
+                      : "Gratis";
+                return (
+                  <div key={p.id} className="space-y-2 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-xs">{p.code}</p>
+                        <p className="truncate text-sm">{p.user?.name ?? p.user?.email ?? "—"}</p>
+                      </div>
+                      <Badge variant={p.used ? "outline" : "success"} className="shrink-0">
+                        {p.used ? "Usada" : "Activa"}
+                      </Badge>
+                    </div>
+                    <dl className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <dt className="text-muted-foreground">Tipo</dt>
+                        <dd>{tipo}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Válida hasta</dt>
+                        <dd>{formatDate(p.validUntil)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                );
+              })
+            )}
           </div>
         </CardContent>
       </Card>

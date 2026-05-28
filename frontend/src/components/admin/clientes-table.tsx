@@ -94,7 +94,8 @@ export function ClientesTable({
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop: tabla */}
+          <div className="hidden md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
@@ -137,6 +138,50 @@ export function ClientesTable({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: cards */}
+          <div className="divide-y divide-border/40 md:hidden">
+            {pageItems.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                {query ? "Sin resultados para tu búsqueda." : "Sin clientes aún."}
+              </p>
+            ) : (
+              pageItems.map((u) => (
+                <div key={u.id} className="space-y-2 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{userDisplayName(u)}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedUser(u)}
+                      disabled={!u.qrToken}
+                      title={u.qrToken ? "Ver QR" : "Sin QR registrado"}
+                      className="shrink-0"
+                    >
+                      <QrCode className="h-4 w-4" /> QR
+                    </Button>
+                  </div>
+                  <dl className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Teléfono</dt>
+                      <dd className="truncate">{u.phone ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Rol</dt>
+                      <dd className="truncate">{roleLabel(u)}</dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="text-muted-foreground">Visitas</dt>
+                      <dd className="font-mono">{u.visitCount ?? 0}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

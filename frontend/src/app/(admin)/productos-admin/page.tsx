@@ -27,7 +27,8 @@ export default async function ProductosAdminPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop: tabla */}
+          <div className="hidden md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
@@ -75,6 +76,48 @@ export default async function ProductosAdminPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: cards */}
+          <div className="divide-y divide-border/40 md:hidden">
+            {products.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">Sin productos.</p>
+            ) : (
+              products.map((p) => (
+                <div key={p.id} className="space-y-2 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {p.images?.[0] && (
+                        <Image
+                          src={strapiMediaUrl(p.images[0], "thumbnail") ?? ""}
+                          alt={p.name}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{p.name}</p>
+                      <p className="truncate text-xs capitalize text-muted-foreground">{p.category}</p>
+                    </div>
+                    <Badge variant={p.active ? "success" : "outline"} className="shrink-0">
+                      {p.active ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Stock</dt>
+                      <dd className="font-mono">{p.stock}</dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="text-muted-foreground">Precio</dt>
+                      <dd className="font-mono">{formatPrice(p.price)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

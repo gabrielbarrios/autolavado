@@ -32,26 +32,30 @@ export function DashboardShell({ nav, user, children, onLogout }: DashboardShell
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/40 bg-background/70 px-4 backdrop-blur md:px-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Abrir menú"
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-          <SiteLogo />
-        </div>
+        <SiteLogo />
         <div className="flex items-center gap-2">
           <div className="hidden text-right md:block">
             <p className="text-sm font-medium">{user.name ?? user.email}</p>
             <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
           </div>
           <ThemeToggle />
-          <Button variant="ghost" size="sm" onClick={onLogout}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLogout}
+            className="hidden md:inline-flex"
+          >
             Salir
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={open}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </header>
@@ -74,7 +78,7 @@ export function DashboardShell({ nav, user, children, onLogout }: DashboardShell
         )}
 
         {/* Content */}
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-10">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-10">{children}</main>
       </div>
     </div>
   );

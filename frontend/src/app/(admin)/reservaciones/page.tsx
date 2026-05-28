@@ -127,7 +127,8 @@ export default async function ReservacionesAdminPage(props: PageProps) {
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop: tabla */}
+          <div className="hidden md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
@@ -210,6 +211,81 @@ export default async function ReservacionesAdminPage(props: PageProps) {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: cards */}
+          <div className="divide-y divide-border/40 md:hidden">
+            {sorted.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                {statusFilter === "all"
+                  ? "Sin reservaciones todavía."
+                  : `Sin reservaciones ${statusLabel[statusFilter as AppointmentStatus].toLowerCase()}.`}
+              </p>
+            ) : (
+              sorted.map((a) => (
+                <div key={a.id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{a.user?.name ?? a.user?.username}</p>
+                      <p className="truncate text-xs text-muted-foreground">{a.user?.email}</p>
+                      {a.user?.phone && (
+                        <p className="truncate text-xs text-muted-foreground">{a.user.phone}</p>
+                      )}
+                    </div>
+                    <Badge variant={statusVariant[a.status]} className="shrink-0">
+                      {statusLabel[a.status].slice(0, -1)}
+                    </Badge>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Fecha</dt>
+                      <dd>{formatDate(a.date)}</dd>
+                      <dd className="text-muted-foreground">{formatTime(a.timeSlot)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Auto</dt>
+                      <dd className="truncate">
+                        {a.vehicle ? `${a.vehicle.brand} ${a.vehicle.model}` : "—"}
+                      </dd>
+                      {a.vehicle?.plate && (
+                        <dd className="truncate font-mono text-muted-foreground">{a.vehicle.plate}</dd>
+                      )}
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-muted-foreground">Paquete</dt>
+                      <dd>
+                        {a.package?.name ?? "—"}
+                        {a.package?.durationMinutes && (
+                          <span className="text-muted-foreground"> · {a.package.durationMinutes} min</span>
+                        )}
+                      </dd>
+                      {a.extraServices && a.extraServices.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {a.extraServices.map((e) => (
+                            <Badge key={e.id} variant="outline" className="text-[10px]">
+                              + {e.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {a.customerNotes && (
+                      <div className="col-span-2">
+                        <dt className="text-muted-foreground">Notas</dt>
+                        <dd className="whitespace-pre-wrap">{a.customerNotes}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  <div className="flex justify-end">
+                    <AppointmentActions
+                      appointment={a}
+                      businessHours={setting?.businessHours ?? []}
+                      closedDates={setting?.closedDates ?? []}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

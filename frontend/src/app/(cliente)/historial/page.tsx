@@ -46,28 +46,49 @@ export default async function HistorialPage() {
         ) : (
           <Card>
             <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Fecha</th>
-                    <th className="px-4 py-3 font-medium">Paquete</th>
-                    <th className="px-4 py-3 font-medium">Auto</th>
-                    <th className="px-4 py-3 font-medium text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {services.map((s) => (
-                    <tr key={s.id}>
-                      <td className="px-4 py-3">{formatDate(s.date)}</td>
-                      <td className="px-4 py-3 font-medium">{s.package?.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {s.vehicle ? `${s.vehicle.brand} ${s.vehicle.model}` : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono">{formatPrice(s.totalAmount)}</td>
+              {/* Desktop: tabla */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-border/60 text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Fecha</th>
+                      <th className="px-4 py-3 font-medium">Paquete</th>
+                      <th className="px-4 py-3 font-medium">Auto</th>
+                      <th className="px-4 py-3 font-medium text-right">Total</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {services.map((s) => (
+                      <tr key={s.id}>
+                        <td className="px-4 py-3">{formatDate(s.date)}</td>
+                        <td className="px-4 py-3 font-medium">{s.package?.name ?? "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {s.vehicle ? `${s.vehicle.brand} ${s.vehicle.model}` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono">{formatPrice(s.totalAmount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile: cards */}
+              <div className="divide-y divide-border/40 md:hidden">
+                {services.map((s) => (
+                  <div key={s.id} className="space-y-1 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 flex-1 truncate font-medium">{s.package?.name ?? "—"}</p>
+                      <p className="shrink-0 font-mono font-semibold">{formatPrice(s.totalAmount)}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{formatDate(s.date)}</p>
+                    {s.vehicle && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {s.vehicle.brand} {s.vehicle.model}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
