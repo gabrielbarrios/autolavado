@@ -5,6 +5,8 @@ import type {
   Promotion,
   LoyaltyProgress,
   Appointment,
+  Service,
+  ServiceStatus,
   VehicleType,
 } from "@/types/models";
 
@@ -14,6 +16,8 @@ export interface QRScanResult {
   loyaltyProgress: LoyaltyProgress | null;
   activePromotions: Promotion[];
   todayAppointments: Appointment[];
+  /** Todas las reservaciones del cliente (últimas 50, más recientes primero). */
+  appointments: Appointment[];
 }
 
 export async function scanQR(qrToken: string): Promise<QRScanResult> {
@@ -32,10 +36,7 @@ export interface RegisterVisitPayload {
 }
 
 export interface RegisterVisitResult {
-  visit: { id: number; date: string };
-  service: { id: number };
-  promotionGenerated?: Promotion | null;
-  loyaltyProgress: LoyaltyProgress;
+  service: { id: number; totalAmount: number; status: ServiceStatus };
 }
 
 export async function registerVisit(payload: RegisterVisitPayload): Promise<RegisterVisitResult> {
@@ -43,6 +44,26 @@ export async function registerVisit(payload: RegisterVisitPayload): Promise<Regi
     method: "POST",
     body: payload,
   });
+}
+
+export interface CompleteServiceResult {
+  service: { id: number; status: ServiceStatus };
+  promotionGenerated: Promotion | null;
+  loyaltyProgress: LoyaltyProgress | null;
+}
+
+export async function completeService(serviceId: number): Promise<CompleteServiceResult> {
+  return strapiServerFetch<CompleteServiceResult>("/api/qr/complete-service", {
+    method: "POST",
+    body: { serviceId },
+  });
+}
+
+export async function listInProgressServices(): Promise<Service[]> {
+  const res = await strapiServerFetch<{ services: Service[] }>("/api/qr/in-progress-services", {
+    cache: "no-store",
+  });
+  return res.services ?? [];
 }
 
 export interface WalkInServicePayload {
@@ -55,7 +76,7 @@ export interface WalkInServicePayload {
 }
 
 export interface WalkInServiceResult {
-  service: { id: number; totalAmount: number };
+  service: { id: number; totalAmount: number; status: ServiceStatus };
 }
 
 export async function walkInService(payload: WalkInServicePayload): Promise<WalkInServiceResult> {

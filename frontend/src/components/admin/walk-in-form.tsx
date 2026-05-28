@@ -86,7 +86,10 @@ export function WalkInForm({
       toast.error(result.error);
       return;
     }
-    toast.success(`Servicio registrado — ${formatPrice(result.data?.service.totalAmount ?? 0)}`);
+    toast.success(
+      `Servicio iniciado — ${formatPrice(result.data?.service.totalAmount ?? 0)}. Márcalo como completado en /en-progreso al terminar.`,
+      { duration: 5000 },
+    );
     // Reset
     setCustomerName("");
     setPackageId(null);

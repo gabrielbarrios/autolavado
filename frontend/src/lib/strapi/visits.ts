@@ -19,6 +19,7 @@ export async function listMyServices(userId: number): Promise<Service[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Service>>("/api/services", {
     query: {
       "filters[user][id][$eq]": userId,
+      "filters[status][$eq]": "completed",
       "populate[package]": "true",
       "populate[vehicle]": "true",
       "sort[0]": "date:desc",
@@ -29,8 +30,10 @@ export async function listMyServices(userId: number): Promise<Service[]> {
 }
 
 export async function listAllServices(): Promise<Service[]> {
+  // /servicios es el historial — solo los completados. Los in_progress viven en /en-progreso.
   const res = await strapiServerFetch<StrapiCollectionResponse<Service>>("/api/services", {
     query: {
+      "filters[status][$eq]": "completed",
       "populate[package]": "true",
       "populate[vehicle]": "true",
       "populate[user]": "true",

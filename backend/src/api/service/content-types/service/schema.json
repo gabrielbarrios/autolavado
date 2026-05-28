@@ -58,6 +58,12 @@
     "isUberTaxi": {
       "type": "boolean",
       "default": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["in_progress", "completed"],
+      "default": "in_progress",
+      "required": true
     }
   }
 }

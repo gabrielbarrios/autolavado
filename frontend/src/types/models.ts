@@ -93,6 +93,8 @@ export interface Package {
   uberTaxiPrice?: number | null;
 }
 
+export type ServiceStatus = "in_progress" | "completed";
+
 export interface Service {
   id: number;
   documentId?: string;
@@ -107,6 +109,7 @@ export interface Service {
   customerName?: string | null;
   vehicleType?: VehicleType;
   isUberTaxi?: boolean;
+  status?: ServiceStatus;
 }
 
 export interface Visit {

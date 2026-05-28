@@ -28,7 +28,7 @@ export default {
     const dd = String(today.getDate()).padStart(2, '0');
     const todayISO = `${yyyy}-${mm}-${dd}`;
 
-    const [vehicles, loyaltyArr, activePromotions, todayAppointments] = await Promise.all([
+    const [vehicles, loyaltyArr, activePromotions, todayAppointments, allAppointments] = await Promise.all([
       strapi.db.query('api::vehicle.vehicle').findMany({
         where: { user: user.id },
         populate: { photo: true },
@@ -49,6 +49,13 @@ export default {
         populate: { package: true, vehicle: true, extraServices: true },
         orderBy: { timeSlot: 'asc' },
       }),
+      // Todas las reservaciones del cliente (últimas 50, más recientes primero).
+      strapi.db.query('api::appointment.appointment').findMany({
+        where: { user: user.id },
+        populate: { package: true, vehicle: true, extraServices: true },
+        orderBy: [{ date: 'desc' }, { timeSlot: 'desc' }],
+        limit: 50,
+      }),
     ]);
 
     ctx.body = {
@@ -57,6 +64,7 @@ export default {
       loyaltyProgress: loyaltyArr[0] ?? null,
       activePromotions,
       todayAppointments,
+      appointments: allAppointments,
     };
   },
 
@@ -132,17 +140,9 @@ export default {
     }
 
     const now = new Date();
-    const visit = await strapi.entityService.create('api::visit.visit', {
-      data: {
-        date: now,
-        notes,
-        user: userId,
-        vehicle: vehicleId,
-        package: packageId,
-        extraServices: extraIds,
-        publishedAt: now,
-      },
-    });
+    // El service se crea en estado in_progress. La Visit (que dispara fidelidad
+    // por su lifecycle afterCreate) se creará cuando el operador marque
+    // "Completar" desde la página /en-progreso.
     const service = await strapi.entityService.create('api::service.service', {
       data: {
         date: now,
@@ -152,32 +152,13 @@ export default {
         vehicle: vehicleId,
         package: packageId,
         extraServices: extraIds,
+        status: 'in_progress',
         publishedAt: now,
       },
     });
 
-    // Releer loyalty y la última promo (el lifecycle del visit ya las puede haber actualizado)
-    const [loyaltyArr, latestPromos] = await Promise.all([
-      strapi.entityService.findMany('api::loyalty-progress.loyalty-progress', {
-        filters: { user: userId },
-        limit: 1,
-      }),
-      strapi.entityService.findMany('api::promotion.promotion', {
-        filters: { user: userId },
-        sort: { createdAt: 'desc' },
-        limit: 1,
-      }),
-    ]);
-    const loyalty = loyaltyArr[0];
-    const newest = latestPromos[0];
-    const justGenerated =
-      newest && new Date(newest.createdAt).getTime() > now.getTime() - 5000 ? newest : null;
-
     ctx.body = {
-      visit: { id: visit.id, date: visit.date },
-      service: { id: service.id },
-      promotionGenerated: justGenerated,
-      loyaltyProgress: loyalty,
+      service: { id: service.id, totalAmount, status: 'in_progress' },
     };
   },
 
@@ -280,10 +261,92 @@ export default {
         customerName: customerName || null,
         vehicleType: vehicleType || null,
         isUberTaxi: !!isUberTaxi,
+        status: 'in_progress',
         publishedAt: now,
       },
     });
 
-    ctx.body = { service: { id: service.id, totalAmount } };
+    ctx.body = { service: { id: service.id, totalAmount, status: 'in_progress' } };
+  },
+
+  /**
+   * GET /api/qr/in-progress-services
+   * Lista todos los services con status="in_progress" (más recientes primero).
+   */
+  async inProgressServices(ctx) {
+    const services = await strapi.db.query('api::service.service').findMany({
+      where: { status: 'in_progress' },
+      populate: { user: true, vehicle: true, package: true, extraServices: true },
+      orderBy: [{ date: 'desc' }],
+      limit: 200,
+    });
+    ctx.body = { services };
+  },
+
+  /**
+   * POST /api/qr/complete-service
+   * Marca un service como completed. Si no es walk-in y tiene user/vehicle/package,
+   * crea una Visit que dispara el lifecycle de fidelidad (loyalty + promoción).
+   */
+  async completeService(ctx) {
+    const { serviceId } = ctx.request.body ?? {};
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+      populate: { user: true, vehicle: true, package: true, extraServices: true },
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+    if (service.status === 'completed') return ctx.badRequest('Servicio ya completado');
+
+    const now = new Date();
+
+    // Marcar el service como completed
+    const updated = await strapi.entityService.update('api::service.service', service.id, {
+      data: { status: 'completed' },
+    });
+
+    // Si no es walk-in y tiene user + vehicle + package → crear Visit (loyalty)
+    let promotionGenerated = null;
+    let loyaltyProgress = null;
+    if (!service.isWalkIn && service.user && service.vehicle && service.package) {
+      const userId = service.user.id;
+      const extraIds = Array.isArray(service.extraServices)
+        ? service.extraServices.map((e) => e.id)
+        : [];
+      await strapi.entityService.create('api::visit.visit', {
+        data: {
+          date: now,
+          notes: service.notes,
+          user: userId,
+          vehicle: service.vehicle.id,
+          package: service.package.id,
+          extraServices: extraIds,
+          publishedAt: now,
+        },
+      });
+      // Releer loyalty y la última promo creadas por el lifecycle
+      const [loyaltyArr, latestPromos] = await Promise.all([
+        strapi.entityService.findMany('api::loyalty-progress.loyalty-progress', {
+          filters: { user: userId },
+          limit: 1,
+        }),
+        strapi.entityService.findMany('api::promotion.promotion', {
+          filters: { user: userId },
+          sort: { createdAt: 'desc' },
+          limit: 1,
+        }),
+      ]);
+      loyaltyProgress = loyaltyArr[0] ?? null;
+      const newest = latestPromos[0];
+      promotionGenerated =
+        newest && new Date(newest.createdAt).getTime() > now.getTime() - 5000 ? newest : null;
+    }
+
+    ctx.body = {
+      service: { id: updated.id, status: 'completed' },
+      promotionGenerated,
+      loyaltyProgress,
+    };
   },
 };

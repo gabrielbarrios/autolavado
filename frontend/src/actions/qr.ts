@@ -6,10 +6,12 @@ import {
   scanQR,
   registerVisit,
   walkInService,
+  completeService,
   type QRScanResult,
   type RegisterVisitResult,
   type WalkInServicePayload,
   type WalkInServiceResult,
+  type CompleteServiceResult,
 } from "@/lib/strapi/qr";
 import { redeemPromotion } from "@/lib/strapi/promotions";
 import { updateAppointmentStatus } from "@/lib/strapi/appointments";
@@ -80,6 +82,24 @@ export async function walkInServiceAction(
     return {
       ok: false,
       error: err instanceof StrapiError ? err.message : "No se pudo registrar el servicio",
+    };
+  }
+}
+
+export async function completeServiceAction(
+  serviceId: number,
+): Promise<ActionResult<CompleteServiceResult>> {
+  await requireAdmin();
+  try {
+    const data = await completeService(serviceId);
+    revalidatePath("/en-progreso");
+    revalidatePath("/servicios");
+    revalidatePath("/dashboard");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo completar el servicio",
     };
   }
 }

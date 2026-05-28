@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus } from "lucide-react";
+import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock } from "lucide-react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
 
@@ -8,6 +8,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/escanear", label: "Escanear QR", icon: QrCode },
   { href: "/walk-in", label: "Walk-in", icon: UserPlus },
+  { href: "/en-progreso", label: "En progreso", icon: Clock },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/paquetes-admin", label: "Paquetes", icon: Package },
   { href: "/extras-admin", label: "Otros servicios", icon: Sparkles },

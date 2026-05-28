@@ -18,5 +18,17 @@ export default {
       handler: 'qr.walkInService',
       config: { policies: [], middlewares: [] },
     },
+    {
+      method: 'GET',
+      path: '/qr/in-progress-services',
+      handler: 'qr.inProgressServices',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
+      path: '/qr/complete-service',
+      handler: 'qr.completeService',
+      config: { policies: [], middlewares: [] },
+    },
   ],
 };

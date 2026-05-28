@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { Camera, Check, ChevronDown, Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,14 +16,28 @@ import {
   redeemPromotionAction,
   completeAppointmentFromQRAction,
 } from "@/actions/qr";
-import { formatPrice, cn } from "@/lib/utils";
+import { formatDate, formatPrice, cn } from "@/lib/utils";
 import {
   computePackagePrice,
   computeExtraServicePrice,
   vehicleTypeLabel,
 } from "@/lib/pricing";
-import type { ExtraService, Package } from "@/types/models";
+import type { AppointmentStatus, ExtraService, Package } from "@/types/models";
 import type { QRScanResult } from "@/lib/strapi/qr";
+
+const APPT_STATUS_VARIANT = {
+  pending: "warning",
+  approved: "info",
+  cancelled: "destructive",
+  completed: "success",
+} as const satisfies Record<AppointmentStatus, "warning" | "info" | "destructive" | "success">;
+
+const APPT_STATUS_LABEL: Record<AppointmentStatus, string> = {
+  pending: "Pendiente",
+  approved: "Aprobada",
+  cancelled: "Cancelada",
+  completed: "Completada",
+};
 
 interface Html5QrcodeLike {
   start: (
@@ -108,7 +122,13 @@ export function QrScanner({
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [selectedExtras, setSelectedExtras] = React.useState<Set<number>>(new Set());
+  const [showAllAppts, setShowAllAppts] = React.useState(false);
   const scannerRef = React.useRef<Html5QrcodeLike | null>(null);
+
+  // Reset toggle al cambiar de cliente.
+  React.useEffect(() => {
+    setShowAllAppts(false);
+  }, [result?.user.id]);
 
   function toggleExtra(id: number) {
     setSelectedExtras((prev) => {
@@ -176,11 +196,9 @@ export function QrScanner({
       toast.error(res.error);
       return;
     }
-    if (res.data?.promotionGenerated) {
-      toast.success("🎉 ¡Promoción generada para este cliente!", { duration: 6000 });
-    } else {
-      toast.success("Visita registrada");
-    }
+    toast.success("Servicio iniciado — márcalo como completado en /en-progreso cuando termines", {
+      duration: 5000,
+    });
     setResult(null);
     setNotes("");
     setSelectedExtras(new Set());
@@ -271,6 +289,56 @@ export function QrScanner({
                   <p className="text-[10px] text-muted-foreground">
                     Completar la cita registra automáticamente la visita y suma fidelidad.
                   </p>
+                </div>
+              )}
+
+              {result.appointments && result.appointments.length > 0 && (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllAppts((s) => !s)}
+                    className="flex w-full items-center justify-between rounded-lg border border-border bg-card/40 px-3 py-2 text-sm transition-colors hover:bg-card/60"
+                    aria-expanded={showAllAppts}
+                  >
+                    <span className="font-medium">
+                      📋 Todas las reservaciones ({result.appointments.length})
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        showAllAppts && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  {showAllAppts && (
+                    <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-card/20 p-2">
+                      {result.appointments.map((a) => (
+                        <div
+                          key={a.id}
+                          className="flex items-start justify-between gap-2 rounded-md border border-border/40 bg-background/60 p-2 text-xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium">
+                              {a.package?.name ?? "—"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {formatDate(a.date)} ·{" "}
+                              <span className="font-mono">{a.timeSlot?.slice(0, 5)}</span>
+                            </p>
+                            {a.vehicle && (
+                              <p className="truncate text-muted-foreground">
+                                {a.vehicle.brand} {a.vehicle.model}
+                                {a.vehicle.plate && ` · ${a.vehicle.plate}`}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant={APPT_STATUS_VARIANT[a.status]} className="shrink-0 text-[10px]">
+                            {APPT_STATUS_LABEL[a.status]}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

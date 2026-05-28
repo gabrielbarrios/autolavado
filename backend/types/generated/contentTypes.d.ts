@@ -862,6 +862,9 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
     notes: Schema.Attribute.Text;
     package: Schema.Attribute.Relation<'manyToOne', 'api::package.package'>;
     publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<['in_progress', 'completed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'in_progress'>;
     totalAmount: Schema.Attribute.Decimal &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<

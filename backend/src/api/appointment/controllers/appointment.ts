@@ -123,8 +123,10 @@ async function createVisitAndServiceFromAppointment(appointment) {
     publishedAt: now,
   };
   await strapi.entityService.create('api::visit.visit', { data: baseData });
+  // El service nace `completed` porque la cita se marcó completada explícitamente
+  // (no es un servicio "en curso"); se salta el flujo de /en-progreso.
   await strapi.entityService.create('api::service.service', {
-    data: { ...baseData, totalAmount, notes: appointment.adminNotes ?? null },
+    data: { ...baseData, totalAmount, notes: appointment.adminNotes ?? null, status: 'completed' },
   });
 }
 

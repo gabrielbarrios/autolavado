@@ -50,7 +50,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::service.service': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne', 'create', 'update', 'delete'],
-  'api::qr.qr': ['scan', 'registerVisit', 'walkInService'],
+  'api::qr.qr': ['scan', 'registerVisit', 'walkInService', 'inProgressServices', 'completeService'],
 };
 
 async function ensureAdminRoleExists() {
@@ -237,5 +237,22 @@ export default {
     } catch (err) {
       strapi.log.error('[bootstrap] Error seeding/migrating pricing:', err);
     }
+    try {
+      await backfillServiceStatus();
+    } catch (err) {
+      strapi.log.error('[bootstrap] Error backfilling service status:', err);
+    }
   },
 };
+
+/**
+ * Para services existentes (creados antes de agregar el campo `status`),
+ * marca como "completed" cualquier row con status NULL. Idempotente.
+ */
+async function backfillServiceStatus() {
+  const knex = strapi.db.connection;
+  const updated = await knex('services').whereNull('status').update({ status: 'completed' });
+  if (updated > 0) {
+    strapi.log.info(`[bootstrap] Backfilled status=completed en ${updated} services existentes`);
+  }
+}
