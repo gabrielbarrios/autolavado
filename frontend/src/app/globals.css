@@ -100,16 +100,17 @@ body {
       linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
     background-size: 40px 40px;
   }
+
   .bg-radial-fade {
-    background: radial-gradient(
-      80% 60% at 50% 0%,
-      color-mix(in oklab, var(--primary) 25%, transparent) 0%,
-      transparent 70%
-    );
+    background: radial-gradient(80% 60% at 50% 0%,
+        color-mix(in oklab, var(--primary) 25%, transparent) 0%,
+        transparent 70%);
   }
+
   .text-balance {
     text-wrap: balance;
   }
+
   .glass {
     background-color: color-mix(in oklab, var(--card) 60%, transparent);
     backdrop-filter: blur(12px);
