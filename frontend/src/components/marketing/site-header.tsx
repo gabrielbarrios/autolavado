@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { MobileNav } from "@/components/marketing/mobile-nav";
 import { getSession } from "@/lib/auth/session";
 import type { SiteSetting } from "@/types/models";
 
@@ -41,11 +42,12 @@ export async function SiteHeader({ setting }: { setting?: SiteSetting | null }) 
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                 <Link href="/login">Iniciar sesión</Link>
               </Button>
-              <Button asChild size="sm" variant="premium">
+              <Button asChild size="sm" variant="premium" className="hidden sm:inline-flex">
                 <Link href="/registro">Registrarse</Link>
               </Button>
             </>
           )}
+          <MobileNav nav={NAV} authenticated={!!session} />
         </div>
       </div>
     </header>

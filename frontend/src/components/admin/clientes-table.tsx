@@ -220,7 +220,7 @@ function ClientQrDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
+        <DialogHeader className="sm:text-center">
           <DialogTitle>QR de {name}</DialogTitle>
           <DialogDescription>
             Descárgalo como PDF (con el encabezado de {businessName}) o PNG para enviárselo al cliente.
@@ -229,16 +229,18 @@ function ClientQrDialog({
 
         {token && (
           <div className="space-y-4 pt-2">
-            <div
-              ref={canvasRef}
-              className="mx-auto inline-block rounded-2xl bg-white p-4"
-            >
-              <QRCodeCanvas value={token} size={240} level="H" includeMargin={false} />
+            <div className="flex justify-center">
+              <div
+                ref={canvasRef}
+                className="rounded-2xl bg-white p-4"
+              >
+                <QRCodeCanvas value={token} size={240} level="H" includeMargin={false} />
+              </div>
             </div>
             <p className="break-all text-center font-mono text-xs text-muted-foreground">
               {token}
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button variant="outline" onClick={handleDownloadPng}>
                 <Download className="h-4 w-4" /> PNG
               </Button>
