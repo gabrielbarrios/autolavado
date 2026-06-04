@@ -241,8 +241,10 @@ export function BookingForm({
     );
   }
 
-  const bookingNumberSlot = selectedPackage?.bookingNumberSlot ?? 1;
   const slotDuration = availability?.slotDuration ?? 60;
+  const bookingNumberSlot = selectedPackage
+    ? Math.max(1, Math.ceil(selectedPackage.durationMinutes / slotDuration))
+    : 1;
   const packageMinutes = availability?.packageMinutes ?? bookingNumberSlot * slotDuration;
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const packagePriceForVehicle = selectedPackage
@@ -284,6 +286,7 @@ export function BookingForm({
               </button>
               {packages.map((p) => {
                 const priceForCard = computePackagePrice(p, selectedVehicle);
+                const slotsForCard = Math.max(1, Math.ceil(p.durationMinutes / slotDuration));
                 return (
                   <button
                     key={p.id}
@@ -298,8 +301,8 @@ export function BookingForm({
                   >
                     <p className="font-semibold">{p.name}</p>
                     <p className="text-sm text-muted-foreground">{p.durationMinutes} min</p>
-                    {p.bookingNumberSlot && p.bookingNumberSlot > 1 && (
-                      <p className="text-xs text-muted-foreground">Ocupa {p.bookingNumberSlot} slots</p>
+                    {slotsForCard > 1 && (
+                      <p className="text-xs text-muted-foreground">Ocupa {slotsForCard} slots</p>
                     )}
                     <p className="mt-2 text-lg font-bold">{formatPrice(priceForCard)}</p>
                   </button>

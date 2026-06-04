@@ -77,8 +77,6 @@ export interface Package {
   name: string;
   slug: string;
   durationMinutes: number;
-  /** Cuántos slots consecutivos consume el paquete (1 = un slot del bookingSlotDuration). */
-  bookingNumberSlot?: number;
   description?: string | null;
   benefits?: string[];
   featured?: boolean;

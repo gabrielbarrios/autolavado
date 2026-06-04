@@ -182,7 +182,10 @@ export function RescheduleDialog({
 
   const slotDuration = availability?.slotDuration ?? 60;
   const bookingNumberSlot =
-    availability?.bookingNumberSlot ?? appointment.package?.bookingNumberSlot ?? 1;
+    availability?.bookingNumberSlot ??
+    (appointment.package?.durationMinutes
+      ? Math.max(1, Math.ceil(appointment.package.durationMinutes / slotDuration))
+      : 1);
   const packageMinutes = availability?.packageMinutes ?? bookingNumberSlot * slotDuration;
 
   return (

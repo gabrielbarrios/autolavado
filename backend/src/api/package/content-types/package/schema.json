@@ -49,9 +49,6 @@
         "images"
       ]
     },
-    "bookingNumberSlot": {
-      "type": "integer"
-    },
     "pricing": {
       "type": "component",
       "repeatable": true,

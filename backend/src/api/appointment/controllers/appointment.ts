@@ -3,8 +3,8 @@
  * appointment controller
  *
  * - `create`: asigna user del JWT (ignora el que mande el cliente) y valida
- *   que el slot esté libre considerando bookingNumberSlot del paquete +
- *   maxBookingsPerSlot del site-setting + horarios + días cerrados.
+ *   que el slot esté libre considerando los slots que ocupa el paquete (derivados
+ *   de durationMinutes) + maxBookingsPerSlot del site-setting + horarios + días cerrados.
  * - `availableSlots`: GET /appointments/available-slots?date=YYYY-MM-DD&packageId=N
  *   Devuelve los slots disponibles para esa fecha y paquete.
  * - `find/findOne`: el cliente sólo ve SUS reservaciones, el admin las ve todas.
@@ -40,6 +40,13 @@ function minutesToHHMM(mins) {
   const h = Math.floor(mins / 60).toString().padStart(2, '0');
   const m = (mins % 60).toString().padStart(2, '0');
   return `${h}:${m}`;
+}
+
+/** Cuántos slots consecutivos ocupa una duración dada. Mínimo 1. */
+function minutesToSlots(minutes, slotDuration) {
+  const mins = Number(minutes ?? 0);
+  if (mins <= 0) return 1;
+  return Math.max(1, Math.ceil(mins / slotDuration));
 }
 
 /**
@@ -132,14 +139,14 @@ async function createVisitAndServiceFromAppointment(appointment) {
 
 /**
  * Resuelve la duración del servicio en slots.
- * - Si hay packageId, usa pkg.bookingNumberSlot (o 1).
+ * - Si hay packageId, deriva los slots de pkg.durationMinutes vs slotDuration.
  * - Si no, suma estimatedDuration de los extras y lo redondea al siguiente slot. Mínimo 1 slot.
  */
 async function resolveBookingSlots(packageId, extraServiceIds, slotDuration) {
   if (packageId) {
     const pkg = await strapi.entityService.findOne('api::package.package', packageId);
     if (!pkg) return { error: 'Paquete no encontrado' };
-    return { bookingNumberSlot: pkg.bookingNumberSlot ?? 1 };
+    return { bookingNumberSlot: minutesToSlots(pkg.durationMinutes, slotDuration) };
   }
   const ids = (extraServiceIds ?? []).filter((n) => Number.isFinite(n) && n > 0);
   if (ids.length === 0) {
@@ -152,8 +159,7 @@ async function resolveBookingSlots(packageId, extraServiceIds, slotDuration) {
     (acc, e) => acc + Number(e?.estimatedDuration ?? 0),
     0,
   );
-  if (totalMinutes <= 0) return { bookingNumberSlot: 1 };
-  return { bookingNumberSlot: Math.max(1, Math.ceil(totalMinutes / slotDuration)) };
+  return { bookingNumberSlot: minutesToSlots(totalMinutes, slotDuration) };
 }
 
 async function getDayContext(date, packageId, excludeAppointmentId, extraServiceIds) {
@@ -206,14 +212,17 @@ async function getDayContext(date, packageId, excludeAppointmentId, extraService
   for (const a of existing) {
     const start = timeToMinutes(a.timeSlot);
     if (start === null) continue;
-    let otherSlots = a.package?.bookingNumberSlot ?? 0;
-    if (!otherSlots) {
+    let otherSlots;
+    if (a.package) {
+      // appointment con paquete → slots derivados de durationMinutes
+      otherSlots = minutesToSlots(a.package.durationMinutes, slotDuration);
+    } else {
       // appointment de solo extras → calcular slots desde estimatedDuration
       const extrasMin = (a.extraServices ?? []).reduce(
         (acc, e) => acc + Number(e?.estimatedDuration ?? 0),
         0,
       );
-      otherSlots = extrasMin > 0 ? Math.max(1, Math.ceil(extrasMin / slotDuration)) : 1;
+      otherSlots = minutesToSlots(extrasMin, slotDuration);
     }
     const otherMinutes = otherSlots * slotDuration;
     for (let m = start; m < start + otherMinutes; m += slotDuration) {

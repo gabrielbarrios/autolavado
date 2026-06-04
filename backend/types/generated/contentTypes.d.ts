@@ -691,7 +691,6 @@ export interface ApiPackagePackage extends Struct.CollectionTypeSchema {
   };
   attributes: {
     benefits: Schema.Attribute.JSON;
-    bookingNumberSlot: Schema.Attribute.Integer;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
