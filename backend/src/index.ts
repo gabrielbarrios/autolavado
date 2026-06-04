@@ -220,6 +220,83 @@ export default {
         }
       },
     });
+
+    // Lifecycle: cada Visit creada suma fidelidad.
+    // NOTA: se registra aquí (subscribe global) y NO en
+    // content-types/visit/lifecycles.ts porque, igual que con el qrToken del user,
+    // los lifecycles por-archivo no disparan de forma fiable en este proyecto.
+    // Re-consultamos la Visit por id para obtener el user poblado (en afterCreate
+    // event.result no trae relaciones).
+    strapi.db.lifecycles.subscribe({
+      models: ['api::visit.visit'],
+      async afterCreate(event) {
+        const visitId = event.result?.id;
+        if (!visitId) return;
+
+        const visit = await strapi.db.query('api::visit.visit').findOne({
+          where: { id: visitId },
+          populate: { user: true },
+        });
+        const userId = visit?.user?.id;
+        if (!userId) return;
+
+        const VISITS_FOR_REWARD = 3;
+        const now = new Date();
+
+        // Total de visitas de por vida del cliente (lo que ve el admin en Clientes/Dashboard).
+        const userRecord = await strapi.entityService.findOne(
+          'plugin::users-permissions.user',
+          userId,
+          { fields: ['visitCount'] },
+        );
+        await strapi.entityService.update('plugin::users-permissions.user', userId, {
+          data: { visitCount: (userRecord?.visitCount ?? 0) + 1 },
+        });
+
+        // Progreso del ciclo de fidelidad (se resetea cada VISITS_FOR_REWARD).
+        const existing = await strapi.entityService.findMany(
+          'api::loyalty-progress.loyalty-progress',
+          { filters: { user: userId }, limit: 1 },
+        );
+        let progress = existing[0];
+        if (!progress) {
+          progress = await strapi.entityService.create(
+            'api::loyalty-progress.loyalty-progress',
+            { data: { user: userId, currentCount: 1, cycleStartedAt: now } },
+          );
+        } else {
+          progress = await strapi.entityService.update(
+            'api::loyalty-progress.loyalty-progress',
+            progress.id,
+            { data: { currentCount: (progress.currentCount ?? 0) + 1 } },
+          );
+        }
+
+        // Al completar el ciclo: genera promoción y reinicia el contador.
+        if (progress.currentCount >= VISITS_FOR_REWARD) {
+          const validUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          await strapi.entityService.create('api::promotion.promotion', {
+            data: {
+              code: `PROMO-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+              title: '10% off por fidelidad',
+              description: 'Acumulaste 3 visitas. ¡Disfruta este descuento en tu próximo servicio!',
+              discountType: 'percent',
+              discountValue: 10,
+              validFrom: now,
+              validUntil,
+              used: false,
+              user: userId,
+              publishedAt: now,
+            },
+          });
+          await strapi.entityService.update(
+            'api::loyalty-progress.loyalty-progress',
+            progress.id,
+            { data: { currentCount: 0, cycleStartedAt: now } },
+          );
+        }
+      },
+    });
   },
 
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
