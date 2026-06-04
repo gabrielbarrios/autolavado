@@ -52,10 +52,13 @@ export interface CompleteServiceResult {
   loyaltyProgress: LoyaltyProgress | null;
 }
 
-export async function completeService(serviceId: number): Promise<CompleteServiceResult> {
+export async function completeService(
+  serviceId: number,
+  performedByAdminId?: number,
+): Promise<CompleteServiceResult> {
   return strapiServerFetch<CompleteServiceResult>("/api/qr/complete-service", {
     method: "POST",
-    body: { serviceId },
+    body: { serviceId, ...(performedByAdminId ? { performedByAdminId } : {}) },
   });
 }
 

@@ -29,6 +29,11 @@
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
     },
+    "performedBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
     "vehicle": {
       "type": "relation",
       "relation": "manyToOne",

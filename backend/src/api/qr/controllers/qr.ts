@@ -8,6 +8,39 @@
  * sólo existen DESPUÉS de crear esos content types en el Content-Type Builder.
  * Por eso usamos @ts-nocheck para evitar errores de TS antes de crearlos.
  */
+
+/** ¿El user (con role poblado) es super admin? */
+function isSuperAdmin(user) {
+  const t = user?.role?.type;
+  return t === 'superadmin';
+}
+
+/** ¿El user (con role poblado) es admin o super admin? */
+function isAnyAdmin(user) {
+  const t = user?.role?.type;
+  return t === 'admin' || t === 'superadmin';
+}
+
+/**
+ * Resuelve a qué admin se le acredita un servicio completado.
+ * - Por defecto: el admin que ejecuta la acción (JWT).
+ * - Si es super admin y manda performedByAdminId (que sea admin/superadmin): ese.
+ */
+async function resolvePerformedBy(actingUserId, performedByAdminId) {
+  const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+    where: { id: actingUserId },
+    populate: { role: true },
+  });
+  if (performedByAdminId && isSuperAdmin(acting)) {
+    const target = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: Number(performedByAdminId) },
+      populate: { role: true },
+    });
+    if (target && isAnyAdmin(target)) return target.id;
+  }
+  return actingUserId;
+}
+
 export default {
   async scan(ctx) {
     const { qrToken } = ctx.request.body ?? {};
@@ -289,8 +322,10 @@ export default {
    * crea una Visit que dispara el lifecycle de fidelidad (loyalty + promoción).
    */
   async completeService(ctx) {
-    const { serviceId } = ctx.request.body ?? {};
+    const { serviceId, performedByAdminId } = ctx.request.body ?? {};
     if (!serviceId) return ctx.badRequest('serviceId requerido');
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
 
     const service = await strapi.db.query('api::service.service').findOne({
       where: { id: serviceId },
@@ -300,10 +335,13 @@ export default {
     if (service.status === 'completed') return ctx.badRequest('Servicio ya completado');
 
     const now = new Date();
+    // Acreditar el lavado a un admin (por defecto quien lo completa; el super admin
+    // puede acreditarlo a otro admin enviando performedByAdminId).
+    const performedById = await resolvePerformedBy(actingUserId, performedByAdminId);
 
-    // Marcar el service como completed
+    // Marcar el service como completed y vincular al admin que lo realizó.
     const updated = await strapi.entityService.update('api::service.service', service.id, {
-      data: { status: 'completed' },
+      data: { status: 'completed', performedBy: performedById },
     });
 
     // Si no es walk-in y tiene user + vehicle + package → crear Visit (loyalty)
@@ -347,6 +385,99 @@ export default {
       service: { id: updated.id, status: 'completed' },
       promotionGenerated,
       loyaltyProgress,
+    };
+  },
+
+  /**
+   * GET /api/qr/employee-stats  (solo super admin)
+   * Métricas por admin (lavados completados + ganancias) y tendencia diaria
+   * de los últimos 30 días, para supervisar a los empleados.
+   */
+  async employeeStats(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+    const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: actingUserId },
+      populate: { role: true },
+    });
+    if (!isSuperAdmin(acting)) return ctx.forbidden('Solo el super admin');
+
+    // Todos los admins (admin + super admin)
+    const adminRoles = await strapi.db.query('plugin::users-permissions.role').findMany({
+      where: { type: { $in: ['admin', 'superadmin'] } },
+    });
+    const adminRoleIds = adminRoles.map((r) => r.id);
+    const admins = await strapi.db.query('plugin::users-permissions.user').findMany({
+      where: { role: { id: { $in: adminRoleIds } } },
+      populate: { role: true },
+    });
+
+    // Servicios completados con el admin que los realizó
+    const services = await strapi.db.query('api::service.service').findMany({
+      where: { status: 'completed' },
+      populate: { performedBy: true },
+    });
+
+    // Agregados por admin
+    const byAdmin = new Map();
+    for (const a of admins) byAdmin.set(a.id, { washes: 0, earnings: 0 });
+    const unassigned = { washes: 0, earnings: 0 };
+    for (const s of services) {
+      const pid = s.performedBy?.id;
+      const amt = Number(s.totalAmount ?? 0);
+      if (pid && byAdmin.has(pid)) {
+        const e = byAdmin.get(pid);
+        e.washes += 1;
+        e.earnings += amt;
+      } else {
+        unassigned.washes += 1;
+        unassigned.earnings += amt;
+      }
+    }
+
+    const adminsOut = admins
+      .map((a) => ({
+        id: a.id,
+        name: a.name ?? a.username,
+        email: a.email,
+        role: a.role?.type,
+        washes: byAdmin.get(a.id).washes,
+        earnings: byAdmin.get(a.id).earnings,
+      }))
+      .sort((x, y) => y.earnings - x.earnings);
+
+    // Tendencia diaria de los últimos 30 días (total del negocio)
+    const DAYS = 30;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const series = [];
+    const idx = new Map();
+    for (let i = DAYS - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const row = { date: key, washes: 0, earnings: 0 };
+      series.push(row);
+      idx.set(key, row);
+    }
+    for (const s of services) {
+      const key = new Date(s.date).toISOString().slice(0, 10);
+      const row = idx.get(key);
+      if (row) {
+        row.washes += 1;
+        row.earnings += Number(s.totalAmount ?? 0);
+      }
+    }
+
+    ctx.body = {
+      admins: adminsOut,
+      daily: series,
+      unassigned,
+      totals: {
+        admins: admins.length,
+        washes: services.length,
+        earnings: services.reduce((acc, s) => acc + Number(s.totalAmount ?? 0), 0),
+      },
     };
   },
 };

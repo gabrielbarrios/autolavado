@@ -52,13 +52,14 @@ export default async function ServiciosPage() {
                   <th className="px-4 py-3 font-medium">Auto</th>
                   <th className="px-4 py-3 font-medium">Paquete</th>
                   <th className="px-4 py-3 font-medium">Extras</th>
+                  <th className="px-4 py-3 font-medium">Atendió</th>
                   <th className="px-4 py-3 font-medium text-right">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {services.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
                       Sin servicios registrados.
                     </td>
                   </tr>
@@ -96,6 +97,9 @@ export default async function ServiciosPage() {
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {s.performedBy?.name ?? s.performedBy?.username ?? s.performedBy?.email ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-mono">{formatPrice(s.totalAmount)}</td>
                     </tr>

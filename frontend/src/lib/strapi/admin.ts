@@ -15,6 +15,44 @@ export async function listAllUsers(): Promise<User[]> {
   return res.data ?? [];
 }
 
+/** Solo los usuarios admin / super admin (empleados). */
+export async function listAdmins(): Promise<User[]> {
+  const users = await listAllUsers();
+  return users.filter((u) => {
+    const r =
+      typeof u.role === "string"
+        ? u.role
+        : (u.role?.type ?? u.role?.name ?? "").toLowerCase();
+    return r.includes("admin");
+  });
+}
+
+export interface EmployeeStatRow {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  washes: number;
+  earnings: number;
+}
+
+export interface EmployeeStats {
+  admins: EmployeeStatRow[];
+  daily: { date: string; washes: number; earnings: number }[];
+  unassigned: { washes: number; earnings: number };
+  totals: { admins: number; washes: number; earnings: number };
+}
+
+export async function employeeStats(): Promise<EmployeeStats | null> {
+  try {
+    return await strapiServerFetch<EmployeeStats>("/api/qr/employee-stats", {
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function adminStats() {
   // Estadísticas calculadas con queries paralelas; usa `pagination[pageSize]=1` con `pagination[withCount]=true` para obtener total.
   const safe = async <T>(p: Promise<T>) => p.catch(() => null);

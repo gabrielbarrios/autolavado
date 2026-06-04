@@ -30,5 +30,11 @@ export default {
       handler: 'qr.completeService',
       config: { policies: [], middlewares: [] },
     },
+    {
+      method: 'GET',
+      path: '/qr/employee-stats',
+      handler: 'qr.employeeStats',
+      config: { policies: [], middlewares: [] },
+    },
   ],
 };

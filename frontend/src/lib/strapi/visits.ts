@@ -37,6 +37,7 @@ export async function listAllServices(): Promise<Service[]> {
       "populate[package]": "true",
       "populate[vehicle]": "true",
       "populate[user]": "true",
+      "populate[performedBy]": "true",
       "populate[extraServices]": "true",
       "sort[0]": "date:desc",
       "pagination[pageSize]": "200",

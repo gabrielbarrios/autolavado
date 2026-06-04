@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock } from "lucide-react";
+import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock, ShieldCheck } from "lucide-react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
 
@@ -18,17 +18,23 @@ const NAV = [
   { href: "/servicios", label: "Servicios", icon: Wrench },
 ];
 
+// Solo super admin: supervisión de empleados (admins).
+const SUPERADMIN_NAV = [{ href: "/empleados", label: "Empleados", icon: ShieldCheck }];
+
 export function AdminShell({
   user,
+  isSuperAdmin = false,
   children,
 }: {
   user: { name?: string; email: string };
+  isSuperAdmin?: boolean;
   children: React.ReactNode;
 }) {
+  const nav = isSuperAdmin ? [...NAV, ...SUPERADMIN_NAV] : NAV;
   return (
     <DashboardShell
-      nav={NAV}
-      user={{ name: user.name, email: user.email, role: "admin" }}
+      nav={nav}
+      user={{ name: user.name, email: user.email, role: isSuperAdmin ? "Super Admin" : "admin" }}
       onLogout={() => logoutAction()}
     >
       {children}

@@ -12,7 +12,24 @@ import { formatDate, formatPrice } from "@/lib/utils";
 import { vehicleTypeLabel } from "@/lib/pricing";
 import type { Service } from "@/types/models";
 
-export function InProgressList({ services }: { services: Service[] }) {
+export interface AdminOption {
+  id: number;
+  name: string;
+}
+
+interface InProgressListProps {
+  services: Service[];
+  isSuperAdmin?: boolean;
+  admins?: AdminOption[];
+  currentUserId?: number | null;
+}
+
+export function InProgressList({
+  services,
+  isSuperAdmin = false,
+  admins = [],
+  currentUserId = null,
+}: InProgressListProps) {
   if (services.length === 0) {
     return (
       <Card>
@@ -38,12 +55,19 @@ export function InProgressList({ services }: { services: Service[] }) {
                 <th className="px-4 py-3 font-medium">Paquete</th>
                 <th className="px-4 py-3 font-medium">Extras</th>
                 <th className="px-4 py-3 font-medium text-right">Total</th>
+                {isSuperAdmin && <th className="px-4 py-3 font-medium">Acreditar a</th>}
                 <th className="px-4 py-3 font-medium text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {services.map((s) => (
-                <Row key={s.id} service={s} />
+                <Row
+                  key={s.id}
+                  service={s}
+                  isSuperAdmin={isSuperAdmin}
+                  admins={admins}
+                  currentUserId={currentUserId}
+                />
               ))}
             </tbody>
           </table>
@@ -52,7 +76,13 @@ export function InProgressList({ services }: { services: Service[] }) {
         {/* Mobile: cards */}
         <div className="divide-y divide-border/40 md:hidden">
           {services.map((s) => (
-            <MobileCard key={s.id} service={s} />
+            <MobileCard
+              key={s.id}
+              service={s}
+              isSuperAdmin={isSuperAdmin}
+              admins={admins}
+              currentUserId={currentUserId}
+            />
           ))}
         </div>
       </CardContent>
@@ -75,13 +105,53 @@ function describeCliente(s: Service): string {
   return s.user?.name ?? s.user?.email ?? "—";
 }
 
-function Row({ service: s }: { service: Service }) {
+interface RowProps {
+  service: Service;
+  isSuperAdmin: boolean;
+  admins: AdminOption[];
+  currentUserId: number | null;
+}
+
+/** Selector (solo super admin) para acreditar el lavado a un admin. */
+function CreditSelect({
+  admins,
+  value,
+  onChange,
+  className,
+}: {
+  admins: AdminOption[];
+  value: number | null;
+  onChange: (id: number) => void;
+  className?: string;
+}) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className={
+        "rounded-md border border-border bg-background px-2 py-1 text-xs " + (className ?? "")
+      }
+    >
+      {admins.map((a) => (
+        <option key={a.id} value={a.id}>
+          {a.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function Row({ service: s, isSuperAdmin, admins, currentUserId }: RowProps) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const [creditId, setCreditId] = React.useState<number | null>(currentUserId);
 
   async function onComplete() {
     setLoading(true);
-    const res = await completeServiceAction(s.id);
+    const res = await completeServiceAction(
+      s.id,
+      isSuperAdmin ? creditId ?? undefined : undefined,
+    );
     setLoading(false);
     if (!res.ok) {
       toast.error(res.error);
@@ -124,6 +194,11 @@ function Row({ service: s }: { service: Service }) {
         )}
       </td>
       <td className="px-4 py-3 text-right font-mono">{formatPrice(s.totalAmount)}</td>
+      {isSuperAdmin && (
+        <td className="px-4 py-3">
+          <CreditSelect admins={admins} value={creditId} onChange={setCreditId} />
+        </td>
+      )}
       <td className="px-4 py-3 text-right">
         <Button size="sm" variant="premium" onClick={onComplete} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -134,13 +209,17 @@ function Row({ service: s }: { service: Service }) {
   );
 }
 
-function MobileCard({ service: s }: { service: Service }) {
+function MobileCard({ service: s, isSuperAdmin, admins, currentUserId }: RowProps) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const [creditId, setCreditId] = React.useState<number | null>(currentUserId);
 
   async function onComplete() {
     setLoading(true);
-    const res = await completeServiceAction(s.id);
+    const res = await completeServiceAction(
+      s.id,
+      isSuperAdmin ? creditId ?? undefined : undefined,
+    );
     setLoading(false);
     if (!res.ok) {
       toast.error(res.error);
@@ -187,6 +266,17 @@ function MobileCard({ service: s }: { service: Service }) {
               {e.name}
             </Badge>
           ))}
+        </div>
+      )}
+      {isSuperAdmin && (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Acreditar a</p>
+          <CreditSelect
+            admins={admins}
+            value={creditId}
+            onChange={setCreditId}
+            className="w-full"
+          />
         </div>
       )}
       <Button

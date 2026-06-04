@@ -114,7 +114,7 @@ async function computeAppointmentTotal(appointment) {
  * Crea Visit + Service a partir de una appointment completada.
  * Copia paquete, vehículo, user, extras y calcula totalAmount.
  */
-async function createVisitAndServiceFromAppointment(appointment) {
+async function createVisitAndServiceFromAppointment(appointment, operatorId) {
   const totalAmount = await computeAppointmentTotal(appointment);
   const extraIds = (appointment.extraServices ?? []).map((e) => e.id);
   const userId = appointment.user?.id ?? appointment.user;
@@ -133,7 +133,14 @@ async function createVisitAndServiceFromAppointment(appointment) {
   // El service nace `completed` porque la cita se marcó completada explícitamente
   // (no es un servicio "en curso"); se salta el flujo de /en-progreso.
   await strapi.entityService.create('api::service.service', {
-    data: { ...baseData, totalAmount, notes: appointment.adminNotes ?? null, status: 'completed' },
+    data: {
+      ...baseData,
+      totalAmount,
+      notes: appointment.adminNotes ?? null,
+      status: 'completed',
+      // Acreditar el lavado al admin que completó la cita.
+      ...(operatorId ? { performedBy: operatorId } : {}),
+    },
   });
 }
 
@@ -403,7 +410,7 @@ export default factories.createCoreController('api::appointment.appointment', ({
             extraServices: { populate: { pricing: true } },
           },
         });
-        if (full) await createVisitAndServiceFromAppointment(full);
+        if (full) await createVisitAndServiceFromAppointment(full, userId);
       } catch (err) {
         strapi.log.error(`[appointment.update] No se pudo crear visit/service: ${err}`);
       }

@@ -1,12 +1,24 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { listInProgressServices } from "@/lib/strapi/qr";
+import { listAdmins } from "@/lib/strapi/admin";
+import { getSession } from "@/lib/auth/session";
 import { InProgressList } from "@/components/admin/in-progress-list";
 import { formatPrice } from "@/lib/utils";
 
 export const metadata = { title: "Servicios en progreso" };
 
 export default async function EnProgresoPage() {
-  const services = await listInProgressServices().catch(() => []);
+  const session = await getSession();
+  const isSuperAdmin = session?.role === "superadmin";
+  const [services, adminUsers] = await Promise.all([
+    listInProgressServices().catch(() => []),
+    isSuperAdmin ? listAdmins().catch(() => []) : Promise.resolve([]),
+  ]);
+  const admins = adminUsers.map((u) => ({
+    id: u.id,
+    name: u.name ?? u.username ?? u.email,
+  }));
+  const currentUserId = session?.user.id ?? null;
   const total = services.reduce((acc, s) => acc + Number(s.totalAmount ?? 0), 0);
 
   return (
@@ -34,7 +46,12 @@ export default async function EnProgresoPage() {
         </Card>
       </div>
 
-      <InProgressList services={services} />
+      <InProgressList
+        services={services}
+        isSuperAdmin={isSuperAdmin}
+        admins={admins}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 }

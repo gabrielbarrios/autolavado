@@ -1,6 +1,6 @@
 import type { StrapiMedia } from "./strapi";
 
-export type UserRole = "admin" | "cliente";
+export type UserRole = "admin" | "superadmin" | "cliente";
 
 export interface User {
   id: number;
@@ -100,6 +100,8 @@ export interface Service {
   notes?: string | null;
   totalAmount: number;
   user?: User;
+  /** Admin que realizó/completó el servicio (para historial y supervisión). */
+  performedBy?: User | null;
   vehicle?: Vehicle;
   package?: Package;
   extraServices?: ExtraService[];

@@ -88,13 +88,15 @@ export async function walkInServiceAction(
 
 export async function completeServiceAction(
   serviceId: number,
+  performedByAdminId?: number,
 ): Promise<ActionResult<CompleteServiceResult>> {
   await requireAdmin();
   try {
-    const data = await completeService(serviceId);
+    const data = await completeService(serviceId, performedByAdminId);
     revalidatePath("/en-progreso");
     revalidatePath("/servicios");
     revalidatePath("/dashboard");
+    revalidatePath("/empleados");
     return { ok: true, data };
   } catch (err) {
     return {

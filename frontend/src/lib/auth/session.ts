@@ -12,8 +12,10 @@ export interface Session {
 
 function resolveRole(user: User): UserRole {
   if (typeof user.role === "string") return user.role;
+  const type = user.role?.type?.toLowerCase() ?? "";
   const name = user.role?.name?.toLowerCase() ?? "";
-  if (name.includes("admin")) return "admin";
+  if (type === "superadmin" || name.includes("super")) return "superadmin";
+  if (type === "admin" || name.includes("admin")) return "admin";
   return "cliente";
 }
 

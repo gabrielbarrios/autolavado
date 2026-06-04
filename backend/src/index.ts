@@ -53,21 +53,73 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::qr.qr': ['scan', 'registerVisit', 'walkInService', 'inProgressServices', 'completeService'],
 };
 
-async function ensureAdminRoleExists() {
+/**
+ * Permisos del Super Admin: todo lo del Admin + el panel de empleados
+ * (employeeStats) para supervisar a los administradores.
+ */
+const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
+  ...ADMIN_PERMISSIONS,
+  'api::qr.qr': [
+    'scan',
+    'registerVisit',
+    'walkInService',
+    'inProgressServices',
+    'completeService',
+    'employeeStats',
+  ],
+};
+
+/** Email del dueño que se promueve automáticamente a Super Admin en el arranque. */
+const OWNER_EMAIL = 'dark_finder@hotmail.com';
+
+async function ensureRoleExists(type: string, name: string, description: string) {
   const existing = await strapi.db.query('plugin::users-permissions.role').findOne({
-    where: { type: 'admin' },
+    where: { type },
   });
   if (existing) return existing;
 
   const created = await strapi.db.query('plugin::users-permissions.role').create({
-    data: {
-      name: 'Admin',
-      description: 'Dueño / administrador del autolavado — acceso total',
-      type: 'admin',
-    },
+    data: { name, description, type },
   });
-  strapi.log.info('[bootstrap] Created users-permissions role "Admin"');
+  strapi.log.info(`[bootstrap] Created users-permissions role "${name}"`);
   return created;
+}
+
+async function ensureAdminRoleExists() {
+  return ensureRoleExists('admin', 'Admin', 'Administrador del autolavado — acceso total');
+}
+
+async function ensureSuperAdminRoleExists() {
+  return ensureRoleExists(
+    'superadmin',
+    'Super Admin',
+    'Dueño — supervisa a los administradores (empleados) además del acceso total',
+  );
+}
+
+/**
+ * Promueve la cuenta del dueño (OWNER_EMAIL) al rol Super Admin si existe y
+ * todavía no lo tiene. Idempotente.
+ */
+async function promoteOwnerToSuperAdmin() {
+  const role = await strapi.db.query('plugin::users-permissions.role').findOne({
+    where: { type: 'superadmin' },
+  });
+  if (!role) return;
+  const owner = await strapi.db.query('plugin::users-permissions.user').findOne({
+    where: { email: OWNER_EMAIL },
+    populate: { role: true },
+  });
+  if (!owner) {
+    strapi.log.info(`[bootstrap] Owner ${OWNER_EMAIL} aún no existe; no se promueve.`);
+    return;
+  }
+  if (owner.role?.id === role.id) return;
+  await strapi.db.query('plugin::users-permissions.user').update({
+    where: { id: owner.id },
+    data: { role: role.id },
+  });
+  strapi.log.info(`[bootstrap] Promoted ${OWNER_EMAIL} to Super Admin`);
 }
 
 /**
@@ -302,9 +354,12 @@ export default {
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
     try {
       await ensureAdminRoleExists();
+      await ensureSuperAdminRoleExists();
       await ensureRolePermissions('public', PUBLIC_PERMISSIONS);
       await ensureRolePermissions('authenticated', AUTHENTICATED_PERMISSIONS);
       await ensureRolePermissions('admin', ADMIN_PERMISSIONS);
+      await ensureRolePermissions('superadmin', SUPERADMIN_PERMISSIONS);
+      await promoteOwnerToSuperAdmin();
     } catch (err) {
       strapi.log.error('[bootstrap] Error setting permissions:', err);
     }
