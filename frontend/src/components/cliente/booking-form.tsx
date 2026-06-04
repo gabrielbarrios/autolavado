@@ -24,6 +24,9 @@ import { Check, Sparkles } from "lucide-react";
 interface SlotInfo {
   slot: string;
   available: boolean;
+  reason?: string;
+  /** true cuando el bloqueo se debe a que un horario POSTERIOR (multi-slot) está lleno. */
+  overflow?: boolean;
 }
 
 interface AvailabilityResponse {
@@ -31,6 +34,7 @@ interface AvailabilityResponse {
   reason?: string;
   error?: string;
   slotDuration?: number;
+  maxParallel?: number;
   bookingNumberSlot?: number;
   packageMinutes?: number;
   open?: string;
@@ -404,7 +408,7 @@ export function BookingForm({
                           type="button"
                           onClick={() => s.available && setSlot(s.slot)}
                           disabled={!s.available}
-                          title={s.available ? undefined : "Slot ocupado"}
+                          title={s.available ? undefined : s.reason ?? "Horario ocupado"}
                           className={cn(
                             "rounded-lg border px-3 py-1.5 text-sm transition-all",
                             !s.available
@@ -419,6 +423,21 @@ export function BookingForm({
                       );
                     })}
                   </div>
+                  {availability.slots.some((s) => s.overflow) && (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-300">
+                      <CalendarX className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        Algunos horarios están bloqueados porque tu servicio dura{" "}
+                        {packageMinutes} min ({bookingNumberSlot} horario
+                        {bookingNumberSlot > 1 ? "s" : ""} seguido
+                        {bookingNumberSlot > 1 ? "s" : ""}) y uno de los horarios
+                        siguientes ya alcanzó el máximo de{" "}
+                        {availability.maxParallel ?? 1} reservación
+                        {(availability.maxParallel ?? 1) > 1 ? "es" : ""}. Necesitas
+                        un bloque libre que cubra toda la duración del servicio.
+                      </span>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">

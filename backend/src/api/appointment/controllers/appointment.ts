@@ -225,13 +225,24 @@ async function getDayContext(date, packageId, excludeAppointmentId, extraService
   const slots = [];
   for (let m = openMin; m + packageMinutes <= closeMin; m += slotDuration) {
     let blocked = false;
+    // overflow = el horario de inicio tiene cupo, pero un slot POSTERIOR
+    // requerido por la duración total del servicio ya llegó al máximo.
+    let overflow = false;
     for (let i = m; i < m + packageMinutes; i += slotDuration) {
       if ((occupancy[i] ?? 0) >= maxParallel) {
         blocked = true;
+        if (i > m) overflow = true;
         break;
       }
     }
-    slots.push({ slot: minutesToHHMM(m), available: !blocked });
+    const entry = { slot: minutesToHHMM(m), available: !blocked };
+    if (blocked) {
+      entry.reason = overflow
+        ? `Tu servicio ocupa ${bookingNumberSlot} horario${bookingNumberSlot > 1 ? 's' : ''} seguidos (${packageMinutes} min) y uno de los horarios siguientes ya alcanzó el máximo de ${maxParallel} reservación${maxParallel > 1 ? 'es' : ''}.`
+        : `Este horario ya alcanzó el máximo de ${maxParallel} reservación${maxParallel > 1 ? 'es' : ''}.`;
+      entry.overflow = overflow;
+    }
+    slots.push(entry);
   }
 
   return {
@@ -297,7 +308,7 @@ export default factories.createCoreController('api::appointment.appointment', ({
     if (day.error) return ctx.badRequest(day.error);
     const slot = day.slots.find((s) => s.slot === timeSlot);
     if (!slot) return ctx.badRequest('Slot fuera del horario del día');
-    if (!slot.available) return ctx.badRequest('Slot ya está ocupado');
+    if (!slot.available) return ctx.badRequest(slot.reason ?? 'Slot ya está ocupado');
 
     // Ownership del vehículo
     const vehicle = await strapi.db.query('api::vehicle.vehicle').findOne({
@@ -358,7 +369,7 @@ export default factories.createCoreController('api::appointment.appointment', ({
       if (day.error) return ctx.badRequest(day.error);
       const slot = day.slots.find((s) => s.slot === newSlot);
       if (!slot) return ctx.badRequest('Slot fuera del horario del día');
-      if (!slot.available) return ctx.badRequest('Slot ya está ocupado');
+      if (!slot.available) return ctx.badRequest(slot.reason ?? 'Slot ya está ocupado');
     }
 
     const willComplete = data.status === 'completed' && current.status !== 'completed';
