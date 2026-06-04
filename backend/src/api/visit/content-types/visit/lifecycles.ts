@@ -4,8 +4,9 @@
  * (DESPUÉS de crear el content type `visit` en el Content-Type Builder).
  *
  * Lógica:
- * - Cada vez que se crea una Visit, incrementa el contador del LoyaltyProgress del user.
- * - Si llega a 3, genera una Promotion automática (10% off) y resetea el contador.
+ * - Cada vez que se crea una Visit, incrementa el contador de visitas totales del user
+ *   (user.visitCount, lo que muestra el admin) y el del LoyaltyProgress (ciclo de fidelidad).
+ * - Si el ciclo llega a 3, genera una Promotion automática (10% off) y resetea el contador.
  */
 import crypto from 'node:crypto';
 
@@ -17,6 +18,16 @@ export default {
     if (!userId) return;
 
     const VISITS_FOR_REWARD = 3;
+
+    // Total de visitas de por vida del cliente (lo que ve el admin en Clientes/Dashboard).
+    const userRecord = await strapi.entityService.findOne(
+      'plugin::users-permissions.user',
+      userId,
+      { fields: ['visitCount'] },
+    );
+    await strapi.entityService.update('plugin::users-permissions.user', userId, {
+      data: { visitCount: (userRecord?.visitCount ?? 0) + 1 },
+    });
 
     const existing = await strapi.entityService.findMany('api::loyalty-progress.loyalty-progress', {
       filters: { user: userId },

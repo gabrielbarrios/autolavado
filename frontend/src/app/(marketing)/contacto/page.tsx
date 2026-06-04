@@ -6,6 +6,20 @@ import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Contacto" };
 
+/**
+ * Devuelve una URL embebible para el iframe del mapa.
+ * - Si mapUrl ya es un embed válido de Google (`/maps/embed`), se usa tal cual.
+ * - Si no (enlace corto maps.app.goo.gl, link de "place", etc.), arma un embed
+ *   con `output=embed` a partir de la dirección, o del propio mapUrl como query.
+ * Los enlaces cortos NO son embebibles (Google los bloquea con X-Frame-Options).
+ */
+function toEmbedMapUrl(mapUrl?: string | null, address?: string | null): string | null {
+  if (mapUrl && mapUrl.includes("/maps/embed")) return mapUrl;
+  const query = address ?? mapUrl;
+  if (!query) return null;
+  return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+}
+
 export default async function ContactoPage() {
   const setting = await getSiteSetting().catch(() => null);
   const c = setting?.contactInfo;
@@ -13,6 +27,7 @@ export default async function ContactoPage() {
   const closedDates = (setting?.closedDates ?? [])
     .filter((d) => new Date(d.date) >= new Date(new Date().toDateString()))
     .sort((a, b) => a.date.localeCompare(b.date));
+  const embedMapUrl = toEmbedMapUrl(c?.mapUrl, c?.address);
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-16">
@@ -115,9 +130,16 @@ export default async function ContactoPage() {
         </Card>
       </div>
 
-      {c?.mapUrl && (
+      {embedMapUrl && (
         <div className="mt-10 overflow-hidden rounded-2xl border border-border/60">
-          <iframe src={c.mapUrl} className="aspect-video w-full" loading="lazy" allowFullScreen title="Mapa" />
+          <iframe
+            src={embedMapUrl}
+            className="aspect-video w-full"
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Mapa"
+          />
         </div>
       )}
     </div>
