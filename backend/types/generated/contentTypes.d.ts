@@ -860,6 +860,10 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     notes: Schema.Attribute.Text;
     package: Schema.Attribute.Relation<'manyToOne', 'api::package.package'>;
+    performedBy: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
     publishedAt: Schema.Attribute.DateTime;
     status: Schema.Attribute.Enumeration<['in_progress', 'completed']> &
       Schema.Attribute.Required &
@@ -1445,7 +1449,7 @@ export interface PluginUsersPermissionsRole
   };
   pluginOptions: {
     'content-manager': {
-      visible: false;
+      visible: true;
     };
     'content-type-builder': {
       visible: false;
