@@ -25,9 +25,33 @@ export default {
       config: { policies: [], middlewares: [] },
     },
     {
+      method: 'GET',
+      path: '/qr/board',
+      handler: 'qr.board',
+      config: { policies: [], middlewares: [] },
+    },
+    {
       method: 'POST',
-      path: '/qr/complete-service',
-      handler: 'qr.completeService',
+      path: '/qr/start-service',
+      handler: 'qr.startService',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
+      path: '/qr/finish-service',
+      handler: 'qr.finishService',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
+      path: '/qr/charge-service',
+      handler: 'qr.chargeService',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
+      path: '/qr/cancel-service',
+      handler: 'qr.cancelService',
       config: { policies: [], middlewares: [] },
     },
     {

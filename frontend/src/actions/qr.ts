@@ -6,12 +6,15 @@ import {
   scanQR,
   registerVisit,
   walkInService,
-  completeService,
+  startService,
+  finishService,
+  chargeService,
+  cancelService,
   type QRScanResult,
   type RegisterVisitResult,
   type WalkInServicePayload,
   type WalkInServiceResult,
-  type CompleteServiceResult,
+  type ChargeServiceResult,
 } from "@/lib/strapi/qr";
 import { redeemPromotion } from "@/lib/strapi/promotions";
 import { updateAppointmentStatus } from "@/lib/strapi/appointments";
@@ -86,13 +89,48 @@ export async function walkInServiceAction(
   }
 }
 
-export async function completeServiceAction(
+/** waiting → in_progress: un empleado toma el auto. */
+export async function startServiceAction(
   serviceId: number,
   performedByAdminId?: number,
-): Promise<ActionResult<CompleteServiceResult>> {
+): Promise<ActionResult<{ service: { id: number; status: string } }>> {
   await requireAdmin();
   try {
-    const data = await completeService(serviceId, performedByAdminId);
+    const data = await startService(serviceId, performedByAdminId);
+    revalidatePath("/en-progreso");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo iniciar el servicio",
+    };
+  }
+}
+
+/** in_progress → to_pay: el empleado termina el lavado. */
+export async function finishServiceAction(
+  serviceId: number,
+): Promise<ActionResult<{ service: { id: number; status: string } }>> {
+  await requireAdmin();
+  try {
+    const data = await finishService(serviceId);
+    revalidatePath("/en-progreso");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo terminar el lavado",
+    };
+  }
+}
+
+/** to_pay → completed: la caja cobra al cliente (dispara fidelidad). */
+export async function chargeServiceAction(
+  serviceId: number,
+): Promise<ActionResult<ChargeServiceResult>> {
+  await requireAdmin();
+  try {
+    const data = await chargeService(serviceId);
     revalidatePath("/en-progreso");
     revalidatePath("/servicios");
     revalidatePath("/dashboard");
@@ -101,7 +139,25 @@ export async function completeServiceAction(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof StrapiError ? err.message : "No se pudo completar el servicio",
+      error: err instanceof StrapiError ? err.message : "No se pudo cobrar el servicio",
+    };
+  }
+}
+
+/** Cualquier estado activo → cancelled. */
+export async function cancelServiceAction(
+  serviceId: number,
+  reason?: string,
+): Promise<ActionResult<{ service: { id: number; status: string } }>> {
+  await requireAdmin();
+  try {
+    const data = await cancelService(serviceId, reason);
+    revalidatePath("/en-progreso");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo cancelar el servicio",
     };
   }
 }

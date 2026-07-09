@@ -173,9 +173,9 @@ export default {
     }
 
     const now = new Date();
-    // El service se crea en estado in_progress. La Visit (que dispara fidelidad
-    // por su lifecycle afterCreate) se creará cuando el operador marque
-    // "Completar" desde la página /en-progreso.
+    // El service se crea en estado "waiting" (en espera). El flujo es:
+    // waiting → in_progress (un empleado lo toma) → to_pay (termina el lavado)
+    // → completed (la caja lo cobra). La Visit de fidelidad se crea al cobrar.
     const service = await strapi.entityService.create('api::service.service', {
       data: {
         date: now,
@@ -185,13 +185,13 @@ export default {
         vehicle: vehicleId,
         package: packageId,
         extraServices: extraIds,
-        status: 'in_progress',
+        status: 'waiting',
         publishedAt: now,
       },
     });
 
     ctx.body = {
-      service: { id: service.id, totalAmount, status: 'in_progress' },
+      service: { id: service.id, totalAmount, status: 'waiting' },
     };
   },
 
@@ -294,22 +294,23 @@ export default {
         customerName: customerName || null,
         vehicleType: vehicleType || null,
         isUberTaxi: !!isUberTaxi,
-        status: 'in_progress',
+        status: 'waiting',
         publishedAt: now,
       },
     });
 
-    ctx.body = { service: { id: service.id, totalAmount, status: 'in_progress' } };
+    ctx.body = { service: { id: service.id, totalAmount, status: 'waiting' } };
   },
 
   /**
    * GET /api/qr/in-progress-services
    * Lista todos los services con status="in_progress" (más recientes primero).
+   * (Se mantiene por compatibilidad; la vista nueva usa /api/qr/board.)
    */
   async inProgressServices(ctx) {
     const services = await strapi.db.query('api::service.service').findMany({
       where: { status: 'in_progress' },
-      populate: { user: true, vehicle: true, package: true, extraServices: true },
+      populate: { user: true, vehicle: true, package: true, extraServices: true, performedBy: true },
       orderBy: [{ date: 'desc' }],
       limit: 200,
     });
@@ -317,12 +318,117 @@ export default {
   },
 
   /**
-   * POST /api/qr/complete-service
-   * Marca un service como completed. Si no es walk-in y tiene user/vehicle/package,
-   * crea una Visit que dispara el lifecycle de fidelidad (loyalty + promoción).
+   * GET /api/qr/board
+   * Devuelve los servicios activos agrupados por estado del pipeline:
+   * waiting (en espera) → in_progress (trabajando) → to_pay (por cobrar).
+   * Los "completed" no se incluyen (ya salieron del tablero).
    */
-  async completeService(ctx) {
+  async board(ctx) {
+    const services = await strapi.db.query('api::service.service').findMany({
+      where: { status: { $in: ['waiting', 'in_progress', 'to_pay'] } },
+      populate: { user: true, vehicle: true, package: true, extraServices: true, performedBy: true },
+      orderBy: [{ date: 'asc' }],
+      limit: 300,
+    });
+    const board = { waiting: [], in_progress: [], to_pay: [] };
+    for (const s of services) {
+      if (board[s.status]) board[s.status].push(s);
+    }
+    ctx.body = { board };
+  },
+
+  /**
+   * POST /api/qr/start-service
+   * waiting → in_progress. Un empleado toma el auto: se graba quién lo lava
+   * (performedBy) y la hora de inicio (startedAt).
+   */
+  async startService(ctx) {
     const { serviceId, performedByAdminId } = ctx.request.body ?? {};
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+    if (service.status !== 'waiting') {
+      return ctx.badRequest('El servicio ya fue tomado');
+    }
+
+    const now = new Date();
+    const performedById = await resolvePerformedBy(actingUserId, performedByAdminId);
+    const updated = await strapi.entityService.update('api::service.service', service.id, {
+      data: { status: 'in_progress', performedBy: performedById, startedAt: now },
+    });
+
+    ctx.body = { service: { id: updated.id, status: 'in_progress' } };
+  },
+
+  /**
+   * POST /api/qr/finish-service
+   * in_progress → to_pay. El empleado termina el lavado: se graba la hora de
+   * fin (finishedAt). La duración se deriva de startedAt→finishedAt.
+   */
+  async finishService(ctx) {
+    const { serviceId } = ctx.request.body ?? {};
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+    if (service.status !== 'in_progress') {
+      return ctx.badRequest('El servicio no está en progreso');
+    }
+
+    const now = new Date();
+    const updated = await strapi.entityService.update('api::service.service', service.id, {
+      data: { status: 'to_pay', finishedAt: now },
+    });
+
+    ctx.body = { service: { id: updated.id, status: 'to_pay' } };
+  },
+
+  /**
+   * POST /api/qr/cancel-service
+   * Cancela un servicio activo (waiting | in_progress | to_pay) → cancelled.
+   * No dispara fidelidad y el servicio sale del tablero. No se puede cancelar
+   * uno ya cobrado (completed).
+   */
+  async cancelService(ctx) {
+    const { serviceId, reason } = ctx.request.body ?? {};
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+    if (service.status === 'completed') return ctx.badRequest('Un servicio ya cobrado no se puede cancelar');
+    if (service.status === 'cancelled') return ctx.badRequest('El servicio ya está cancelado');
+
+    const data: Record<string, unknown> = { status: 'cancelled' };
+    // Si mandan motivo, lo anexamos a las notas para dejar rastro.
+    if (reason && String(reason).trim()) {
+      const prefix = service.notes ? `${service.notes}\n` : '';
+      data.notes = `${prefix}[Cancelado] ${String(reason).trim()}`;
+    }
+    const updated = await strapi.entityService.update('api::service.service', service.id, { data });
+
+    ctx.body = { service: { id: updated.id, status: 'cancelled' } };
+  },
+
+  /**
+   * POST /api/qr/charge-service
+   * to_pay → completed. La caja/super admin cobra al cliente. Aquí (y solo aquí)
+   * se crea la Visit que dispara el lifecycle de fidelidad (loyalty + promoción).
+   */
+  async chargeService(ctx) {
+    const { serviceId } = ctx.request.body ?? {};
     if (!serviceId) return ctx.badRequest('serviceId requerido');
     const actingUserId = ctx.state.user?.id;
     if (!actingUserId) return ctx.unauthorized('Sesión requerida');
@@ -332,16 +438,14 @@ export default {
       populate: { user: true, vehicle: true, package: true, extraServices: true },
     });
     if (!service) return ctx.notFound('Servicio no encontrado');
-    if (service.status === 'completed') return ctx.badRequest('Servicio ya completado');
+    if (service.status === 'completed') return ctx.badRequest('Servicio ya cobrado');
+    if (service.status !== 'to_pay') {
+      return ctx.badRequest('El servicio aún no está listo para cobrar');
+    }
 
     const now = new Date();
-    // Acreditar el lavado a un admin (por defecto quien lo completa; el super admin
-    // puede acreditarlo a otro admin enviando performedByAdminId).
-    const performedById = await resolvePerformedBy(actingUserId, performedByAdminId);
-
-    // Marcar el service como completed y vincular al admin que lo realizó.
     const updated = await strapi.entityService.update('api::service.service', service.id, {
-      data: { status: 'completed', performedBy: performedById },
+      data: { status: 'completed' },
     });
 
     // Si no es walk-in y tiene user + vehicle + package → crear Visit (loyalty)

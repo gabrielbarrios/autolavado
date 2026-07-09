@@ -46,27 +46,64 @@ export async function registerVisit(payload: RegisterVisitPayload): Promise<Regi
   });
 }
 
-export interface CompleteServiceResult {
-  service: { id: number; status: ServiceStatus };
-  promotionGenerated: Promotion | null;
-  loyaltyProgress: LoyaltyProgress | null;
+/** Servicios activos agrupados por estado del pipeline. */
+export interface ServiceBoard {
+  waiting: Service[];
+  in_progress: Service[];
+  to_pay: Service[];
 }
 
-export async function completeService(
+export async function listBoardServices(): Promise<ServiceBoard> {
+  const res = await strapiServerFetch<{ board: ServiceBoard }>("/api/qr/board", {
+    cache: "no-store",
+  });
+  return res.board ?? { waiting: [], in_progress: [], to_pay: [] };
+}
+
+/** waiting → in_progress: un empleado toma el auto. */
+export async function startService(
   serviceId: number,
   performedByAdminId?: number,
-): Promise<CompleteServiceResult> {
-  return strapiServerFetch<CompleteServiceResult>("/api/qr/complete-service", {
+): Promise<{ service: { id: number; status: ServiceStatus } }> {
+  return strapiServerFetch("/api/qr/start-service", {
     method: "POST",
     body: { serviceId, ...(performedByAdminId ? { performedByAdminId } : {}) },
   });
 }
 
-export async function listInProgressServices(): Promise<Service[]> {
-  const res = await strapiServerFetch<{ services: Service[] }>("/api/qr/in-progress-services", {
-    cache: "no-store",
+/** in_progress → to_pay: el empleado termina el lavado. */
+export async function finishService(
+  serviceId: number,
+): Promise<{ service: { id: number; status: ServiceStatus } }> {
+  return strapiServerFetch("/api/qr/finish-service", {
+    method: "POST",
+    body: { serviceId },
   });
-  return res.services ?? [];
+}
+
+export interface ChargeServiceResult {
+  service: { id: number; status: ServiceStatus };
+  promotionGenerated: Promotion | null;
+  loyaltyProgress: LoyaltyProgress | null;
+}
+
+/** to_pay → completed: la caja cobra al cliente y se dispara la fidelidad. */
+export async function chargeService(serviceId: number): Promise<ChargeServiceResult> {
+  return strapiServerFetch<ChargeServiceResult>("/api/qr/charge-service", {
+    method: "POST",
+    body: { serviceId },
+  });
+}
+
+/** Cualquier estado activo → cancelled. No dispara fidelidad. */
+export async function cancelService(
+  serviceId: number,
+  reason?: string,
+): Promise<{ service: { id: number; status: ServiceStatus } }> {
+  return strapiServerFetch("/api/qr/cancel-service", {
+    method: "POST",
+    body: { serviceId, ...(reason ? { reason } : {}) },
+  });
 }
 
 export interface WalkInServicePayload {

@@ -16,6 +16,12 @@
       "type": "datetime",
       "required": true
     },
+    "startedAt": {
+      "type": "datetime"
+    },
+    "finishedAt": {
+      "type": "datetime"
+    },
     "notes": {
       "type": "text"
     },
@@ -66,8 +72,8 @@
     },
     "status": {
       "type": "enumeration",
-      "enum": ["in_progress", "completed"],
-      "default": "in_progress",
+      "enum": ["waiting", "in_progress", "to_pay", "completed", "cancelled"],
+      "default": "waiting",
       "required": true
     }
   }

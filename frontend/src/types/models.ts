@@ -91,12 +91,21 @@ export interface Package {
   uberTaxiPrice?: number | null;
 }
 
-export type ServiceStatus = "in_progress" | "completed";
+export type ServiceStatus =
+  | "waiting"
+  | "in_progress"
+  | "to_pay"
+  | "completed"
+  | "cancelled";
 
 export interface Service {
   id: number;
   documentId?: string;
   date: string;
+  /** Hora en que un empleado tomó el auto (waiting → in_progress). */
+  startedAt?: string | null;
+  /** Hora en que el empleado terminó el lavado (in_progress → to_pay). */
+  finishedAt?: string | null;
   notes?: string | null;
   totalAmount: number;
   user?: User;

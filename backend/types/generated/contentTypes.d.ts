@@ -850,6 +850,7 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       'manyToMany',
       'api::extra-service.extra-service'
     >;
+    finishedAt: Schema.Attribute.DateTime;
     isUberTaxi: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     isWalkIn: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -865,9 +866,12 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       'plugin::users-permissions.user'
     >;
     publishedAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.Enumeration<['in_progress', 'completed']> &
+    startedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['waiting', 'in_progress', 'to_pay', 'completed', 'cancelled']
+    > &
       Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'in_progress'>;
+      Schema.Attribute.DefaultTo<'waiting'>;
     totalAmount: Schema.Attribute.Decimal &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<

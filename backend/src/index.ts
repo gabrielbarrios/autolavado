@@ -50,7 +50,17 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::service.service': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne', 'create', 'update', 'delete'],
-  'api::qr.qr': ['scan', 'registerVisit', 'walkInService', 'inProgressServices', 'completeService'],
+  'api::qr.qr': [
+    'scan',
+    'registerVisit',
+    'walkInService',
+    'inProgressServices',
+    'board',
+    'startService',
+    'finishService',
+    'chargeService',
+    'cancelService',
+  ],
 };
 
 /**
@@ -64,7 +74,11 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
     'registerVisit',
     'walkInService',
     'inProgressServices',
-    'completeService',
+    'board',
+    'startService',
+    'finishService',
+    'chargeService',
+    'cancelService',
     'employeeStats',
   ],
 };
