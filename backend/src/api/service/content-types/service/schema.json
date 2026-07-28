@@ -55,6 +55,11 @@
       "relation": "manyToMany",
       "target": "api::extra-service.extra-service"
     },
+    "appointment": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::appointment.appointment"
+    },
     "isWalkIn": {
       "type": "boolean",
       "default": false

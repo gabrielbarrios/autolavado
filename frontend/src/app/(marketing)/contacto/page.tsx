@@ -2,7 +2,7 @@ import { Mail, MapPin, Phone, Clock, CalendarX, MessageCircle } from "lucide-rea
 import { Card, CardContent } from "@/components/ui/card";
 import { getSiteSetting } from "@/lib/strapi/site-setting";
 import { dayLabel, hoursByDay, WEEK_DAYS, formatTime } from "@/lib/business-hours";
-import { formatDate } from "@/lib/utils";
+import { formatDate, parseDate } from "@/lib/utils";
 
 export const metadata = { title: "Contacto" };
 
@@ -25,7 +25,7 @@ export default async function ContactoPage() {
   const c = setting?.contactInfo;
   const hoursIndex = hoursByDay(setting?.businessHours);
   const closedDates = (setting?.closedDates ?? [])
-    .filter((d) => new Date(d.date) >= new Date(new Date().toDateString()))
+    .filter((d) => parseDate(d.date) >= new Date(new Date().toDateString()))
     .sort((a, b) => a.date.localeCompare(b.date));
   const embedMapUrl = toEmbedMapUrl(c?.mapUrl, c?.address);
 

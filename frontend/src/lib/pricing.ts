@@ -25,11 +25,39 @@ export function vehicleTypeLabel(t: VehicleType | string | null | undefined): st
 }
 
 /**
- * Precio efectivo de una fila pricing según si el vehículo es Uber/Taxi:
- * - Uber/Taxi y `uberTaxiPrice` definido → uberTaxiPrice
- * - Caso contrario → price
+ * ¿Este usuario paga tarifa VIP? Sirve donde el precio lo define OTRO usuario y
+ * no el de la sesión — p.ej. el escáner QR, donde manda el cliente escaneado.
+ * El rol puede venir como string o como el objeto de Strapi.
  */
-function effectiveRowPrice(row: VehicleTypePrice, isUberTaxi: boolean): number {
+export function isVipUser(user?: { role?: unknown } | null): boolean {
+  const role = user?.role;
+  if (!role) return false;
+  if (typeof role === "string") return role === "vip";
+  const { type, name } = role as { type?: string; name?: string };
+  return type?.toLowerCase() === "vip" || name?.toLowerCase() === "vip";
+}
+
+/** Contexto de precio: características del auto + si el cliente es VIP. */
+export interface PriceContext {
+  /** El cliente tiene rol VIP. El backend sólo manda `vipPrice` si puede verlo. */
+  isVip?: boolean;
+}
+
+/**
+ * Precio efectivo de una fila pricing. Espeja `resolveRowPrice` del backend
+ * (backend/src/utils/pricing.ts) — si cambias la jerarquía, cámbiala en ambos:
+ * 1. vipPrice      → cliente VIP y la fila lo tiene definido
+ * 2. uberTaxiPrice → auto marcado como Uber/Taxi
+ * 3. price         → precio normal del tipo de auto
+ *
+ * El precio VIP gana sobre el de Uber/Taxi: es la tarifa negociada del cliente.
+ */
+function effectiveRowPrice(
+  row: VehicleTypePrice,
+  isUberTaxi: boolean,
+  isVip = false,
+): number {
+  if (isVip && row.vipPrice != null) return Number(row.vipPrice);
   if (isUberTaxi && row.uberTaxiPrice != null) return Number(row.uberTaxiPrice);
   return Number(row.price);
 }
@@ -41,21 +69,26 @@ function effectiveRowPrice(row: VehicleTypePrice, isUberTaxi: boolean): number {
  * 3. Sin selección → menor `price` normal del array (fallback "desde $X").
  * 4. Legacy: fila vehicleType="uber_taxi" o top-level `uberTaxiPrice`.
  */
-export function computePackagePrice(pkg: Package, vehicle?: Vehicle | null): number {
+export function computePackagePrice(
+  pkg: Package,
+  vehicle?: Vehicle | null,
+  ctx: PriceContext = {},
+): number {
   const pricing = pkg.pricing ?? [];
   const isUberTaxi = !!vehicle?.isUberTaxi;
+  const isVip = !!ctx.isVip;
   const type = vehicle?.vehicleType;
 
   if (type) {
     const entry = pricing.find((p) => p.vehicleType === type);
-    if (entry) return effectiveRowPrice(entry, isUberTaxi);
+    if (entry) return effectiveRowPrice(entry, isUberTaxi, isVip);
   }
 
   const normalRows = pricing.filter((p) => p.vehicleType !== "uber_taxi");
 
   if (isUberTaxi) {
     if (normalRows.length > 0) {
-      return Math.min(...normalRows.map((r) => effectiveRowPrice(r, true)));
+      return Math.min(...normalRows.map((r) => effectiveRowPrice(r, true, isVip)));
     }
     // Legacy
     const legacyRow = pricing.find((p) => p.vehicleType === "uber_taxi");
@@ -64,21 +97,25 @@ export function computePackagePrice(pkg: Package, vehicle?: Vehicle | null): num
   }
 
   if (normalRows.length > 0) {
-    return Math.min(...normalRows.map((r) => Number(r.price)));
+    return Math.min(...normalRows.map((r) => effectiveRowPrice(r, false, isVip)));
   }
   return 0;
 }
 
 /**
- * Rango de precios NORMALES del paquete (min/max) — sólo `price`, ignora `uberTaxiPrice`.
+ * Rango de precios del paquete (min/max) — ignora `uberTaxiPrice`.
  * Útil para mostrar "desde $X" cuando el cliente aún no activó el switch Uber/Taxi.
+ * Con `isVip` usa la tarifa VIP de cada fila que la tenga configurada.
  */
-export function packagePriceRange(pkg: Package): { min: number; max: number } {
+export function packagePriceRange(
+  pkg: Package,
+  ctx: PriceContext = {},
+): { min: number; max: number } {
   const prices: number[] = [];
   if (pkg.pricing) {
     for (const p of pkg.pricing) {
       if (p.vehicleType === "uber_taxi") continue;
-      prices.push(Number(p.price));
+      prices.push(effectiveRowPrice(p, false, !!ctx.isVip));
     }
   }
   if (prices.length === 0 && pkg.uberTaxiPrice != null) prices.push(Number(pkg.uberTaxiPrice));
@@ -98,21 +135,23 @@ export function packageHasPricing(pkg: Package): boolean {
 export function computeExtraServicePrice(
   extra: ExtraService,
   vehicle?: Vehicle | null,
+  ctx: PriceContext = {},
 ): number {
   const pricing = extra.pricing ?? [];
   const isUberTaxi = !!vehicle?.isUberTaxi;
+  const isVip = !!ctx.isVip;
   const type = vehicle?.vehicleType;
 
   if (type) {
     const entry = pricing.find((p) => p.vehicleType === type);
-    if (entry) return effectiveRowPrice(entry, isUberTaxi);
+    if (entry) return effectiveRowPrice(entry, isUberTaxi, isVip);
   }
 
   const normalRows = pricing.filter((p) => p.vehicleType !== "uber_taxi");
 
   if (isUberTaxi) {
     if (normalRows.length > 0) {
-      return Math.min(...normalRows.map((r) => effectiveRowPrice(r, true)));
+      return Math.min(...normalRows.map((r) => effectiveRowPrice(r, true, isVip)));
     }
     const legacyRow = pricing.find((p) => p.vehicleType === "uber_taxi");
     if (legacyRow) return Number(legacyRow.price);
@@ -120,23 +159,25 @@ export function computeExtraServicePrice(
   }
 
   if (normalRows.length > 0) {
-    return Math.min(...normalRows.map((r) => Number(r.price)));
+    return Math.min(...normalRows.map((r) => effectiveRowPrice(r, false, isVip)));
   }
   return Number(extra.price ?? 0);
 }
 
 /**
- * Rango de precios NORMALES del extra (min/max) — sólo `price`, ignora `uberTaxiPrice`.
+ * Rango de precios del extra (min/max) — ignora `uberTaxiPrice`.
  * Útil para mostrar "desde $X" cuando el cliente aún no activó el switch Uber/Taxi.
+ * Con `isVip` usa la tarifa VIP de cada fila que la tenga configurada.
  */
 export function extraServicePriceRange(
   extra: ExtraService,
+  ctx: PriceContext = {},
 ): { min: number; max: number } {
   const prices: number[] = [];
   if (extra.pricing) {
     for (const p of extra.pricing) {
       if (p.vehicleType === "uber_taxi") continue;
-      prices.push(Number(p.price));
+      prices.push(effectiveRowPrice(p, false, !!ctx.isVip));
     }
   }
   if (prices.length === 0) {

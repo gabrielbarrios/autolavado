@@ -8,6 +8,15 @@
  * sólo existen DESPUÉS de crear esos content types en el Content-Type Builder.
  * Por eso usamos @ts-nocheck para evitar errores de TS antes de crearlos.
  */
+import {
+  computeAppointmentTotal,
+  computeTotal,
+  isVipUserId,
+  APPOINTMENT_PRICING_POPULATE,
+} from '../../../utils/pricing';
+
+/** Estados en los que un service sigue vivo en el tablero. */
+const ACTIVE_STATUSES = ['waiting', 'in_progress', 'to_pay'];
 
 /** ¿El user (con role poblado) es super admin? */
 function isSuperAdmin(user) {
@@ -117,60 +126,22 @@ export default {
     });
     if (!vehicle) return ctx.notFound('Vehículo no encontrado');
 
-    // Calcular precio del paquete (lógica per-row): row[vehicleType].uberTaxiPrice > row.price > legacy
-    let totalAmount = 0;
-    const pkgPricing = Array.isArray(pkg.pricing) ? pkg.pricing : [];
-    if (vehicle.vehicleType) {
-      const match = pkgPricing.find((p) => p.vehicleType === vehicle.vehicleType);
-      if (match) {
-        if (vehicle.isUberTaxi && match.uberTaxiPrice != null) totalAmount = Number(match.uberTaxiPrice);
-        else if (match.price != null) totalAmount = Number(match.price);
-      }
-    }
-    if (totalAmount === 0 && vehicle.isUberTaxi) {
-      const legacyRow = pkgPricing.find((p) => p.vehicleType === 'uber_taxi');
-      if (legacyRow && legacyRow.price != null) totalAmount = Number(legacyRow.price);
-      else if (pkg.uberTaxiPrice != null) totalAmount = Number(pkg.uberTaxiPrice);
-    }
-    if (totalAmount === 0) {
-      const normalRows = pkgPricing.filter((p) => p.vehicleType !== 'uber_taxi');
-      if (normalRows.length > 0) totalAmount = Math.min(...normalRows.map((p) => Number(p.price)));
-    }
-
-    // Sumar precios de servicios extras seleccionados (con precio por tipo de auto)
-    let extraIds = [];
+    // Extras seleccionados (con su pricing para calcular el precio por tipo de auto)
+    let extras = [];
     if (Array.isArray(extraServiceIds) && extraServiceIds.length > 0) {
       const ids = extraServiceIds.map((x) => Number(x)).filter((n) => !isNaN(n));
       if (ids.length > 0) {
-        const extras = await strapi.db.query('api::extra-service.extra-service').findMany({
+        extras = await strapi.db.query('api::extra-service.extra-service').findMany({
           where: { id: { $in: ids } },
           populate: { pricing: true },
         });
-        for (const ex of extras) {
-          const exPricing = Array.isArray(ex.pricing) ? ex.pricing : [];
-          let p = 0;
-          if (vehicle.vehicleType) {
-            const m = exPricing.find((row) => row.vehicleType === vehicle.vehicleType);
-            if (m) {
-              if (vehicle.isUberTaxi && m.uberTaxiPrice != null) p = Number(m.uberTaxiPrice);
-              else if (m.price != null) p = Number(m.price);
-            }
-          }
-          if (p === 0 && vehicle.isUberTaxi) {
-            const legacyRow = exPricing.find((row) => row.vehicleType === 'uber_taxi');
-            if (legacyRow && legacyRow.price != null) p = Number(legacyRow.price);
-            else if (ex.uberTaxiPrice != null) p = Number(ex.uberTaxiPrice);
-          }
-          if (p === 0) {
-            const normalRows = exPricing.filter((row) => row.vehicleType !== 'uber_taxi');
-            if (normalRows.length > 0) p = Math.min(...normalRows.map((row) => Number(row.price)));
-          }
-          if (p === 0 && ex.price != null) p = Number(ex.price);
-          totalAmount += p;
-        }
-        extraIds = extras.map((e) => e.id);
       }
     }
+    const extraIds = extras.map((e) => e.id);
+
+    // El cliente del QR es quien define si aplica tarifa VIP, no el admin que escanea.
+    const isVip = await isVipUserId(userId);
+    const totalAmount = computeTotal({ pkg, extras, vehicleLike: vehicle, isVip });
 
     const now = new Date();
     // El service se crea en estado "waiting" (en espera). El flujo es:
@@ -216,71 +187,35 @@ export default {
       return ctx.badRequest('Selecciona al menos un paquete o un servicio extra');
     }
 
-    let totalAmount = 0;
-    let pkgId = null;
-
-    // Paquete
+    let pkg = null;
     if (packageId) {
-      const pkg = await strapi.db.query('api::package.package').findOne({
+      pkg = await strapi.db.query('api::package.package').findOne({
         where: { id: packageId },
         populate: { pricing: true },
       });
       if (!pkg) return ctx.notFound('Paquete no encontrado');
-      pkgId = pkg.id;
-
-      const pkgPricing = Array.isArray(pkg.pricing) ? pkg.pricing : [];
-      if (vehicleType) {
-        const match = pkgPricing.find((p) => p.vehicleType === vehicleType);
-        if (match) {
-          if (isUberTaxi && match.uberTaxiPrice != null) totalAmount = Number(match.uberTaxiPrice);
-          else if (match.price != null) totalAmount = Number(match.price);
-        }
-      }
-      if (totalAmount === 0 && isUberTaxi) {
-        const legacyRow = pkgPricing.find((p) => p.vehicleType === 'uber_taxi');
-        if (legacyRow && legacyRow.price != null) totalAmount = Number(legacyRow.price);
-        else if (pkg.uberTaxiPrice != null) totalAmount = Number(pkg.uberTaxiPrice);
-      }
-      if (totalAmount === 0) {
-        const normalRows = pkgPricing.filter((p) => p.vehicleType !== 'uber_taxi');
-        if (normalRows.length > 0) totalAmount = Math.min(...normalRows.map((p) => Number(p.price)));
-      }
     }
 
-    // Extras (con precio por tipo de auto / Uber-Taxi)
-    let extraIds = [];
+    let extras = [];
     if (Array.isArray(extraServiceIds) && extraServiceIds.length > 0) {
       const ids = extraServiceIds.map((x) => Number(x)).filter((n) => !isNaN(n));
       if (ids.length > 0) {
-        const extras = await strapi.db.query('api::extra-service.extra-service').findMany({
+        extras = await strapi.db.query('api::extra-service.extra-service').findMany({
           where: { id: { $in: ids } },
           populate: { pricing: true },
         });
-        for (const ex of extras) {
-          const exPricing = Array.isArray(ex.pricing) ? ex.pricing : [];
-          let p = 0;
-          if (vehicleType) {
-            const m = exPricing.find((row) => row.vehicleType === vehicleType);
-            if (m) {
-              if (isUberTaxi && m.uberTaxiPrice != null) p = Number(m.uberTaxiPrice);
-              else if (m.price != null) p = Number(m.price);
-            }
-          }
-          if (p === 0 && isUberTaxi) {
-            const legacyRow = exPricing.find((row) => row.vehicleType === 'uber_taxi');
-            if (legacyRow && legacyRow.price != null) p = Number(legacyRow.price);
-            else if (ex.uberTaxiPrice != null) p = Number(ex.uberTaxiPrice);
-          }
-          if (p === 0) {
-            const normalRows = exPricing.filter((row) => row.vehicleType !== 'uber_taxi');
-            if (normalRows.length > 0) p = Math.min(...normalRows.map((row) => Number(row.price)));
-          }
-          if (p === 0 && ex.price != null) p = Number(ex.price);
-          totalAmount += p;
-        }
-        extraIds = extras.map((e) => e.id);
       }
     }
+    const pkgId = pkg?.id ?? null;
+    const extraIds = extras.map((e) => e.id);
+
+    // Un walk-in no tiene cuenta, así que nunca aplica tarifa VIP.
+    const totalAmount = computeTotal({
+      pkg,
+      extras,
+      vehicleLike: { vehicleType, isUberTaxi },
+      isVip: false,
+    });
 
     const now = new Date();
     const service = await strapi.entityService.create('api::service.service', {
@@ -318,6 +253,77 @@ export default {
   },
 
   /**
+   * POST /api/qr/appointment-to-board
+   * Adelanta una reservación al tablero: el cliente llegó antes de su cita y hay
+   * cupo, así que se crea el Service en `waiting` para que un empleado pueda
+   * iniciar el lavado desde /en-progreso.
+   *
+   * La cita NO se marca completada aquí — sigue su curso y se cierra sola cuando
+   * la caja cobra el service (ver chargeService). La Visit de fidelidad también
+   * se crea al cobrar, no ahora.
+   */
+  async appointmentToBoard(ctx) {
+    const { appointmentId } = ctx.request.body ?? {};
+    if (!appointmentId) return ctx.badRequest('appointmentId requerido');
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+
+    const appointment = await strapi.db.query('api::appointment.appointment').findOne({
+      where: { id: appointmentId },
+      populate: APPOINTMENT_PRICING_POPULATE,
+    });
+    if (!appointment) return ctx.notFound('Reservación no encontrada');
+    if (appointment.status === 'cancelled') {
+      return ctx.badRequest('La reservación está cancelada');
+    }
+    if (appointment.status === 'completed') {
+      return ctx.badRequest('La reservación ya está completada');
+    }
+    if (!appointment.vehicle || !appointment.package) {
+      return ctx.badRequest('La reservación necesita auto y paquete para pasar al tablero');
+    }
+
+    // Idempotencia: si ya se mandó al tablero, no crear un segundo service.
+    const existing = await strapi.db.query('api::service.service').findOne({
+      where: { appointment: appointmentId },
+    });
+    if (existing) {
+      if (ACTIVE_STATUSES.includes(existing.status)) {
+        return ctx.badRequest('Esta reservación ya está en el tablero');
+      }
+      return ctx.badRequest('Esta reservación ya pasó por el tablero');
+    }
+
+    const totalAmount = await computeAppointmentTotal(appointment);
+    const now = new Date();
+    const service = await strapi.entityService.create('api::service.service', {
+      data: {
+        date: now,
+        notes: appointment.customerNotes ?? null,
+        totalAmount,
+        user: appointment.user?.id ?? null,
+        vehicle: appointment.vehicle.id,
+        package: appointment.package.id,
+        extraServices: (appointment.extraServices ?? []).map((e) => e.id),
+        appointment: appointment.id,
+        status: 'waiting',
+        publishedAt: now,
+      },
+    });
+
+    // Una cita pendiente que ya llegó al tablero queda aprobada de facto.
+    if (appointment.status === 'pending') {
+      await strapi.entityService.update('api::appointment.appointment', appointment.id, {
+        data: { status: 'approved' },
+      });
+    }
+
+    ctx.body = {
+      service: { id: service.id, totalAmount, status: 'waiting' },
+    };
+  },
+
+  /**
    * GET /api/qr/board
    * Devuelve los servicios activos agrupados por estado del pipeline:
    * waiting (en espera) → in_progress (trabajando) → to_pay (por cobrar).
@@ -325,8 +331,15 @@ export default {
    */
   async board(ctx) {
     const services = await strapi.db.query('api::service.service').findMany({
-      where: { status: { $in: ['waiting', 'in_progress', 'to_pay'] } },
-      populate: { user: true, vehicle: true, package: true, extraServices: true, performedBy: true },
+      where: { status: { $in: ACTIVE_STATUSES } },
+      populate: {
+        user: true,
+        vehicle: true,
+        package: true,
+        extraServices: true,
+        performedBy: true,
+        appointment: true,
+      },
       orderBy: [{ date: 'asc' }],
       limit: 300,
     });
@@ -406,12 +419,15 @@ export default {
 
     const service = await strapi.db.query('api::service.service').findOne({
       where: { id: serviceId },
+      populate: { appointment: true },
     });
     if (!service) return ctx.notFound('Servicio no encontrado');
     if (service.status === 'completed') return ctx.badRequest('Un servicio ya cobrado no se puede cancelar');
     if (service.status === 'cancelled') return ctx.badRequest('El servicio ya está cancelado');
 
-    const data: Record<string, unknown> = { status: 'cancelled' };
+    // Se suelta el vínculo con la reservación para que pueda re-enviarse al
+    // tablero (la cita sigue viva; solo se canceló este intento de lavado).
+    const data: Record<string, unknown> = { status: 'cancelled', appointment: null };
     // Si mandan motivo, lo anexamos a las notas para dejar rastro.
     if (reason && String(reason).trim()) {
       const prefix = service.notes ? `${service.notes}\n` : '';
@@ -435,7 +451,7 @@ export default {
 
     const service = await strapi.db.query('api::service.service').findOne({
       where: { id: serviceId },
-      populate: { user: true, vehicle: true, package: true, extraServices: true },
+      populate: { user: true, vehicle: true, package: true, extraServices: true, appointment: true },
     });
     if (!service) return ctx.notFound('Servicio no encontrado');
     if (service.status === 'completed') return ctx.badRequest('Servicio ya cobrado');
@@ -447,6 +463,15 @@ export default {
     const updated = await strapi.entityService.update('api::service.service', service.id, {
       data: { status: 'completed' },
     });
+
+    // Si el service vino de una reservación adelantada al tablero, la cita se
+    // cierra aquí. Se actualiza vía entityService (no por el controller) para
+    // NO disparar el auto-creado de visit/service de appointment.update.
+    if (service.appointment && service.appointment.status !== 'completed') {
+      await strapi.entityService.update('api::appointment.appointment', service.appointment.id, {
+        data: { status: 'completed' },
+      });
+    }
 
     // Si no es walk-in y tiene user + vehicle + package → crear Visit (loyalty)
     let promotionGenerated = null;

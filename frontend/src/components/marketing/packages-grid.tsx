@@ -24,10 +24,14 @@ import type { ExtraService, Package, Vehicle } from "@/types/models";
 export function PackagesGrid({
   packages,
   extras = [],
+  isVip = false,
 }: {
   packages: Package[];
   extras?: ExtraService[];
+  /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
+  isVip?: boolean;
 }) {
+  const priceCtx = { isVip };
   const [selection, setSelection] = React.useState<VehicleSelection>({
     vehicleType: null,
     isUberTaxi: false,
@@ -69,12 +73,21 @@ export function PackagesGrid({
 
   return (
     <>
+      {isVip && (
+        <div className="mb-6 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          <span>
+            <strong>Precios VIP.</strong> Estás viendo tu tarifa preferente; donde no haya
+            precio VIP configurado se muestra el precio normal.
+          </span>
+        </div>
+      )}
       <PackageTypePicker value={selection} onChange={setSelection} className="mb-8" />
 
       <div className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {packages.map((pkg) => {
-          const computed = fakeVehicle ? computePackagePrice(pkg, fakeVehicle) : 0;
-          const { min, max } = packagePriceRange(pkg);
+          const computed = fakeVehicle ? computePackagePrice(pkg, fakeVehicle, priceCtx) : 0;
+          const { min, max } = packagePriceRange(pkg, priceCtx);
           const hasRange = min !== max && min > 0;
 
           return (
@@ -150,7 +163,7 @@ export function PackagesGrid({
       {extras.length > 0 && (() => {
         const selectedExtrasList = extras.filter((e) => selectedExtras.has(e.id));
         const extrasTotal = selectedExtrasList.reduce(
-          (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle),
+          (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle, priceCtx),
           0,
         );
         const totalMinutes = selectedExtrasList.reduce(
@@ -176,8 +189,8 @@ export function PackagesGrid({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {extras.map((s) => {
                 const isSelected = selectedExtras.has(s.id);
-                const computed = computeExtraServicePrice(s, fakeVehicle);
-                const { min, max } = extraServicePriceRange(s);
+                const computed = computeExtraServicePrice(s, fakeVehicle, priceCtx);
+                const { min, max } = extraServicePriceRange(s, priceCtx);
                 const hasRange = min !== max && min > 0;
                 return (
                   <button

@@ -1,6 +1,6 @@
 import type { StrapiMedia } from "./strapi";
 
-export type UserRole = "admin" | "superadmin" | "cliente";
+export type UserRole = "admin" | "superadmin" | "vip" | "cliente";
 
 export interface User {
   id: number;
@@ -47,6 +47,12 @@ export interface VehicleTypePrice {
   price: number;
   /** Precio especial Uber/Taxi para este tipo de auto. Si está vacío, se usa `price`. */
   uberTaxiPrice?: number | null;
+  /**
+   * Precio especial para clientes VIP. Gana sobre `uberTaxiPrice`.
+   * El backend sólo lo envía a admins, empleados y clientes VIP: para el resto
+   * llega `undefined`, así que nunca se puede filtrar en el front.
+   */
+  vipPrice?: number | null;
 }
 
 export interface ExtraService {
@@ -114,6 +120,8 @@ export interface Service {
   vehicle?: Vehicle;
   package?: Package;
   extraServices?: ExtraService[];
+  /** Reservación de origen, si el service se adelantó al tablero desde /reservaciones. */
+  appointment?: Appointment | null;
   isWalkIn?: boolean;
   customerName?: string | null;
   vehicleType?: VehicleType;

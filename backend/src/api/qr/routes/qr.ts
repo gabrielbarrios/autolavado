@@ -32,6 +32,12 @@ export default {
     },
     {
       method: 'POST',
+      path: '/qr/appointment-to-board',
+      handler: 'qr.appointmentToBoard',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
       path: '/qr/start-service',
       handler: 'qr.startService',
       config: { policies: [], middlewares: [] },

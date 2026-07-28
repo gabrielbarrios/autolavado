@@ -55,13 +55,17 @@ export function BookingForm({
   businessHours,
   closedDates,
   extraServices = [],
+  isVip = false,
 }: {
   packages: Package[];
   vehicles: Vehicle[];
   businessHours: BusinessHour[];
   closedDates: ClosedDate[];
   extraServices?: ExtraService[];
+  /** El cliente que reserva tiene rol VIP → paga la tarifa VIP. */
+  isVip?: boolean;
 }) {
+  const priceCtx = React.useMemo(() => ({ isVip }), [isVip]);
   const router = useRouter();
   const params = useSearchParams();
   const prefillPackage = params.get("packageId");
@@ -248,11 +252,11 @@ export function BookingForm({
   const packageMinutes = availability?.packageMinutes ?? bookingNumberSlot * slotDuration;
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const packagePriceForVehicle = selectedPackage
-    ? computePackagePrice(selectedPackage, selectedVehicle)
+    ? computePackagePrice(selectedPackage, selectedVehicle, priceCtx)
     : 0;
   const selectedExtrasList = extraServices.filter((e) => selectedExtras.has(e.id));
   const extrasTotal = selectedExtrasList.reduce(
-    (acc, e) => acc + computeExtraServicePrice(e, selectedVehicle),
+    (acc, e) => acc + computeExtraServicePrice(e, selectedVehicle, priceCtx),
     0,
   );
   const hasAnyService = !!selectedPackage || selectedExtrasList.length > 0;
@@ -285,7 +289,7 @@ export function BookingForm({
                 <p className="text-xs text-muted-foreground">Solo servicios extras</p>
               </button>
               {packages.map((p) => {
-                const priceForCard = computePackagePrice(p, selectedVehicle);
+                const priceForCard = computePackagePrice(p, selectedVehicle, priceCtx);
                 const slotsForCard = Math.max(1, Math.ceil(p.durationMinutes / slotDuration));
                 return (
                   <button
@@ -503,7 +507,7 @@ export function BookingForm({
                       )}
                     </div>
                     <span className="shrink-0 text-sm font-semibold">
-                      {formatPrice(computeExtraServicePrice(s, selectedVehicle))}
+                      {formatPrice(computeExtraServicePrice(s, selectedVehicle, priceCtx))}
                     </span>
                   </button>
                 );
@@ -557,7 +561,7 @@ export function BookingForm({
                   <div key={e.id} className="flex justify-between text-muted-foreground">
                     <span>+ {e.name}</span>
                     <span className="font-mono">
-                      {formatPrice(computeExtraServicePrice(e, selectedVehicle))}
+                      {formatPrice(computeExtraServicePrice(e, selectedVehicle, priceCtx))}
                     </span>
                   </div>
                 ))}

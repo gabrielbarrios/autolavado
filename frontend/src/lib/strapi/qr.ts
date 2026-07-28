@@ -60,6 +60,33 @@ export async function listBoardServices(): Promise<ServiceBoard> {
   return res.board ?? { waiting: [], in_progress: [], to_pay: [] };
 }
 
+/**
+ * IDs de las reservaciones que ya tienen un service vivo en el tablero, para
+ * que /reservaciones no ofrezca mandarlas dos veces.
+ */
+export async function listBoardAppointmentIds(): Promise<Set<number>> {
+  const board = await listBoardServices();
+  const all = [...board.waiting, ...board.in_progress, ...board.to_pay];
+  return new Set(all.map((s) => s.appointment?.id).filter((id): id is number => !!id));
+}
+
+export interface AppointmentToBoardResult {
+  service: { id: number; totalAmount: number; status: ServiceStatus };
+}
+
+/**
+ * Adelanta una reservación al tablero (/en-progreso) en estado `waiting`.
+ * Para cuando el cliente llega antes de su cita y hay cupo.
+ */
+export async function appointmentToBoard(
+  appointmentId: number,
+): Promise<AppointmentToBoardResult> {
+  return strapiServerFetch<AppointmentToBoardResult>("/api/qr/appointment-to-board", {
+    method: "POST",
+    body: { appointmentId },
+  });
+}
+
 /** waiting → in_progress: un empleado toma el auto. */
 export async function startService(
   serviceId: number,

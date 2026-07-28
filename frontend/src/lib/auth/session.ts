@@ -16,7 +16,18 @@ function resolveRole(user: User): UserRole {
   const name = user.role?.name?.toLowerCase() ?? "";
   if (type === "superadmin" || name.includes("super")) return "superadmin";
   if (type === "admin" || name.includes("admin")) return "admin";
+  if (type === "vip" || name === "vip") return "vip";
   return "cliente";
+}
+
+/** El VIP es un cliente con tarifa especial: mismo acceso, distinto precio. */
+export function isVipRole(role: UserRole | null | undefined): boolean {
+  return role === "vip";
+}
+
+/** ¿Este rol puede VER el precio VIP? Admins, empleados y los propios VIP. */
+export function canSeeVipPrice(role: UserRole | null | undefined): boolean {
+  return role === "vip" || role === "admin" || role === "superadmin";
 }
 
 /**

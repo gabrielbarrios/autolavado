@@ -256,7 +256,8 @@ export function WalkInForm({
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">Resumen</p>
-                <p className="text-sm">
+                {/* div y no p: Badge renderiza un <div>, que no es válido dentro de <p>. */}
+                <div className="flex flex-wrap items-center gap-x-1 text-sm">
                   {customerName.trim() ? (
                     <span className="font-semibold">{customerName.trim()}</span>
                   ) : (
@@ -269,7 +270,7 @@ export function WalkInForm({
                       Uber/Taxi
                     </Badge>
                   )}
-                </p>
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Total</p>

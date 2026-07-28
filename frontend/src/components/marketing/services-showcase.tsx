@@ -64,7 +64,15 @@ const FALLBACK: Package[] = [
   },
 ];
 
-export function ServicesShowcase({ packages }: { packages?: Package[] }) {
+export function ServicesShowcase({
+  packages,
+  isVip = false,
+}: {
+  packages?: Package[];
+  /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
+  isVip?: boolean;
+}) {
+  const priceCtx = { isVip };
   const list = packages?.length ? packages : FALLBACK;
   const [selection, setSelection] = React.useState<VehicleSelection>({
     vehicleType: null,
@@ -95,8 +103,8 @@ export function ServicesShowcase({ packages }: { packages?: Package[] }) {
             : selection.isUberTaxi
               ? { id: 0, brand: "", model: "", year: 0, color: "", plate: "", isUberTaxi: true }
               : null;
-          const computed = fakeVehicle ? computePackagePrice(pkg, fakeVehicle) : 0;
-          const { min, max } = packagePriceRange(pkg);
+          const computed = fakeVehicle ? computePackagePrice(pkg, fakeVehicle, priceCtx) : 0;
+          const { min, max } = packagePriceRange(pkg, priceCtx);
           const hasRange = min !== max && min > 0;
 
           return (

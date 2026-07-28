@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listAllAppointments } from "@/lib/strapi/appointments";
+import { listBoardAppointmentIds } from "@/lib/strapi/qr";
 import { getSiteSetting } from "@/lib/strapi/site-setting";
 import { AppointmentActions } from "@/components/admin/appointment-actions";
 import { formatDate, cn } from "@/lib/utils";
@@ -42,9 +43,10 @@ export default async function ReservacionesAdminPage(props: PageProps) {
     | AppointmentStatus
     | "all";
 
-  const [all, setting] = await Promise.all([
+  const [all, setting, onBoardIds] = await Promise.all([
     listAllAppointments().catch(() => []),
     getSiteSetting().catch(() => null),
+    listBoardAppointmentIds().catch(() => new Set<number>()),
   ]);
 
   // Conteos por estado
@@ -204,6 +206,7 @@ export default async function ReservacionesAdminPage(props: PageProps) {
                           appointment={a}
                           businessHours={setting?.businessHours ?? []}
                           closedDates={setting?.closedDates ?? []}
+                          onBoard={onBoardIds.has(a.id)}
                         />
                       </td>
                     </tr>
@@ -281,6 +284,7 @@ export default async function ReservacionesAdminPage(props: PageProps) {
                       appointment={a}
                       businessHours={setting?.businessHours ?? []}
                       closedDates={setting?.closedDates ?? []}
+                      onBoard={onBoardIds.has(a.id)}
                     />
                   </div>
                 </div>

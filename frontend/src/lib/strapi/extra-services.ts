@@ -1,4 +1,3 @@
-import { strapiFetch } from "./client";
 import { strapiServerFetch } from "./server";
 import type { ExtraService } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
@@ -19,11 +18,14 @@ export async function listExtraServices(opts: ListOpts = {}): Promise<ExtraServi
   if (opts.featuredOnly) {
     query["filters[featured][$eq]"] = "true";
   }
-  const res = await strapiFetch<StrapiCollectionResponse<ExtraService>>(
+  // Server fetch + no-store a propósito: reenvía el JWT para que Strapi decida
+  // si incluye `pricing.vipPrice`, y evita que una respuesta cacheada con
+  // precios VIP se le sirva a un visitante anónimo.
+  const res = await strapiServerFetch<StrapiCollectionResponse<ExtraService>>(
     "/api/extra-services",
     {
       query,
-      next: { revalidate: 60, tags: ["extra-services"] },
+      cache: "no-store",
     },
   );
   return res.data ?? [];

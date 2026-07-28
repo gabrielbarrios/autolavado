@@ -1,14 +1,17 @@
 import { listPackages } from "@/lib/strapi/packages";
 import { listExtraServices } from "@/lib/strapi/extra-services";
 import { PackagesGrid } from "@/components/marketing/packages-grid";
+import { getSession, isVipRole } from "@/lib/auth/session";
 
 export const metadata = { title: "Paquetes" };
 
 export default async function PaquetesPage() {
-  const [packages, extras] = await Promise.all([
+  const [packages, extras, session] = await Promise.all([
     listPackages().catch(() => []),
     listExtraServices().catch(() => []),
+    getSession().catch(() => null),
   ]);
+  const isVip = isVipRole(session?.role);
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-16">
@@ -21,7 +24,7 @@ export default async function PaquetesPage() {
         </p>
       </div>
 
-      <PackagesGrid packages={packages} extras={extras} />
+      <PackagesGrid packages={packages} extras={extras} isVip={isVip} />
     </div>
   );
 }

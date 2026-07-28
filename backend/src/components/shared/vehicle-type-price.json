@@ -21,6 +21,11 @@
       "type": "decimal",
       "min": 0,
       "description": "Precio especial cuando el auto está marcado como Uber/Taxi. Si está vacío, se usa el precio normal del tipo de auto."
+    },
+    "vipPrice": {
+      "type": "decimal",
+      "min": 0,
+      "description": "Precio especial para clientes con rol VIP. Tiene prioridad sobre el precio Uber/Taxi. Si está vacío, el VIP paga el precio normal. Solo lo ven admins, empleados y los propios clientes VIP."
     }
   }
 }

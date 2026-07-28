@@ -30,6 +30,14 @@ const AUTHENTICATED_PERMISSIONS: Record<string, string[]> = {
 };
 
 /**
+ * Permisos del rol VIP: exactamente los de un cliente autenticado. Lo que
+ * cambia no son los permisos sino el precio — los controllers de package y
+ * extra-service le dejan ver `pricing.vipPrice` y el cálculo de totales le
+ * aplica esa tarifa (ver src/utils/pricing.ts).
+ */
+const VIP_PERMISSIONS: Record<string, string[]> = { ...AUTHENTICATED_PERMISSIONS };
+
+/**
  * Permisos del rol Admin (dueño del autolavado).
  * CRUD total sobre todo + endpoints QR + lectura de site-setting.
  */
@@ -56,6 +64,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
     'walkInService',
     'inProgressServices',
     'board',
+    'appointmentToBoard',
     'startService',
     'finishService',
     'chargeService',
@@ -75,6 +84,7 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
     'walkInService',
     'inProgressServices',
     'board',
+    'appointmentToBoard',
     'startService',
     'finishService',
     'chargeService',
@@ -108,6 +118,14 @@ async function ensureSuperAdminRoleExists() {
     'superadmin',
     'Super Admin',
     'Dueño — supervisa a los administradores (empleados) además del acceso total',
+  );
+}
+
+async function ensureVipRoleExists() {
+  return ensureRoleExists(
+    'vip',
+    'VIP',
+    'Cliente VIP — mismos permisos que un cliente, pero paga el precio VIP configurado en cada paquete y servicio extra',
   );
 }
 
@@ -369,8 +387,10 @@ export default {
     try {
       await ensureAdminRoleExists();
       await ensureSuperAdminRoleExists();
+      await ensureVipRoleExists();
       await ensureRolePermissions('public', PUBLIC_PERMISSIONS);
       await ensureRolePermissions('authenticated', AUTHENTICATED_PERMISSIONS);
+      await ensureRolePermissions('vip', VIP_PERMISSIONS);
       await ensureRolePermissions('admin', ADMIN_PERMISSIONS);
       await ensureRolePermissions('superadmin', SUPERADMIN_PERMISSIONS);
       await promoteOwnerToSuperAdmin();

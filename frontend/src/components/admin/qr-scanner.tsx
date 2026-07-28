@@ -18,6 +18,7 @@ import {
 } from "@/actions/qr";
 import { formatDate, formatPrice, cn } from "@/lib/utils";
 import {
+  isVipUser,
   computePackagePrice,
   computeExtraServicePrice,
   vehicleTypeLabel,
@@ -69,15 +70,16 @@ function CompleteAppointmentRow({ appointment }: { appointment: import("@/types/
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background/60 p-2">
       <div className="flex-1 text-xs">
-        <p className="font-medium">
+        {/* div y no p: Badge renderiza un <div>, que no es válido dentro de <p>. */}
+        <div className="flex flex-wrap items-center gap-x-1 font-medium">
           {appointment.package?.name ?? "Paquete"} ·{" "}
           <span className="font-mono">{appointment.timeSlot?.slice(0, 5)}</span>
           {appointment.status === "pending" && (
-            <Badge variant="warning" className="ml-2 text-[10px]">
+            <Badge variant="warning" className="ml-1 text-[10px]">
               pendiente
             </Badge>
           )}
-        </p>
+        </div>
         {appointment.vehicle && (
           <p className="text-muted-foreground">
             {appointment.vehicle.brand} {appointment.vehicle.model} · {appointment.vehicle.plate || "—"}
@@ -117,6 +119,11 @@ export function QrScanner({
   const [scanning, setScanning] = React.useState(false);
   const [manualToken, setManualToken] = React.useState("");
   const [result, setResult] = React.useState<QRScanResult | null>(null);
+  // La tarifa la define el CLIENTE escaneado, no el admin que escanea.
+  const priceCtx = React.useMemo(
+    () => ({ isVip: isVipUser(result?.user) }),
+    [result?.user],
+  );
   const [vehicleId, setVehicleId] = React.useState<number | null>(null);
   const [packageId, setPackageId] = React.useState<number | null>(packages[0]?.id ?? null);
   const [notes, setNotes] = React.useState("");
@@ -393,7 +400,7 @@ export function QrScanner({
                   {(() => {
                     const selectedVehicle = result.vehicles.find((v) => v.id === vehicleId);
                     return packages.map((p) => {
-                      const price = computePackagePrice(p, selectedVehicle);
+                      const price = computePackagePrice(p, selectedVehicle, priceCtx);
                       return (
                         <button
                           key={p.id}
@@ -443,7 +450,7 @@ export function QrScanner({
                           </span>
                           <span className="flex-1 leading-tight">{s.name}</span>
                           <span className="shrink-0 font-semibold">
-                            {formatPrice(computeExtraServicePrice(s, vForPrice))}
+                            {formatPrice(computeExtraServicePrice(s, vForPrice, priceCtx))}
                           </span>
                         </button>
                       );
@@ -455,10 +462,10 @@ export function QrScanner({
               {(() => {
                 const selectedVehicle = result.vehicles.find((v) => v.id === vehicleId);
                 const selectedPkg = packages.find((p) => p.id === packageId);
-                const pkgPrice = selectedPkg ? computePackagePrice(selectedPkg, selectedVehicle) : 0;
+                const pkgPrice = selectedPkg ? computePackagePrice(selectedPkg, selectedVehicle, priceCtx) : 0;
                 const extrasTotal = extraServices
                   .filter((e) => selectedExtras.has(e.id))
-                  .reduce((acc, e) => acc + computeExtraServicePrice(e, selectedVehicle), 0);
+                  .reduce((acc, e) => acc + computeExtraServicePrice(e, selectedVehicle, priceCtx), 0);
                 const total = pkgPrice + extrasTotal;
                 if (!selectedPkg) return null;
                 return (

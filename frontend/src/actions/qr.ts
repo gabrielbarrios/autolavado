@@ -6,6 +6,7 @@ import {
   scanQR,
   registerVisit,
   walkInService,
+  appointmentToBoard,
   startService,
   finishService,
   chargeService,
@@ -14,6 +15,7 @@ import {
   type RegisterVisitResult,
   type WalkInServicePayload,
   type WalkInServiceResult,
+  type AppointmentToBoardResult,
   type ChargeServiceResult,
 } from "@/lib/strapi/qr";
 import { redeemPromotion } from "@/lib/strapi/promotions";
@@ -89,6 +91,28 @@ export async function walkInServiceAction(
   }
 }
 
+/**
+ * El cliente llegó antes de su cita y hay cupo → manda la reservación al
+ * tablero de /en-progreso como `waiting` para que un empleado inicie el lavado.
+ */
+export async function sendAppointmentToBoardAction(
+  appointmentId: number,
+): Promise<ActionResult<AppointmentToBoardResult>> {
+  await requireAdmin();
+  try {
+    const data = await appointmentToBoard(appointmentId);
+    revalidatePath("/reservaciones");
+    revalidatePath("/en-progreso");
+    revalidatePath("/dashboard");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo mandar al tablero",
+    };
+  }
+}
+
 /** waiting → in_progress: un empleado toma el auto. */
 export async function startServiceAction(
   serviceId: number,
@@ -135,6 +159,8 @@ export async function chargeServiceAction(
     revalidatePath("/servicios");
     revalidatePath("/dashboard");
     revalidatePath("/empleados");
+    // Cobrar cierra la reservación ligada, si el service vino de una.
+    revalidatePath("/reservaciones");
     return { ok: true, data };
   } catch (err) {
     return {

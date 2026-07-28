@@ -10,6 +10,10 @@
  * - `find/findOne`: el cliente sólo ve SUS reservaciones, el admin las ve todas.
  */
 import { factories } from '@strapi/strapi';
+import {
+  computeAppointmentTotal,
+  APPOINTMENT_PRICING_POPULATE,
+} from '../../../utils/pricing';
 
 const WEEK_DAYS = [
   'monday',
@@ -47,67 +51,6 @@ function minutesToSlots(minutes, slotDuration) {
   const mins = Number(minutes ?? 0);
   if (mins <= 0) return 1;
   return Math.max(1, Math.ceil(mins / slotDuration));
-}
-
-/**
- * Precio de un servicio extra dado un vehículo. Espejo de computeExtraServicePrice del frontend.
- * Espera el extra con `pricing` populado.
- */
-function computeExtraPriceForVehicle(extra, vehicle) {
-  const pricing = Array.isArray(extra?.pricing) ? extra.pricing : [];
-  if (vehicle?.vehicleType) {
-    const match = pricing.find((p) => p.vehicleType === vehicle.vehicleType);
-    if (match) {
-      if (vehicle.isUberTaxi && match.uberTaxiPrice != null) return Number(match.uberTaxiPrice);
-      if (match.price != null) return Number(match.price);
-    }
-  }
-  if (vehicle?.isUberTaxi) {
-    const legacyRow = pricing.find((p) => p.vehicleType === 'uber_taxi');
-    if (legacyRow && legacyRow.price != null) return Number(legacyRow.price);
-    if (extra?.uberTaxiPrice != null) return Number(extra.uberTaxiPrice);
-  }
-  const normalRows = pricing.filter((p) => p.vehicleType !== 'uber_taxi');
-  if (normalRows.length > 0) {
-    return Math.min(...normalRows.map((p) => Number(p.price)));
-  }
-  return Number(extra?.price ?? 0);
-}
-
-/**
- * Calcula el precio total del servicio: paquete (según vehículo) + suma de extras (según vehículo).
- * Reutiliza la misma lógica que el endpoint QR registerVisit.
- */
-async function computeAppointmentTotal(appointment) {
-  // appointment debe venir con package.pricing, vehicle, extraServices.pricing populados
-  const pkg = appointment.package;
-  const vehicle = appointment.vehicle;
-  const extras = appointment.extraServices ?? [];
-
-  let total = 0;
-  if (pkg) {
-    const pkgPricing = Array.isArray(pkg.pricing) ? pkg.pricing : [];
-    if (vehicle?.vehicleType) {
-      const match = pkgPricing.find((p) => p.vehicleType === vehicle.vehicleType);
-      if (match) {
-        if (vehicle.isUberTaxi && match.uberTaxiPrice != null) total = Number(match.uberTaxiPrice);
-        else if (match.price != null) total = Number(match.price);
-      }
-    }
-    if (total === 0 && vehicle?.isUberTaxi) {
-      const legacyRow = pkgPricing.find((p) => p.vehicleType === 'uber_taxi');
-      if (legacyRow && legacyRow.price != null) total = Number(legacyRow.price);
-      else if (pkg.uberTaxiPrice != null) total = Number(pkg.uberTaxiPrice);
-    }
-    if (total === 0) {
-      const normalRows = pkgPricing.filter((p) => p.vehicleType !== 'uber_taxi');
-      if (normalRows.length > 0) total = Math.min(...normalRows.map((p) => Number(p.price)));
-    }
-  }
-  for (const e of extras) {
-    total += computeExtraPriceForVehicle(e, vehicle);
-  }
-  return total;
 }
 
 /**
@@ -398,19 +341,27 @@ export default factories.createCoreController('api::appointment.appointment', ({
     // Si la reservación acaba de marcarse como completada → crear visit + service
     // automáticamente con los extras y el precio correcto. Esto dispara el
     // lifecycle de loyalty (+1 visita, promo automática cada 3).
+    //
+    // EXCEPCIÓN: si la cita ya se mandó al tablero (/en-progreso) existe un
+    // service ligado a ella; ese flujo crea la Visit al cobrar. Volver a crearla
+    // aquí duplicaría el lavado y la fidelidad.
     if (willComplete) {
       try {
-        // Necesitamos package.pricing y vehicle populados para calcular el precio
-        const full = await strapi.db.query('api::appointment.appointment').findOne({
-          where: { id },
-          populate: {
-            user: true,
-            vehicle: true,
-            package: { populate: { pricing: true } },
-            extraServices: { populate: { pricing: true } },
-          },
+        const linked = await strapi.db.query('api::service.service').findOne({
+          where: { appointment: id },
         });
-        if (full) await createVisitAndServiceFromAppointment(full, userId);
+        if (linked) {
+          strapi.log.info(
+            `[appointment.update] Cita ${id} ya tiene el service ${linked.id} en el tablero; no se duplica visit/service.`,
+          );
+        } else {
+          // Necesitamos package.pricing y vehicle populados para calcular el precio
+          const full = await strapi.db.query('api::appointment.appointment').findOne({
+            where: { id },
+            populate: APPOINTMENT_PRICING_POPULATE,
+          });
+          if (full) await createVisitAndServiceFromAppointment(full, userId);
+        }
       } catch (err) {
         strapi.log.error(`[appointment.update] No se pudo crear visit/service: ${err}`);
       }

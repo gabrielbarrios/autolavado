@@ -19,7 +19,15 @@ import {
 } from "./package-type-picker";
 import type { ExtraService, Vehicle } from "@/types/models";
 
-export function ExtraServicesSelector({ services }: { services: ExtraService[] }) {
+export function ExtraServicesSelector({
+  services,
+  isVip = false,
+}: {
+  services: ExtraService[];
+  /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
+  isVip?: boolean;
+}) {
+  const priceCtx = { isVip };
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [vehicleSel, setVehicleSel] = React.useState<VehicleSelection>({
     vehicleType: null,
@@ -53,7 +61,7 @@ export function ExtraServicesSelector({ services }: { services: ExtraService[] }
 
   const selectedList = services.filter((s) => selected.has(s.id));
   const total = selectedList.reduce(
-    (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle),
+    (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle, priceCtx),
     0,
   );
   const totalMinutes = selectedList.reduce(
@@ -73,13 +81,22 @@ export function ExtraServicesSelector({ services }: { services: ExtraService[] }
 
   return (
     <>
+      {isVip && (
+        <div className="mb-6 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          <span>
+            <strong>Precios VIP.</strong> Estás viendo tu tarifa preferente; donde no haya
+            precio VIP configurado se muestra el precio normal.
+          </span>
+        </div>
+      )}
       <PackageTypePicker value={vehicleSel} onChange={setVehicleSel} className="mb-8" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((s) => {
           const isSelected = selected.has(s.id);
-          const computed = computeExtraServicePrice(s, fakeVehicle);
-          const { min, max } = extraServicePriceRange(s);
+          const computed = computeExtraServicePrice(s, fakeVehicle, priceCtx);
+          const { min, max } = extraServicePriceRange(s, priceCtx);
           const hasRange = min !== max && min > 0;
           return (
             <button

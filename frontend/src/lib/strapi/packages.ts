@@ -1,8 +1,12 @@
-import { strapiFetch } from "./client";
 import { strapiServerFetch } from "./server";
 import type { Package } from "@/types/models";
 import type { StrapiCollectionResponse, StrapiSingleResponse } from "@/types/strapi";
 
+/**
+ * Todas las lecturas van por `strapiServerFetch` a propósito: reenvía el JWT de
+ * la sesión, y Strapi usa ese rol para decidir si incluye `pricing.vipPrice`.
+ * Con `strapiFetch` (anónimo) un cliente VIP nunca vería su tarifa.
+ */
 interface ListOpts {
   featuredOnly?: boolean;
   pageSize?: number;
@@ -22,7 +26,7 @@ export async function listPackages(opts: ListOpts = {}): Promise<Package[]> {
   if (opts.featuredOnly) {
     query["filters[featured][$eq]"] = "true";
   }
-  const res = await strapiFetch<StrapiCollectionResponse<Package>>("/api/packages", {
+  const res = await strapiServerFetch<StrapiCollectionResponse<Package>>("/api/packages", {
     query,
     cache: "no-store",
   });
@@ -30,7 +34,7 @@ export async function listPackages(opts: ListOpts = {}): Promise<Package[]> {
 }
 
 export async function getPackageBySlug(slug: string): Promise<Package | null> {
-  const res = await strapiFetch<StrapiCollectionResponse<Package>>("/api/packages", {
+  const res = await strapiServerFetch<StrapiCollectionResponse<Package>>("/api/packages", {
     query: {
       ...PACKAGE_POPULATE,
       "filters[slug][$eq]": slug,

@@ -7,7 +7,10 @@ import { requireUser } from "@/lib/auth/guards";
 import { listMyVehicles } from "@/lib/strapi/vehicles";
 import { listMyAppointments } from "@/lib/strapi/appointments";
 import { listMyPromotions, getMyLoyaltyProgress } from "@/lib/strapi/promotions";
+import { listMyActiveServices } from "@/lib/strapi/visits";
 import { LoyaltyProgress } from "@/components/cliente/loyalty-progress";
+import { ServiceTracker } from "@/components/cliente/service-tracker";
+import { AutoRefresh } from "@/components/cliente/auto-refresh";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = { title: "Perfil" };
@@ -15,11 +18,12 @@ export const metadata = { title: "Perfil" };
 export default async function PerfilPage() {
   const { user } = await requireUser();
 
-  const [vehicles, appointments, promos, loyalty] = await Promise.all([
+  const [vehicles, appointments, promos, loyalty, activeServices] = await Promise.all([
     listMyVehicles(user.id).catch(() => []),
     listMyAppointments(user.id).catch(() => []),
     listMyPromotions(user.id).catch(() => []),
     getMyLoyaltyProgress(user.id).catch(() => null),
+    listMyActiveServices(user.id).catch(() => []),
   ]);
 
   const upcoming = appointments.find((a) => a.status === "approved" || a.status === "pending");
@@ -41,6 +45,13 @@ export default async function PerfilPage() {
           href="/reservar"
         />
       </div>
+
+      {activeServices.length > 0 && (
+        <>
+          <AutoRefresh intervalMs={30000} />
+          <ServiceTracker services={activeServices} />
+        </>
+      )}
 
       <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} />
 

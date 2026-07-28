@@ -1,10 +1,15 @@
 import { listExtraServices } from "@/lib/strapi/extra-services";
 import { ExtraServicesSelector } from "@/components/marketing/extra-services-selector";
+import { getSession, isVipRole } from "@/lib/auth/session";
 
 export const metadata = { title: "Otros servicios" };
 
 export default async function ServiciosPage() {
-  const services = await listExtraServices().catch(() => []);
+  const [services, session] = await Promise.all([
+    listExtraServices().catch(() => []),
+    getSession().catch(() => null),
+  ]);
+  const isVip = isVipRole(session?.role);
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-16">
@@ -17,7 +22,7 @@ export default async function ServiciosPage() {
         </p>
       </div>
 
-      <ExtraServicesSelector services={services} />
+      <ExtraServicesSelector services={services} isVip={isVip} />
     </div>
   );
 }

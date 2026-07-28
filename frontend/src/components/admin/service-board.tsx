@@ -14,6 +14,7 @@ import {
   cancelServiceAction,
 } from "@/actions/qr";
 import { formatPrice, formatDateTime } from "@/lib/utils";
+import { formatTime } from "@/lib/business-hours";
 import { vehicleTypeLabel } from "@/lib/pricing";
 import type { Service } from "@/types/models";
 
@@ -130,10 +131,16 @@ function ServiceSummary({ service: s }: { service: Service }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-medium">
-          {s.isWalkIn && <Badge variant="info" className="mr-1 text-[10px]">Walk-in</Badge>}
+        {/* div y no p: Badge renderiza un <div>, que no es válido dentro de <p>. */}
+        <div className="flex flex-wrap items-center gap-1 font-medium">
+          {s.isWalkIn && <Badge variant="info" className="text-[10px]">Walk-in</Badge>}
+          {s.appointment && (
+            <Badge variant="warning" className="text-[10px]">
+              Cita {formatTime(s.appointment.timeSlot)}
+            </Badge>
+          )}
           {describeCliente(s)}
-        </p>
+        </div>
         <span className="font-mono text-sm">{formatPrice(s.totalAmount)}</span>
       </div>
       <p className="text-xs text-muted-foreground">{describeAuto(s)}</p>

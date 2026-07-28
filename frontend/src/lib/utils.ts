@@ -16,8 +16,24 @@ export function formatPrice(value: number | string, currency = "MXN") {
   }).format(num);
 }
 
+/** "2026-08-01" (campo `date` de Strapi) sin componente de hora. */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parsea un valor de fecha respetando la zona horaria local.
+ *
+ * `new Date("2026-08-01")` se interpreta como medianoche **UTC**, así que en
+ * México (UTC-6) retrocede al 31 de julio. Para los strings date-only añadimos
+ * `T00:00:00` para forzar medianoche local. Los ISO completos (startedAt,
+ * createdAt…) sí llevan zona y se parsean tal cual.
+ */
+export function parseDate(value: string | Date): Date {
+  if (typeof value !== "string") return value;
+  return new Date(DATE_ONLY.test(value) ? `${value}T00:00:00` : value);
+}
+
 export function formatDate(value: string | Date, opts?: Intl.DateTimeFormatOptions) {
-  const d = typeof value === "string" ? new Date(value) : value;
+  const d = parseDate(value);
   return new Intl.DateTimeFormat("es-MX", {
     day: "2-digit",
     month: "short",

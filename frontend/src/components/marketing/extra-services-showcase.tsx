@@ -21,8 +21,11 @@ export function ExtraServicesShowcase({
   limit = 3,
   title = "Otros servicios",
   subtitle = "Servicios sueltos que puedes agregar a tu visita.",
+  isVip = false,
 }: {
   services?: ExtraService[];
+  /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
+  isVip?: boolean;
   showAll?: boolean;
   /** Cuántos mostrar cuando !showAll. Por defecto 3 para emparejar Paquetes destacados. */
   limit?: number;
@@ -53,7 +56,7 @@ export function ExtraServicesShowcase({
 
       <div className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-3">
         {items.map((s) => {
-          const { min, max } = extraServicePriceRange(s);
+          const { min, max } = extraServicePriceRange(s, { isVip });
           const hasRange = min !== max && min > 0;
           return (
             <Card

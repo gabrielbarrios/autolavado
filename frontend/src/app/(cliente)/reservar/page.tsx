@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireUser } from "@/lib/auth/guards";
+import { isVipRole } from "@/lib/auth/session";
 import { listPackages } from "@/lib/strapi/packages";
 import { listMyVehicles } from "@/lib/strapi/vehicles";
 import { listExtraServices } from "@/lib/strapi/extra-services";
@@ -9,7 +10,7 @@ import { BookingForm } from "@/components/cliente/booking-form";
 export const metadata = { title: "Reservar" };
 
 export default async function ReservarPage() {
-  const { user } = await requireUser();
+  const { user, role } = await requireUser();
   const [packages, vehicles, setting, extras] = await Promise.all([
     listPackages().catch(() => []),
     listMyVehicles(user.id).catch(() => []),
@@ -30,6 +31,7 @@ export default async function ReservarPage() {
           businessHours={setting?.businessHours ?? []}
           closedDates={setting?.closedDates ?? []}
           extraServices={extras}
+          isVip={isVipRole(role)}
         />
       </Suspense>
     </div>
