@@ -27,3 +27,4 @@ const config: Core.Config.Middlewares = [
 ];
 
 export default config;
+
