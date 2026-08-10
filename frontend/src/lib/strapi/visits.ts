@@ -50,6 +50,26 @@ export async function listMyActiveServices(userId: number): Promise<Service[]> {
   return res.data ?? [];
 }
 
+/**
+ * Resultado de consultar los servicios activos sin lanzar. `ok: false` significa
+ * que la consulta falló (permisos, red, Strapi caído) — que NO es lo mismo que
+ * "el cliente no tiene nada en curso", y la UI debe decir cosas distintas.
+ */
+export type ActiveServicesResult = { ok: boolean; services: Service[] };
+
+/**
+ * Igual que `listMyActiveServices` pero nunca lanza: envuelve el error para que
+ * la página siga renderizando y a la vez pueda mostrar que algo falló.
+ */
+export async function loadMyActiveServices(userId: number): Promise<ActiveServicesResult> {
+  try {
+    return { ok: true, services: await listMyActiveServices(userId) };
+  } catch (error) {
+    console.error("[services] No se pudieron consultar los servicios activos del cliente", error);
+    return { ok: false, services: [] };
+  }
+}
+
 export async function listAllServices(): Promise<Service[]> {
   // /servicios es el historial — solo los completados. Los in_progress viven en /en-progreso.
   const res = await strapiServerFetch<StrapiCollectionResponse<Service>>("/api/services", {

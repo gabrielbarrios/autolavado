@@ -1,7 +1,9 @@
+import Link from "next/link";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth/guards";
-import { listMyServices } from "@/lib/strapi/visits";
+import { listMyServices, loadMyActiveServices } from "@/lib/strapi/visits";
 import { listMyAppointments } from "@/lib/strapi/appointments";
 import { formatDate, formatPrice } from "@/lib/utils";
 
@@ -23,9 +25,10 @@ const statusLabel = {
 
 export default async function HistorialPage() {
   const { user } = await requireUser();
-  const [services, appointments] = await Promise.all([
+  const [services, appointments, active] = await Promise.all([
     listMyServices(user.id).catch(() => []),
     listMyAppointments(user.id).catch(() => []),
+    loadMyActiveServices(user.id),
   ]);
 
   return (
@@ -34,6 +37,32 @@ export default async function HistorialPage() {
         <h1 className="text-3xl font-bold tracking-tight">Historial</h1>
         <p className="text-muted-foreground">Tus servicios completados y tus próximas reservaciones.</p>
       </div>
+
+      {/* Los lavados en curso no salen en la tabla de abajo (solo lista los
+          `completed`), así que se enlazan acá para que no queden invisibles. */}
+      {active.services.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 shrink-0 text-primary" />
+              <p className="text-sm">
+                <span className="font-semibold">
+                  {active.services.length === 1
+                    ? "Tienes un lavado en curso"
+                    : `Tienes ${active.services.length} lavados en curso`}
+                </span>{" "}
+                <span className="text-muted-foreground">— todavía no aparece aquí abajo.</span>
+              </p>
+            </div>
+            <Link
+              href="/mi-auto"
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              Ver estado <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Servicios completados</h2>

@@ -15,6 +15,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Contador opcional al final del item (ej. lavados en curso). 0/undefined = no se muestra. */
+  badge?: number;
 }
 
 export interface DashboardShellProps {
@@ -109,8 +111,13 @@ function NavList({
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
-            <item.icon className="h-4 w-4" />
-            {item.label}
+            <item.icon className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {!!item.badge && (
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                {item.badge}
+              </span>
+            )}
           </Link>
         );
       })}

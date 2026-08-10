@@ -1,4 +1,5 @@
-import { Clock, Sparkles, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Clock, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDateTime } from "@/lib/utils";
@@ -33,22 +34,59 @@ function describeAuto(s: Service): string {
   return "Tu auto";
 }
 
-export function ServiceTracker({ services }: { services: Service[] }) {
-  if (services.length === 0) return null;
-
+/**
+ * `failed` distingue "la consulta falló" de "no hay nada en curso". Antes ambos
+ * casos renderizaban `null`, así que un error de permisos era indistinguible de
+ * un cliente sin servicios y el seguimiento simplemente desaparecía sin pistas.
+ */
+export function ServiceTracker({
+  services,
+  failed = false,
+}: {
+  services: Service[];
+  failed?: boolean;
+}) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">
-          {services.length === 1 ? "Tu auto ahora" : "Tus autos ahora"}
+          {services.length > 1 ? "Tus autos ahora" : "Tu auto ahora"}
         </h2>
-        <Badge variant="info">{services.length} en curso</Badge>
+        {services.length > 0 && <Badge variant="info">{services.length} en curso</Badge>}
       </div>
-      <div className="space-y-4">
-        {services.map((s) => (
-          <ServiceTrackerCard key={s.id} service={s} />
-        ))}
-      </div>
+
+      {failed ? (
+        <Card className="border-destructive/40">
+          <CardContent className="flex items-start gap-3 p-6 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div className="space-y-1">
+              <p className="font-medium">No pudimos consultar el estado de tu auto.</p>
+              <p className="text-muted-foreground">
+                Vuelve a intentar en un momento o pregunta en recepción.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : services.length === 0 ? (
+        <Card>
+          <CardContent className="space-y-2 p-8 text-center text-sm">
+            <p className="font-medium">No tienes ningún lavado en curso.</p>
+            <p className="text-muted-foreground">
+              Cuando el personal registre tu auto con{" "}
+              <Link href="/qr" className="font-medium text-primary hover:underline">
+                tu QR
+              </Link>
+              , el avance aparecerá aquí solo.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {services.map((s) => (
+            <ServiceTrackerCard key={s.id} service={s} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

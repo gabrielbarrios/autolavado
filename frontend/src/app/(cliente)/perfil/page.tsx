@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth/guards";
 import { listMyVehicles } from "@/lib/strapi/vehicles";
 import { listMyAppointments } from "@/lib/strapi/appointments";
 import { listMyPromotions, getMyLoyaltyProgress } from "@/lib/strapi/promotions";
-import { listMyActiveServices } from "@/lib/strapi/visits";
+import { loadMyActiveServices } from "@/lib/strapi/visits";
 import { LoyaltyProgress } from "@/components/cliente/loyalty-progress";
 import { ServiceTracker } from "@/components/cliente/service-tracker";
 import { AutoRefresh } from "@/components/cliente/auto-refresh";
@@ -23,7 +23,9 @@ export default async function PerfilPage() {
     listMyAppointments(user.id).catch(() => []),
     listMyPromotions(user.id).catch(() => []),
     getMyLoyaltyProgress(user.id).catch(() => null),
-    listMyActiveServices(user.id).catch(() => []),
+    // No usa `.catch(() => [])`: un fallo aquí se muestra como tal en el tracker
+    // en vez de verse igual que "no tienes nada en curso".
+    loadMyActiveServices(user.id),
   ]);
 
   const upcoming = appointments.find((a) => a.status === "approved" || a.status === "pending");
@@ -46,12 +48,10 @@ export default async function PerfilPage() {
         />
       </div>
 
-      {activeServices.length > 0 && (
-        <>
-          <AutoRefresh intervalMs={30000} />
-          <ServiceTracker services={activeServices} />
-        </>
-      )}
+      {/* AutoRefresh va siempre montado (antes solo si ya había algo en curso, así
+          que un lavado iniciado con la página abierta nunca aparecía solo). */}
+      <AutoRefresh intervalMs={30000} />
+      <ServiceTracker services={activeServices.services} failed={!activeServices.ok} />
 
       <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} />
 
