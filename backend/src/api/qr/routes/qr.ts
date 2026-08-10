@@ -66,5 +66,11 @@ export default {
       handler: 'qr.employeeStats',
       config: { policies: [], middlewares: [] },
     },
+    {
+      method: 'GET',
+      path: '/qr/employee-times',
+      handler: 'qr.employeeTimes',
+      config: { policies: [], middlewares: [] },
+    },
   ],
 };

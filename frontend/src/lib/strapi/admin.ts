@@ -53,6 +53,52 @@ export async function employeeStats(): Promise<EmployeeStats | null> {
   }
 }
 
+/** Un auto lavado: cuánto estuvo en `in_progress` y quién lo atendió. */
+export interface EmployeeTimeRow {
+  id: number;
+  startedAt: string;
+  finishedAt: string;
+  /** Segundos que el auto estuvo en status "trabajando". */
+  seconds: number;
+  status: string;
+  totalAmount: number;
+  employee: { id: number; name: string } | null;
+  vehicle: string;
+  customer: string | null;
+  package: string | null;
+}
+
+export interface EmployeeTimeGroup {
+  id: number | null;
+  name: string;
+  cars: number;
+  totalSeconds: number;
+  avgSeconds: number;
+  fastestSeconds: number | null;
+  slowestSeconds: number | null;
+}
+
+export interface EmployeeTimes {
+  from: string;
+  to: string;
+  rows: EmployeeTimeRow[];
+  byEmployee: EmployeeTimeGroup[];
+  /** Autos que empezaron en la ventana y siguen sin marcarse como terminados. */
+  stillRunning: number;
+  totals: { cars: number; totalSeconds: number; avgSeconds: number };
+}
+
+/**
+ * La ventana se pasa como dos instantes ISO calculados en el navegador: el
+ * "día" es el de quien mira, no el del servidor (que corre en UTC).
+ */
+export async function employeeTimes(fromISO: string, toISO: string): Promise<EmployeeTimes> {
+  return strapiServerFetch<EmployeeTimes>("/api/qr/employee-times", {
+    query: { from: fromISO, to: toISO },
+    cache: "no-store",
+  });
+}
+
 export async function adminStats() {
   // Estadísticas calculadas con queries paralelas; usa `pagination[pageSize]=1` con `pagination[withCount]=true` para obtener total.
   const safe = async <T>(p: Promise<T>) => p.catch(() => null);

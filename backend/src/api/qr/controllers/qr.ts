@@ -518,6 +518,133 @@ export default {
   },
 
   /**
+   * GET /api/qr/employee-times?from=<ISO>&to=<ISO>  (solo super admin)
+   *
+   * Cuánto tardó cada empleado en cada auto dentro de una ventana de un día.
+   * El tiempo es EXACTAMENTE el que el auto estuvo en `in_progress`:
+   * `finishedAt - startedAt` (startedAt se graba en waiting→in_progress y
+   * finishedAt en in_progress→to_pay, ver startService/finishService).
+   *
+   * La ventana llega como dos instantes ISO en vez de una fecha suelta porque
+   * el "día" depende de la zona horaria de quien mira, no de la del servidor
+   * (Railway corre en UTC). El navegador calcula sus propios límites del día.
+   */
+  async employeeTimes(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+    const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: actingUserId },
+      populate: { role: true },
+    });
+    if (!isSuperAdmin(acting)) return ctx.forbidden('Solo el super admin');
+
+    const { from, to } = ctx.query ?? {};
+    const fromDate = new Date(String(from ?? ''));
+    const toDate = new Date(String(to ?? ''));
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      return ctx.badRequest('from y to deben ser fechas ISO válidas');
+    }
+    if (toDate <= fromDate) return ctx.badRequest('to debe ser posterior a from');
+
+    // Un día por consulta (26h deja margen para cambios de horario).
+    const MAX_SPAN_MS = 26 * 60 * 60 * 1000;
+    if (toDate.getTime() - fromDate.getTime() > MAX_SPAN_MS) {
+      return ctx.badRequest('La ventana no puede pasar de un día');
+    }
+    // Máximo una semana atrás (8 días de colchón por husos horarios).
+    const OLDEST_MS = Date.now() - 8 * 24 * 60 * 60 * 1000;
+    if (fromDate.getTime() < OLDEST_MS) {
+      return ctx.badRequest('Solo se puede consultar hasta una semana atrás');
+    }
+
+    const services = await strapi.db.query('api::service.service').findMany({
+      where: { startedAt: { $gte: fromDate, $lt: toDate } },
+      populate: { performedBy: true, vehicle: true, package: true, user: true },
+      orderBy: [{ startedAt: 'asc' }],
+      limit: 500,
+    });
+
+    /** Etiqueta del auto: el registrado si lo hay, si no el tipo del walk-in. */
+    const describeVehicle = (s) => {
+      if (s.vehicle) {
+        const base = [s.vehicle.brand, s.vehicle.model].filter(Boolean).join(' ');
+        return s.vehicle.plate ? `${base} · ${s.vehicle.plate}` : base || 'Auto';
+      }
+      if (s.vehicleType) return s.vehicleType;
+      return 'Auto';
+    };
+
+    const rows = [];
+    let stillRunning = 0;
+
+    for (const s of services) {
+      // Sigue en el tablero: empezó pero nadie ha marcado que terminó.
+      if (!s.finishedAt) {
+        stillRunning += 1;
+        continue;
+      }
+      const seconds = Math.max(
+        0,
+        Math.round((new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime()) / 1000),
+      );
+      rows.push({
+        id: s.id,
+        startedAt: s.startedAt,
+        finishedAt: s.finishedAt,
+        seconds,
+        status: s.status,
+        totalAmount: Number(s.totalAmount ?? 0),
+        employee: s.performedBy
+          ? { id: s.performedBy.id, name: s.performedBy.name ?? s.performedBy.username }
+          : null,
+        vehicle: describeVehicle(s),
+        customer: s.user?.name ?? s.user?.username ?? s.customerName ?? null,
+        package: s.package?.name ?? null,
+      });
+    }
+
+    // Agregado por empleado. Los servicios sin performedBy caen en un grupo aparte.
+    const groups = new Map();
+    for (const r of rows) {
+      const key = r.employee?.id ?? 'unassigned';
+      if (!groups.has(key)) {
+        groups.set(key, {
+          id: r.employee?.id ?? null,
+          name: r.employee?.name ?? 'Sin acreditar',
+          cars: 0,
+          totalSeconds: 0,
+          fastestSeconds: null,
+          slowestSeconds: null,
+        });
+      }
+      const g = groups.get(key);
+      g.cars += 1;
+      g.totalSeconds += r.seconds;
+      g.fastestSeconds = g.fastestSeconds === null ? r.seconds : Math.min(g.fastestSeconds, r.seconds);
+      g.slowestSeconds = g.slowestSeconds === null ? r.seconds : Math.max(g.slowestSeconds, r.seconds);
+    }
+
+    const byEmployee = [...groups.values()]
+      .map((g) => ({ ...g, avgSeconds: g.cars > 0 ? Math.round(g.totalSeconds / g.cars) : 0 }))
+      .sort((a, b) => b.totalSeconds - a.totalSeconds);
+
+    const totalSeconds = rows.reduce((acc, r) => acc + r.seconds, 0);
+
+    ctx.body = {
+      from: fromDate.toISOString(),
+      to: toDate.toISOString(),
+      rows,
+      byEmployee,
+      stillRunning,
+      totals: {
+        cars: rows.length,
+        totalSeconds,
+        avgSeconds: rows.length > 0 ? Math.round(totalSeconds / rows.length) : 0,
+      },
+    };
+  },
+
+  /**
    * GET /api/qr/employee-stats  (solo super admin)
    * Métricas por admin (lavados completados + ganancias) y tendencia diaria
    * de los últimos 30 días, para supervisar a los empleados.

@@ -90,6 +90,7 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
     'chargeService',
     'cancelService',
     'employeeStats',
+    'employeeTimes',
   ],
 };
 

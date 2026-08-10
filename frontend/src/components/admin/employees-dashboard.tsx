@@ -29,6 +29,15 @@ function shortDate(iso: string): string {
   return `${d}/${m}`;
 }
 
+function MobileField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="truncate font-mono font-medium">{value}</dd>
+    </div>
+  );
+}
+
 export function EmployeesDashboard({ stats }: { stats: EmployeeStats }) {
   const { admins, daily, totals, unassigned } = stats;
 
@@ -127,49 +136,94 @@ export function EmployeesDashboard({ stats }: { stats: EmployeeStats }) {
           <CardTitle>Detalle por empleado</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">Empleado</th>
-                <th className="px-4 py-3 font-medium">Rol</th>
-                <th className="px-4 py-3 font-medium text-right">Lavados</th>
-                <th className="px-4 py-3 font-medium text-right">Ganancias</th>
-                <th className="px-4 py-3 font-medium text-right">Ticket prom.</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {admins.map((a) => (
-                <tr key={a.id}>
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.email}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={a.role === "superadmin" ? "default" : "outline"} className="text-[10px]">
-                      {a.role === "superadmin" ? "Super Admin" : "Admin"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono">{a.washes}</td>
-                  <td className="px-4 py-3 text-right font-mono">{formatPrice(a.earnings)}</td>
-                  <td className="px-4 py-3 text-right font-mono">
-                    {a.washes > 0 ? formatPrice(a.earnings / a.washes) : "—"}
-                  </td>
+          {/* Desktop: tabla. En móvil una tabla de 5 columnas desbordaba la
+              pantalla, así que abajo se renderiza como tarjetas. */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[40rem] text-sm">
+              <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Empleado</th>
+                  <th className="px-4 py-3 font-medium">Rol</th>
+                  <th className="px-4 py-3 font-medium text-right">Lavados</th>
+                  <th className="px-4 py-3 font-medium text-right">Ganancias</th>
+                  <th className="px-4 py-3 font-medium text-right">Ticket prom.</th>
                 </tr>
-              ))}
-              {unassigned.washes > 0 && (
-                <tr className="bg-amber-500/5">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-amber-200">Sin acreditar</p>
-                    <p className="text-xs text-muted-foreground">Servicios sin admin asignado</p>
-                  </td>
-                  <td className="px-4 py-3" />
-                  <td className="px-4 py-3 text-right font-mono">{unassigned.washes}</td>
-                  <td className="px-4 py-3 text-right font-mono">{formatPrice(unassigned.earnings)}</td>
-                  <td className="px-4 py-3 text-right font-mono">—</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {admins.map((a) => (
+                  <tr key={a.id}>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{a.name}</p>
+                      <p className="text-xs text-muted-foreground">{a.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={a.role === "superadmin" ? "default" : "outline"} className="text-[10px]">
+                        {a.role === "superadmin" ? "Super Admin" : "Admin"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">{a.washes}</td>
+                    <td className="px-4 py-3 text-right font-mono">{formatPrice(a.earnings)}</td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {a.washes > 0 ? formatPrice(a.earnings / a.washes) : "—"}
+                    </td>
+                  </tr>
+                ))}
+                {unassigned.washes > 0 && (
+                  <tr className="bg-amber-500/5">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-amber-200">Sin acreditar</p>
+                      <p className="text-xs text-muted-foreground">Servicios sin admin asignado</p>
+                    </td>
+                    <td className="px-4 py-3" />
+                    <td className="px-4 py-3 text-right font-mono">{unassigned.washes}</td>
+                    <td className="px-4 py-3 text-right font-mono">{formatPrice(unassigned.earnings)}</td>
+                    <td className="px-4 py-3 text-right font-mono">—</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Móvil: tarjetas */}
+          <div className="divide-y divide-border/40 md:hidden">
+            {admins.map((a) => (
+              <div key={a.id} className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{a.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{a.email}</p>
+                  </div>
+                  <Badge
+                    variant={a.role === "superadmin" ? "default" : "outline"}
+                    className="shrink-0 text-[10px]"
+                  >
+                    {a.role === "superadmin" ? "Super Admin" : "Admin"}
+                  </Badge>
+                </div>
+                <dl className="grid grid-cols-3 gap-3 text-sm">
+                  <MobileField label="Lavados" value={String(a.washes)} />
+                  <MobileField label="Ganancias" value={formatPrice(a.earnings)} />
+                  <MobileField
+                    label="Ticket prom."
+                    value={a.washes > 0 ? formatPrice(a.earnings / a.washes) : "—"}
+                  />
+                </dl>
+              </div>
+            ))}
+            {unassigned.washes > 0 && (
+              <div className="space-y-3 bg-amber-500/5 p-4">
+                <div>
+                  <p className="font-medium text-amber-200">Sin acreditar</p>
+                  <p className="text-xs text-muted-foreground">Servicios sin admin asignado</p>
+                </div>
+                <dl className="grid grid-cols-3 gap-3 text-sm">
+                  <MobileField label="Lavados" value={String(unassigned.washes)} />
+                  <MobileField label="Ganancias" value={formatPrice(unassigned.earnings)} />
+                  <MobileField label="Ticket prom." value="—" />
+                </dl>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
