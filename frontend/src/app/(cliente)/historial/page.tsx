@@ -26,9 +26,9 @@ const statusLabel = {
 export default async function HistorialPage() {
   const { user } = await requireUser();
   const [services, appointments, active] = await Promise.all([
-    listMyServices(user.id).catch(() => []),
+    listMyServices().catch(() => []),
     listMyAppointments(user.id).catch(() => []),
-    loadMyActiveServices(user.id),
+    loadMyActiveServices(),
   ]);
 
   return (

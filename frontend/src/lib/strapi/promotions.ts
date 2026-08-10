@@ -2,10 +2,13 @@ import { strapiServerFetch } from "./server";
 import type { Promotion, LoyaltyProgress } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
 
-export async function listMyPromotions(userId: number): Promise<Promotion[]> {
+/**
+ * Sin `filters[user]`: esa clave devolvía 400 "Invalid key user" para el rol
+ * `authenticated`. El backend filtra por el JWT (backend/src/utils/owner-scope.ts).
+ */
+export async function listMyPromotions(): Promise<Promotion[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Promotion>>("/api/promotions", {
     query: {
-      "filters[user][id][$eq]": userId,
       "filters[used][$eq]": "false",
       "sort[0]": "validUntil:asc",
     },
@@ -14,9 +17,8 @@ export async function listMyPromotions(userId: number): Promise<Promotion[]> {
   return res.data ?? [];
 }
 
-export async function getMyLoyaltyProgress(userId: number): Promise<LoyaltyProgress | null> {
+export async function getMyLoyaltyProgress(): Promise<LoyaltyProgress | null> {
   const res = await strapiServerFetch<StrapiCollectionResponse<LoyaltyProgress>>("/api/loyalty-progresses", {
-    query: { "filters[user][id][$eq]": userId },
     cache: "no-store",
   });
   return res.data?.[0] ?? null;

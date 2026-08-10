@@ -17,8 +17,8 @@ function discountLabel(type: string, value: number) {
 export default async function PromocionesPage() {
   const { user } = await requireUser();
   const [promos, loyalty] = await Promise.all([
-    listMyPromotions(user.id).catch(() => []),
-    getMyLoyaltyProgress(user.id).catch(() => null),
+    listMyPromotions().catch(() => []),
+    getMyLoyaltyProgress().catch(() => null),
   ]);
 
   return (

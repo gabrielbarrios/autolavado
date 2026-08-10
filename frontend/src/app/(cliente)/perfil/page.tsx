@@ -21,11 +21,11 @@ export default async function PerfilPage() {
   const [vehicles, appointments, promos, loyalty, activeServices] = await Promise.all([
     listMyVehicles(user.id).catch(() => []),
     listMyAppointments(user.id).catch(() => []),
-    listMyPromotions(user.id).catch(() => []),
-    getMyLoyaltyProgress(user.id).catch(() => null),
+    listMyPromotions().catch(() => []),
+    getMyLoyaltyProgress().catch(() => null),
     // No usa `.catch(() => [])`: un fallo aquí se muestra como tal en el tracker
     // en vez de verse igual que "no tienes nada en curso".
-    loadMyActiveServices(user.id),
+    loadMyActiveServices(),
   ]);
 
   const upcoming = appointments.find((a) => a.status === "approved" || a.status === "pending");

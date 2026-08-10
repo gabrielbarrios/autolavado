@@ -36,11 +36,13 @@ export async function createOrder(payload: CreateOrderPayload) {
   return order;
 }
 
-export async function listMyOrders(userId: number): Promise<Order[]> {
+/**
+ * Sin `filters[user]`: devolvía 400 "Invalid key user" para el rol
+ * `authenticated`. El backend filtra por el JWT (backend/src/utils/owner-scope.ts).
+ */
+export async function listMyOrders(): Promise<Order[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Order>>("/api/orders", {
     query: {
-      "filters[user][id][$eq]": userId,
-      "populate[items][populate]": "product",
       "sort[0]": "createdAt:desc",
     },
     cache: "no-store",

@@ -22,8 +22,9 @@ const statusVariant: Record<string, "warning" | "info" | "success" | "destructiv
 };
 
 export default async function PedidosPage() {
-  const { user } = await requireUser();
-  const orders = await listMyOrders(user.id).catch(() => []);
+  // Solo como guardia de sesión: el backend resuelve el dueño desde el JWT.
+  await requireUser();
+  const orders = await listMyOrders().catch(() => []);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

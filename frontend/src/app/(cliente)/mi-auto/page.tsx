@@ -7,8 +7,9 @@ import { AutoRefresh } from "@/components/cliente/auto-refresh";
 export const metadata = { title: "Estado de mi auto" };
 
 export default async function MiAutoPage() {
-  const { user } = await requireUser();
-  const active = await loadMyActiveServices(user.id);
+  // Solo como guardia de sesión: el backend resuelve el dueño desde el JWT.
+  await requireUser();
+  const active = await loadMyActiveServices();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

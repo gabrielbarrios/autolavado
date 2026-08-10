@@ -12,7 +12,7 @@ export default async function QrPage() {
   const { user } = await requireUser();
   const [setting, active] = await Promise.all([
     getSiteSetting().catch(() => null),
-    loadMyActiveServices(user.id),
+    loadMyActiveServices(),
   ]);
   const token = user.qrToken || `user-${user.id}`;
   const businessName = setting?.businessName?.trim() || "Autolavado";

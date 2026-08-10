@@ -6,7 +6,7 @@ export default async function ClienteLayout({ children }: { children: React.Reac
   const { user } = await requireUser();
   // El contador del nav vive en el layout para que se vea desde cualquier página
   // del cliente, no solo en /perfil. Se refresca con cada router.refresh().
-  const active = await loadMyActiveServices(user.id);
+  const active = await loadMyActiveServices();
 
   return (
     <ClienteShell
