@@ -11,6 +11,9 @@ import {
   finishService,
   chargeService,
   cancelService,
+  availablePromotions,
+  type AvailablePromotionsResult,
+  type ChargeServicePayload,
   type QRScanResult,
   type RegisterVisitResult,
   type WalkInServicePayload,
@@ -148,13 +151,32 @@ export async function finishServiceAction(
   }
 }
 
-/** to_pay → completed: la caja cobra al cliente (dispara fidelidad). */
-export async function chargeServiceAction(
+/** Promos aplicables a un servicio, para el diálogo de cobro. */
+export async function availablePromotionsAction(
   serviceId: number,
+): Promise<ActionResult<AvailablePromotionsResult>> {
+  await requireAdmin();
+  try {
+    return { ok: true, data: await availablePromotions(serviceId) };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudieron cargar las promociones",
+    };
+  }
+}
+
+/**
+ * to_pay → completed: la caja cobra al cliente (dispara fidelidad).
+ * El descuento va en el payload; el backend lo recalcula y valida — nunca se
+ * confía en el monto que mande el navegador.
+ */
+export async function chargeServiceAction(
+  payload: ChargeServicePayload,
 ): Promise<ActionResult<ChargeServiceResult>> {
   await requireAdmin();
   try {
-    const data = await chargeService(serviceId);
+    const data = await chargeService(payload);
     revalidatePath("/en-progreso");
     revalidatePath("/servicios");
     revalidatePath("/dashboard");

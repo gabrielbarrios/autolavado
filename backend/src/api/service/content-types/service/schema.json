@@ -30,6 +30,28 @@
       "required": true,
       "min": 0
     },
+    "subtotalAmount": {
+      "type": "decimal",
+      "min": 0
+    },
+    "promotionDiscount": {
+      "type": "decimal",
+      "default": 0,
+      "min": 0
+    },
+    "manualDiscount": {
+      "type": "decimal",
+      "default": 0,
+      "min": 0
+    },
+    "discountNote": {
+      "type": "string"
+    },
+    "promotion": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::promotion.promotion"
+    },
     "user": {
       "type": "relation",
       "relation": "manyToOne",

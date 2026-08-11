@@ -5,7 +5,7 @@
     "singularName": "promotion",
     "pluralName": "promotions",
     "displayName": "Promotion",
-    "description": "Promociones del programa de fidelidad"
+    "description": "Promociones: campañas del negocio y recompensas de fidelidad"
   },
   "options": {
     "draftAndPublish": false
@@ -23,6 +23,31 @@
     },
     "description": {
       "type": "text"
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": ["personal", "campaign"],
+      "default": "personal",
+      "required": true
+    },
+    "availability": {
+      "type": "enumeration",
+      "enum": ["always", "weekdays", "dateRange"],
+      "default": "dateRange",
+      "required": true
+    },
+    "weekdays": {
+      "type": "json"
+    },
+    "appliesTo": {
+      "type": "enumeration",
+      "enum": ["all", "package", "extras"],
+      "default": "all",
+      "required": true
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
     },
     "discountType": {
       "type": "enumeration",

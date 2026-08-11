@@ -72,5 +72,11 @@ export default {
       handler: 'qr.employeeTimes',
       config: { policies: [], middlewares: [] },
     },
+    {
+      method: 'GET',
+      path: '/qr/available-promotions',
+      handler: 'qr.availablePromotions',
+      config: { policies: [], middlewares: [] },
+    },
   ],
 };

@@ -14,6 +14,22 @@ import {
   isVipUserId,
   APPOINTMENT_PRICING_POPULATE,
 } from '../../../utils/pricing';
+import {
+  isPromotionAvailable,
+  servicePriceBreakdown,
+  computePromotionDiscount,
+  describeDiscount,
+  round2,
+} from '../../../utils/promotions';
+
+/** Populate necesario para recalcular precios de un service al cobrarlo. */
+const SERVICE_PRICING_POPULATE = {
+  user: true,
+  vehicle: true,
+  package: { populate: { pricing: true } },
+  extraServices: { populate: { pricing: true } },
+  appointment: true,
+};
 
 /** Estados en los que un service sigue vivo en el tablero. */
 const ACTIVE_STATUSES = ['waiting', 'in_progress', 'to_pay'];
@@ -439,19 +455,94 @@ export default {
   },
 
   /**
+   * GET /api/qr/available-promotions?serviceId=N
+   * Las promociones que el cajero puede aplicar a ESE servicio hoy, con el
+   * descuento ya calculado sobre su ticket (una promo de solo-extras vale
+   * distinto según lo que traiga el auto).
+   */
+  async availablePromotions(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+
+    const serviceId = Number(ctx.query?.serviceId);
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+      populate: SERVICE_PRICING_POPULATE,
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+
+    const isVip = service.user ? await isVipUserId(service.user.id) : false;
+    const breakdown = servicePriceBreakdown(service, isVip);
+
+    // Campañas (de todos) + las personales del dueño del servicio, si lo tiene.
+    const owners = [{ user: null }];
+    if (service.user) owners.push({ user: { id: service.user.id } });
+    const promos = await strapi.db.query('api::promotion.promotion').findMany({
+      where: { $or: owners },
+      orderBy: [{ validUntil: 'asc' }],
+      limit: 300,
+    });
+
+    const now = new Date();
+    const available = promos
+      .filter((p) => isPromotionAvailable(p, now))
+      .map((p) => ({
+        id: p.id,
+        code: p.code,
+        title: p.title,
+        description: p.description,
+        kind: p.kind,
+        appliesTo: p.appliesTo,
+        discountType: p.discountType,
+        discountValue: p.discountValue,
+        discountLabel: describeDiscount(p),
+        /** Lo que descontaría en pesos sobre este servicio en concreto. */
+        discountAmount: computePromotionDiscount(p, breakdown),
+      }))
+      // Una promo que no descuenta nada en este ticket (ej. solo-extras y el
+      // auto no lleva extras) solo estorbaría en la lista del cajero.
+      .filter((p) => p.discountAmount > 0)
+      .sort((a, b) => b.discountAmount - a.discountAmount);
+
+    ctx.body = {
+      service: {
+        id: service.id,
+        packagePrice: round2(breakdown.packagePrice),
+        extrasPrice: round2(breakdown.extrasPrice),
+        subtotal: round2(breakdown.total),
+      },
+      promotions: available,
+      canApplyManualDiscount: isSuperAdmin(
+        await strapi.db.query('plugin::users-permissions.user').findOne({
+          where: { id: actingUserId },
+          populate: { role: true },
+        }),
+      ),
+    };
+  },
+
+  /**
    * POST /api/qr/charge-service
    * to_pay → completed. La caja/super admin cobra al cliente. Aquí (y solo aquí)
    * se crea la Visit que dispara el lifecycle de fidelidad (loyalty + promoción).
+   *
+   * Acepta un descuento: como máximo UNA promoción del catálogo más, encima, un
+   * descuento manual (que solo puede aplicar el super admin). El desglose se
+   * guarda en el service — subtotal, cuánto puso la promo y cuánto el manual —
+   * para poder auditarlo después; `totalAmount` queda con lo realmente cobrado,
+   * que es lo que suman las ganancias por empleado.
    */
   async chargeService(ctx) {
-    const { serviceId } = ctx.request.body ?? {};
+    const { serviceId, promotionId, manualDiscount, discountNote } = ctx.request.body ?? {};
     if (!serviceId) return ctx.badRequest('serviceId requerido');
     const actingUserId = ctx.state.user?.id;
     if (!actingUserId) return ctx.unauthorized('Sesión requerida');
 
     const service = await strapi.db.query('api::service.service').findOne({
       where: { id: serviceId },
-      populate: { user: true, vehicle: true, package: true, extraServices: true, appointment: true },
+      populate: SERVICE_PRICING_POPULATE,
     });
     if (!service) return ctx.notFound('Servicio no encontrado');
     if (service.status === 'completed') return ctx.badRequest('Servicio ya cobrado');
@@ -460,9 +551,70 @@ export default {
     }
 
     const now = new Date();
+    const isVip = service.user ? await isVipUserId(service.user.id) : false;
+    const breakdown = servicePriceBreakdown(service, isVip);
+    // El subtotal recalculado puede diferir del totalAmount guardado si el admin
+    // cambió precios entre el registro y el cobro; manda el guardado, que es lo
+    // que se le cotizó al cliente.
+    const subtotal = round2(Number(service.totalAmount ?? breakdown.total));
+
+    // --- Promoción del catálogo ---
+    let promotion = null;
+    let promotionDiscount = 0;
+    if (promotionId) {
+      promotion = await strapi.db.query('api::promotion.promotion').findOne({
+        where: { id: Number(promotionId) },
+        populate: { user: true },
+      });
+      if (!promotion) return ctx.notFound('Promoción no encontrada');
+      if (!isPromotionAvailable(promotion, now)) {
+        return ctx.badRequest('Esa promoción no está disponible hoy');
+      }
+      // Una promo personal solo vale para su dueño.
+      if (promotion.kind !== 'campaign' && promotion.user?.id !== service.user?.id) {
+        return ctx.badRequest('Esa promoción es de otro cliente');
+      }
+      promotionDiscount = computePromotionDiscount(promotion, breakdown);
+    }
+
+    // --- Descuento manual (solo super admin) ---
+    let manual = round2(Math.max(0, Number(manualDiscount ?? 0)));
+    if (manual > 0) {
+      const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+        where: { id: actingUserId },
+        populate: { role: true },
+      });
+      if (!isSuperAdmin(acting)) {
+        return ctx.forbidden('Solo el super admin puede aplicar un descuento manual');
+      }
+    }
+
+    // El total nunca baja de cero: si los descuentos se pasan, se recorta el
+    // manual (la promo es un compromiso con el cliente, el manual es criterio).
+    const maxManual = Math.max(0, subtotal - promotionDiscount);
+    if (manual > maxManual) manual = maxManual;
+
+    const totalDiscount = round2(promotionDiscount + manual);
+    const finalAmount = round2(Math.max(0, subtotal - totalDiscount));
+
     const updated = await strapi.entityService.update('api::service.service', service.id, {
-      data: { status: 'completed' },
+      data: {
+        status: 'completed',
+        subtotalAmount: subtotal,
+        promotionDiscount: round2(promotionDiscount),
+        manualDiscount: manual,
+        discountNote: discountNote ? String(discountNote).slice(0, 255) : null,
+        promotion: promotion ? promotion.id : null,
+        totalAmount: finalAmount,
+      },
     });
+
+    // Una promo personal se gasta al usarla; las campañas no se consumen.
+    if (promotion && promotion.kind !== 'campaign' && !promotion.used) {
+      await strapi.entityService.update('api::promotion.promotion', promotion.id, {
+        data: { used: true, usedAt: now },
+      });
+    }
 
     // Si el service vino de una reservación adelantada al tablero, la cita se
     // cierra aquí. Se actualiza vía entityService (no por el controller) para
@@ -511,7 +663,15 @@ export default {
     }
 
     ctx.body = {
-      service: { id: updated.id, status: 'completed' },
+      service: {
+        id: updated.id,
+        status: 'completed',
+        subtotalAmount: subtotal,
+        promotionDiscount: round2(promotionDiscount),
+        manualDiscount: manual,
+        totalAmount: finalAmount,
+        promotionTitle: promotion?.title ?? null,
+      },
       promotionGenerated,
       loyaltyProgress,
     };

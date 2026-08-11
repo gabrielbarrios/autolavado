@@ -113,7 +113,14 @@ export interface Service {
   /** Hora en que el empleado terminó el lavado (in_progress → to_pay). */
   finishedAt?: string | null;
   notes?: string | null;
+  /** Lo realmente cobrado (ya con descuentos aplicados). */
   totalAmount: number;
+  /** Precio antes de descuentos. Solo se llena al cobrar. */
+  subtotalAmount?: number | null;
+  promotionDiscount?: number | null;
+  manualDiscount?: number | null;
+  discountNote?: string | null;
+  promotion?: Promotion | null;
   user?: User;
   /** Admin que realizó/completó el servicio (para historial y supervisión). */
   performedBy?: User | null;
@@ -142,12 +149,27 @@ export interface Visit {
 
 export type DiscountType = "percent" | "fixed" | "free";
 
+/** `personal` = recompensa de fidelidad de un cliente. `campaign` = oferta del negocio. */
+export type PromotionKind = "personal" | "campaign";
+
+/** Cuándo está disponible una promoción. */
+export type PromotionAvailability = "always" | "weekdays" | "dateRange";
+
+/** Sobre qué parte del ticket pega el descuento. */
+export type PromotionAppliesTo = "all" | "package" | "extras";
+
 export interface Promotion {
   id: number;
   documentId?: string;
   code: string;
   title: string;
   description?: string | null;
+  kind?: PromotionKind;
+  availability?: PromotionAvailability;
+  /** Días de la semana (0 = domingo). Solo cuando availability = "weekdays". */
+  weekdays?: number[] | null;
+  appliesTo?: PromotionAppliesTo;
+  active?: boolean;
   discountType: DiscountType;
   discountValue: number;
   validFrom: string;
@@ -155,6 +177,8 @@ export interface Promotion {
   used: boolean;
   usedAt?: string | null;
   user?: User;
+  /** Solo lo devuelve /promotions/available: "20%", "-$50", "Gratis". */
+  discountLabel?: string;
 }
 
 export interface LoyaltyProgress {

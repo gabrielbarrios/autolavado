@@ -25,7 +25,7 @@ const AUTHENTICATED_PERMISSIONS: Record<string, string[]> = {
   'api::order-item.order-item': ['find', 'findOne', 'create'],
   'api::visit.visit': ['find', 'findOne'],
   'api::service.service': ['find', 'findOne'],
-  'api::promotion.promotion': ['find', 'findOne', 'update'],
+  'api::promotion.promotion': ['find', 'findOne', 'update', 'available'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne'],
 };
 
@@ -56,7 +56,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::order-item.order-item': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::visit.visit': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::service.service': ['find', 'findOne', 'create', 'update', 'delete'],
-  'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete'],
+  'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete', 'available'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::qr.qr': [
     'scan',
@@ -69,6 +69,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
     'finishService',
     'chargeService',
     'cancelService',
+    'availablePromotions',
   ],
 };
 
@@ -89,6 +90,7 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
     'finishService',
     'chargeService',
     'cancelService',
+    'availablePromotions',
     'employeeStats',
     'employeeTimes',
   ],
@@ -365,6 +367,12 @@ export default {
               code: `PROMO-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
               title: '10% off por fidelidad',
               description: 'Acumulaste 3 visitas. ¡Disfruta este descuento en tu próximo servicio!',
+              // Recompensa de un cliente concreto: de un solo uso y con caducidad,
+              // a diferencia de las campañas del negocio (ver utils/promotions.ts).
+              kind: 'personal',
+              availability: 'dateRange',
+              appliesTo: 'all',
+              active: true,
               discountType: 'percent',
               discountValue: 10,
               validFrom: now,

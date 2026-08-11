@@ -787,7 +787,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
 export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
   collectionName: 'promotions';
   info: {
-    description: 'Promociones del programa de fidelidad';
+    description: 'Promociones: campa\u00F1as del negocio y recompensas de fidelidad';
     displayName: 'Promotion';
     pluralName: 'promotions';
     singularName: 'promotion';
@@ -796,6 +796,15 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    appliesTo: Schema.Attribute.Enumeration<['all', 'package', 'extras']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'all'>;
+    availability: Schema.Attribute.Enumeration<
+      ['always', 'weekdays', 'dateRange']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'dateRange'>;
     code: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
@@ -807,6 +816,9 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'percent'>;
     discountValue: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    kind: Schema.Attribute.Enumeration<['personal', 'campaign']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'personal'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -826,6 +838,7 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
     >;
     validFrom: Schema.Attribute.DateTime;
     validUntil: Schema.Attribute.DateTime;
+    weekdays: Schema.Attribute.JSON;
   };
 }
 
@@ -850,6 +863,7 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     customerName: Schema.Attribute.String;
     date: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    discountNote: Schema.Attribute.String;
     extraServices: Schema.Attribute.Relation<
       'manyToMany',
       'api::extra-service.extra-service'
@@ -863,12 +877,32 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       'api::service.service'
     > &
       Schema.Attribute.Private;
+    manualDiscount: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
     notes: Schema.Attribute.Text;
     package: Schema.Attribute.Relation<'manyToOne', 'api::package.package'>;
     performedBy: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'
     >;
+    promotion: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::promotion.promotion'
+    >;
+    promotionDiscount: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
     startedAt: Schema.Attribute.DateTime;
     status: Schema.Attribute.Enumeration<
@@ -876,6 +910,13 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'waiting'>;
+    subtotalAmount: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
     totalAmount: Schema.Attribute.Decimal &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<

@@ -1,121 +1,46 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { strapiServerFetch } from "@/lib/strapi/server";
-import type { Promotion } from "@/types/models";
-import type { StrapiCollectionResponse } from "@/types/strapi";
-import { formatDate } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth/guards";
+import { listAllPromotions } from "@/lib/strapi/promotions";
+import { PromotionForm } from "@/components/admin/promotion-form";
+import { CampaignList, PersonalPromotionList } from "@/components/admin/promotion-list";
 
 export const metadata = { title: "Promociones" };
 
-async function listAllPromotions(): Promise<Promotion[]> {
-  try {
-    const res = await strapiServerFetch<StrapiCollectionResponse<Promotion>>("/api/promotions", {
-      query: {
-        "populate[user]": "true",
-        "sort[0]": "createdAt:desc",
-        "pagination[pageSize]": "200",
-      },
-      cache: "no-store",
-    });
-    return res.data ?? [];
-  } catch {
-    return [];
-  }
-}
-
 export default async function PromocionesAdminPage() {
-  const promos = await listAllPromotions();
+  await requireAdmin();
+  const promos = await listAllPromotions().catch(() => []);
+
+  // Las campañas las crea el negocio; las personales las genera el programa de
+  // fidelidad y no se editan a mano. Se listan por separado porque se usan
+  // distinto (ver backend/src/utils/promotions.ts).
+  const campaigns = promos.filter((p) => p.kind === "campaign");
+  const personal = promos.filter((p) => p.kind !== "campaign");
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Promociones</h1>
-        <p className="text-muted-foreground">Todas las promociones generadas (manuales y automáticas).</p>
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Promociones</h1>
+          <p className="text-muted-foreground">
+            Las campañas aparecen en la caja al cobrar y en la página del cliente.
+          </p>
+        </div>
+        <PromotionForm />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {/* Desktop: tabla */}
-          <div className="hidden md:block">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Código</th>
-                  <th className="px-4 py-3 font-medium">Cliente</th>
-                  <th className="px-4 py-3 font-medium">Tipo</th>
-                  <th className="px-4 py-3 font-medium">Válida hasta</th>
-                  <th className="px-4 py-3 font-medium">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {promos.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                      Sin promociones.
-                    </td>
-                  </tr>
-                ) : (
-                  promos.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                      <td className="px-4 py-3">{p.user?.name ?? p.user?.email ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        {p.discountType === "percent"
-                          ? `${p.discountValue}%`
-                          : p.discountType === "fixed"
-                          ? `-$${p.discountValue}`
-                          : "Gratis"}
-                      </td>
-                      <td className="px-4 py-3">{formatDate(p.validUntil)}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={p.used ? "outline" : "success"}>{p.used ? "Usada" : "Activa"}</Badge>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Campañas ({campaigns.length})</h2>
+        <CampaignList promos={campaigns} />
+      </section>
 
-          {/* Mobile: cards */}
-          <div className="divide-y divide-border/40 md:hidden">
-            {promos.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">Sin promociones.</p>
-            ) : (
-              promos.map((p) => {
-                const tipo =
-                  p.discountType === "percent"
-                    ? `${p.discountValue}%`
-                    : p.discountType === "fixed"
-                      ? `-$${p.discountValue}`
-                      : "Gratis";
-                return (
-                  <div key={p.id} className="space-y-2 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-xs">{p.code}</p>
-                        <p className="truncate text-sm">{p.user?.name ?? p.user?.email ?? "—"}</p>
-                      </div>
-                      <Badge variant={p.used ? "outline" : "success"} className="shrink-0">
-                        {p.used ? "Usada" : "Activa"}
-                      </Badge>
-                    </div>
-                    <dl className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <dt className="text-muted-foreground">Tipo</dt>
-                        <dd>{tipo}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">Válida hasta</dt>
-                        <dd>{formatDate(p.validUntil)}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Fidelidad ({personal.length})</h2>
+          <p className="text-sm text-muted-foreground">
+            Generadas automáticamente cada 3 visitas. Son de un solo uso y de un cliente concreto.
+          </p>
+        </div>
+        <PersonalPromotionList promos={personal} />
+      </section>
     </div>
   );
 }

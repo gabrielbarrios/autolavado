@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Play, CheckCircle2, DollarSign, X } from "lucide-react";
+import { Loader2, Play, CheckCircle2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import {
   startServiceAction,
   finishServiceAction,
-  chargeServiceAction,
   cancelServiceAction,
 } from "@/actions/qr";
+import { ChargeDialog } from "@/components/admin/charge-dialog";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { formatTime } from "@/lib/business-hours";
 import { vehicleTypeLabel } from "@/lib/pricing";
@@ -286,24 +286,6 @@ function InProgressCard({ service: s }: { service: Service }) {
 }
 
 function ToPayCard({ service: s }: { service: Service }) {
-  const router = useRouter();
-  const [loading, setLoading] = React.useState(false);
-
-  async function onCharge() {
-    setLoading(true);
-    const res = await chargeServiceAction(s.id);
-    setLoading(false);
-    if (!res.ok) return toast.error(res.error);
-    if (res.data?.promotionGenerated) {
-      toast.success("🎉 ¡Cobrado y promoción generada para el cliente!", { duration: 6000 });
-    } else if (s.isWalkIn) {
-      toast.success("Servicio walk-in cobrado");
-    } else {
-      toast.success("Cobrado y visita registrada");
-    }
-    router.refresh();
-  }
-
   const duration = formatDuration(s.startedAt, s.finishedAt);
   return (
     <Card>
@@ -313,10 +295,8 @@ function ToPayCard({ service: s }: { service: Service }) {
           {s.performedBy && <span>Lavó: {s.performedBy.name ?? s.performedBy.email}</span>}
           {duration && <span>Duración: {duration}</span>}
         </div>
-        <Button size="sm" className="w-full" onClick={onCharge} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
-          Cobrar {formatPrice(s.totalAmount)}
-        </Button>
+        {/* El cobro abre un diálogo para elegir promoción y descuento. */}
+        <ChargeDialog service={s} />
         <CancelButton serviceId={s.id} />
       </CardContent>
     </Card>
