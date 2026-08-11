@@ -4,8 +4,8 @@
   "info": {
     "singularName": "order-item",
     "pluralName": "order-items",
-    "displayName": "Order Item",
-    "description": "Línea de pedido"
+    "displayName": "Renglón de pedido",
+    "description": "Producto y cantidad dentro de un pedido"
   },
   "options": {
     "draftAndPublish": false

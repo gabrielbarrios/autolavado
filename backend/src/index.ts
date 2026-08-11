@@ -1,6 +1,7 @@
 // @ts-nocheck
 import crypto from 'node:crypto';
 import type { Core } from '@strapi/strapi';
+import { applyAdminLabels } from './utils/admin-labels';
 
 /**
  * Permisos que se aplican automáticamente al arrancar Strapi.
@@ -416,6 +417,13 @@ export default {
       await backfillServiceStatus();
     } catch (err) {
       strapi.log.error('[bootstrap] Error backfilling service status:', err);
+    }
+    try {
+      // Traduce las etiquetas del Content Manager. Va al final porque depende de
+      // que Strapi ya haya generado la configuración de vistas de cada schema.
+      await applyAdminLabels();
+    } catch (err) {
+      strapi.log.error('[bootstrap] Error applying admin labels:', err);
     }
   },
 };

@@ -4,8 +4,8 @@
   "info": {
     "singularName": "service",
     "pluralName": "services",
-    "displayName": "Service",
-    "description": "Servicios ejecutados (historial real)"
+    "displayName": "Servicio",
+    "description": "Lavados realizados: del tablero hasta el cobro"
   },
   "options": {
     "draftAndPublish": false
@@ -91,7 +91,13 @@
     },
     "vehicleType": {
       "type": "enumeration",
-      "enum": ["chico", "sedan", "suv", "camioneta_grande", "combi"]
+      "enum": [
+        "chico",
+        "sedan",
+        "suv",
+        "camioneta_grande",
+        "combi"
+      ]
     },
     "isUberTaxi": {
       "type": "boolean",
@@ -99,7 +105,13 @@
     },
     "status": {
       "type": "enumeration",
-      "enum": ["waiting", "in_progress", "to_pay", "completed", "cancelled"],
+      "enum": [
+        "waiting",
+        "in_progress",
+        "to_pay",
+        "completed",
+        "cancelled"
+      ],
       "default": "waiting",
       "required": true
     }

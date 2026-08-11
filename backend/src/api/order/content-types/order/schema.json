@@ -4,8 +4,8 @@
   "info": {
     "singularName": "order",
     "pluralName": "orders",
-    "displayName": "Order",
-    "description": "Pedidos de la tienda online"
+    "displayName": "Pedido",
+    "description": "Pedidos de la tienda"
   },
   "options": {
     "draftAndPublish": false
@@ -14,7 +14,13 @@
   "attributes": {
     "status": {
       "type": "enumeration",
-      "enum": ["pending", "paid", "shipped", "delivered", "cancelled"],
+      "enum": [
+        "pending",
+        "paid",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ],
       "default": "pending",
       "required": true
     },

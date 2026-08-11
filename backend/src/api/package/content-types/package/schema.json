@@ -4,8 +4,8 @@
   "info": {
     "singularName": "package",
     "pluralName": "packages",
-    "displayName": "Package",
-    "description": "Paquetes de servicio del autolavado"
+    "displayName": "Paquete de lavado",
+    "description": "Paquetes de lavado con precio por tipo de auto"
   },
   "options": {
     "draftAndPublish": true

@@ -443,8 +443,8 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
 export interface ApiAppointmentAppointment extends Struct.CollectionTypeSchema {
   collectionName: 'appointments';
   info: {
-    description: 'Reservaciones de servicios';
-    displayName: 'Appointment';
+    description: 'Citas agendadas por los clientes';
+    displayName: 'Reservaci\u00F3n';
     pluralName: 'appointments';
     singularName: 'appointment';
   };
@@ -491,8 +491,8 @@ export interface ApiExtraServiceExtraService
   extends Struct.CollectionTypeSchema {
   collectionName: 'extra_services';
   info: {
-    description: 'Servicios sueltos / extras (encerado express, lavado de asientos, lavado de cielo, etc.)';
-    displayName: 'Extra Service';
+    description: 'Servicios adicionales al lavado';
+    displayName: 'Servicio extra';
     pluralName: 'extra-services';
     singularName: 'extra-service';
   };
@@ -549,8 +549,8 @@ export interface ApiLoyaltyProgressLoyaltyProgress
   extends Struct.CollectionTypeSchema {
   collectionName: 'loyalty_progresses';
   info: {
-    description: 'Progreso de visitas por usuario hacia pr\u00F3xima promoci\u00F3n';
-    displayName: 'Loyalty Progress';
+    description: 'Visitas acumuladas del ciclo actual de cada cliente';
+    displayName: 'Progreso de fidelidad';
     pluralName: 'loyalty-progresses';
     singularName: 'loyalty-progress';
   };
@@ -590,8 +590,8 @@ export interface ApiLoyaltyProgressLoyaltyProgress
 export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
   collectionName: 'order_items';
   info: {
-    description: 'L\u00EDnea de pedido';
-    displayName: 'Order Item';
+    description: 'Producto y cantidad dentro de un pedido';
+    displayName: 'Rengl\u00F3n de pedido';
     pluralName: 'order-items';
     singularName: 'order-item';
   };
@@ -637,8 +637,8 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
 export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
   collectionName: 'orders';
   info: {
-    description: 'Pedidos de la tienda online';
-    displayName: 'Order';
+    description: 'Pedidos de la tienda';
+    displayName: 'Pedido';
     pluralName: 'orders';
     singularName: 'order';
   };
@@ -681,8 +681,8 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
 export interface ApiPackagePackage extends Struct.CollectionTypeSchema {
   collectionName: 'packages';
   info: {
-    description: 'Paquetes de servicio del autolavado';
-    displayName: 'Package';
+    description: 'Paquetes de lavado con precio por tipo de auto';
+    displayName: 'Paquete de lavado';
     pluralName: 'packages';
     singularName: 'package';
   };
@@ -733,8 +733,8 @@ export interface ApiPackagePackage extends Struct.CollectionTypeSchema {
 export interface ApiProductProduct extends Struct.CollectionTypeSchema {
   collectionName: 'products';
   info: {
-    description: 'Productos de la tienda online';
-    displayName: 'Product';
+    description: 'Productos de la tienda';
+    displayName: 'Producto';
     pluralName: 'products';
     singularName: 'product';
   };
@@ -787,8 +787,8 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
 export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
   collectionName: 'promotions';
   info: {
-    description: 'Promociones: campa\u00F1as del negocio y recompensas de fidelidad';
-    displayName: 'Promotion';
+    description: 'Campa\u00F1as del negocio y recompensas de fidelidad';
+    displayName: 'Promoci\u00F3n';
     pluralName: 'promotions';
     singularName: 'promotion';
   };
@@ -845,8 +845,8 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
 export interface ApiServiceService extends Struct.CollectionTypeSchema {
   collectionName: 'services';
   info: {
-    description: 'Servicios ejecutados (historial real)';
-    displayName: 'Service';
+    description: 'Lavados realizados: del tablero hasta el cobro';
+    displayName: 'Servicio';
     pluralName: 'services';
     singularName: 'service';
   };
@@ -942,8 +942,8 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
 export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
   collectionName: 'site_settings';
   info: {
-    description: 'Configuraci\u00F3n general del autolavado';
-    displayName: 'Site Setting';
+    description: 'Datos del negocio, horarios y contenido de la web';
+    displayName: 'Configuraci\u00F3n del sitio';
     pluralName: 'site-settings';
     singularName: 'site-setting';
   };
@@ -1006,8 +1006,8 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
 export interface ApiVehicleVehicle extends Struct.CollectionTypeSchema {
   collectionName: 'vehicles';
   info: {
-    description: 'Veh\u00EDculos registrados por los clientes';
-    displayName: 'Vehicle';
+    description: 'Autos registrados por los clientes';
+    displayName: 'Auto';
     pluralName: 'vehicles';
     singularName: 'vehicle';
   };
@@ -1058,8 +1058,8 @@ export interface ApiVehicleVehicle extends Struct.CollectionTypeSchema {
 export interface ApiVisitVisit extends Struct.CollectionTypeSchema {
   collectionName: 'visits';
   info: {
-    description: 'Visitas registradas para fidelidad';
-    displayName: 'Visit';
+    description: 'Visitas que cuentan para el programa de fidelidad';
+    displayName: 'Visita';
     pluralName: 'visits';
     singularName: 'visit';
   };

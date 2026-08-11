@@ -4,8 +4,8 @@
   "info": {
     "singularName": "visit",
     "pluralName": "visits",
-    "displayName": "Visit",
-    "description": "Visitas registradas para fidelidad"
+    "displayName": "Visita",
+    "description": "Visitas que cuentan para el programa de fidelidad"
   },
   "options": {
     "draftAndPublish": false

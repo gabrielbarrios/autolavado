@@ -4,8 +4,8 @@
   "info": {
     "singularName": "loyalty-progress",
     "pluralName": "loyalty-progresses",
-    "displayName": "Loyalty Progress",
-    "description": "Progreso de visitas por usuario hacia próxima promoción"
+    "displayName": "Progreso de fidelidad",
+    "description": "Visitas acumuladas del ciclo actual de cada cliente"
   },
   "options": {
     "draftAndPublish": false

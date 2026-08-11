@@ -4,8 +4,8 @@
   "info": {
     "singularName": "product",
     "pluralName": "products",
-    "displayName": "Product",
-    "description": "Productos de la tienda online"
+    "displayName": "Producto",
+    "description": "Productos de la tienda"
   },
   "options": {
     "draftAndPublish": true
@@ -37,7 +37,13 @@
     },
     "category": {
       "type": "enumeration",
-      "enum": ["limpieza", "interior", "exterior", "accesorios", "otros"],
+      "enum": [
+        "limpieza",
+        "interior",
+        "exterior",
+        "accesorios",
+        "otros"
+      ],
       "default": "otros"
     },
     "active": {
@@ -48,7 +54,9 @@
       "type": "media",
       "multiple": true,
       "required": false,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
     }
   }
 }

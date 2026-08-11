@@ -4,8 +4,8 @@
   "info": {
     "singularName": "promotion",
     "pluralName": "promotions",
-    "displayName": "Promotion",
-    "description": "Promociones: campañas del negocio y recompensas de fidelidad"
+    "displayName": "Promoción",
+    "description": "Campañas del negocio y recompensas de fidelidad"
   },
   "options": {
     "draftAndPublish": false
@@ -26,13 +26,20 @@
     },
     "kind": {
       "type": "enumeration",
-      "enum": ["personal", "campaign"],
+      "enum": [
+        "personal",
+        "campaign"
+      ],
       "default": "personal",
       "required": true
     },
     "availability": {
       "type": "enumeration",
-      "enum": ["always", "weekdays", "dateRange"],
+      "enum": [
+        "always",
+        "weekdays",
+        "dateRange"
+      ],
       "default": "dateRange",
       "required": true
     },
@@ -41,7 +48,11 @@
     },
     "appliesTo": {
       "type": "enumeration",
-      "enum": ["all", "package", "extras"],
+      "enum": [
+        "all",
+        "package",
+        "extras"
+      ],
       "default": "all",
       "required": true
     },
@@ -51,7 +62,11 @@
     },
     "discountType": {
       "type": "enumeration",
-      "enum": ["percent", "fixed", "free"],
+      "enum": [
+        "percent",
+        "fixed",
+        "free"
+      ],
       "default": "percent",
       "required": true
     },

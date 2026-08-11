@@ -4,8 +4,8 @@
   "info": {
     "singularName": "vehicle",
     "pluralName": "vehicles",
-    "displayName": "Vehicle",
-    "description": "Vehículos registrados por los clientes"
+    "displayName": "Auto",
+    "description": "Autos registrados por los clientes"
   },
   "options": {
     "draftAndPublish": false
@@ -38,7 +38,13 @@
     },
     "vehicleType": {
       "type": "enumeration",
-      "enum": ["chico", "sedan", "suv", "camioneta_grande", "combi"],
+      "enum": [
+        "chico",
+        "sedan",
+        "suv",
+        "camioneta_grande",
+        "combi"
+      ],
       "default": "sedan",
       "required": true
     },
@@ -50,7 +56,9 @@
       "type": "media",
       "multiple": false,
       "required": false,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
     },
     "user": {
       "type": "relation",

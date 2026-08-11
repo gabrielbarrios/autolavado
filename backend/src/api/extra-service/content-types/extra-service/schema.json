@@ -4,8 +4,8 @@
   "info": {
     "singularName": "extra-service",
     "pluralName": "extra-services",
-    "displayName": "Extra Service",
-    "description": "Servicios sueltos / extras (encerado express, lavado de asientos, lavado de cielo, etc.)"
+    "displayName": "Servicio extra",
+    "description": "Servicios adicionales al lavado"
   },
   "options": {
     "draftAndPublish": true
@@ -46,7 +46,9 @@
       "type": "media",
       "multiple": false,
       "required": false,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
     },
     "featured": {
       "type": "boolean",
