@@ -14,7 +14,6 @@
   "attributes": {
     "code": {
       "type": "string",
-      "required": true,
       "unique": true
     },
     "title": {
@@ -30,7 +29,7 @@
         "personal",
         "campaign"
       ],
-      "default": "personal",
+      "default": "campaign",
       "required": true
     },
     "availability": {

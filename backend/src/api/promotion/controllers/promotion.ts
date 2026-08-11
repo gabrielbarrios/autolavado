@@ -10,7 +10,12 @@
  */
 import { factories } from '@strapi/strapi';
 import { isAdminLike, ownerScopedFindOne } from '../../../utils/owner-scope';
-import { isPromotionAvailable, describeDiscount } from '../../../utils/promotions';
+import {
+  isPromotionAvailable,
+  describeDiscount,
+  slugCode,
+  generatePromotionCode,
+} from '../../../utils/promotions';
 
 export default factories.createCoreController('api::promotion.promotion', () => ({
   async find(ctx) {
@@ -144,16 +149,6 @@ const DISCOUNT_TYPES = ['percent', 'fixed', 'free'];
  * Normaliza lo que manda el formulario del admin. Se limpia acá y no en el
  * cliente porque de esto depende cuánto dinero se descuenta.
  */
-function slugCode(text) {
-  return String(text ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 30);
-}
-
 function sanitizeCampaign(data) {
   const availability = AVAILABILITY.includes(data.availability) ? data.availability : 'always';
   const discountType = DISCOUNT_TYPES.includes(data.discountType) ? data.discountType : 'percent';
@@ -174,9 +169,7 @@ function sanitizeCampaign(data) {
 
   const title = String(data.title ?? '').trim();
   // Si no mandan código se deriva del título, con sufijo para que sea único.
-  const code =
-    slugCode(data.code) ||
-    `${slugCode(title) || 'PROMO'}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const code = slugCode(data.code) || generatePromotionCode(title);
 
   return {
     title,

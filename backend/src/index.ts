@@ -2,6 +2,7 @@
 import crypto from 'node:crypto';
 import type { Core } from '@strapi/strapi';
 import { applyAdminLabels } from './utils/admin-labels';
+import { generatePromotionCode } from './utils/promotions';
 
 /**
  * Permisos que se aplican automáticamente al arrancar Strapi.
@@ -305,6 +306,21 @@ export default {
         if (!event.params.data) event.params.data = {};
         if (!event.params.data.qrToken) {
           event.params.data.qrToken = crypto.randomUUID();
+        }
+      },
+    });
+
+    // Lifecycle: toda promoción sale con código, aunque no lo escriban.
+    // Hace falta porque el panel de Strapi NO pasa por el controller de la app:
+    // usa los endpoints del Content Manager. Sin esto, crear una promoción desde
+    // el panel fallaría (el campo está oculto justo porque se genera solo).
+    strapi.db.lifecycles.subscribe({
+      models: ['api::promotion.promotion'],
+      beforeCreate(event) {
+        if (!event.params.data) event.params.data = {};
+        const data = event.params.data;
+        if (!data.code || !String(data.code).trim()) {
+          data.code = generatePromotionCode(data.title);
         }
       },
     });

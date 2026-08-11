@@ -47,11 +47,13 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       usedAt: 'Fecha de uso',
       user: 'Cliente',
     },
-    // Estos los llena la app sola: `code` se genera del título, y
-    // used/usedAt/user solo aplican a las de fidelidad, que crea el programa de
-    // visitas. En una campaña siempre están vacíos y solo estorban.
+    // Estos los llena la app sola: `code` lo genera un lifecycle a partir del
+    // título (ver index.ts), y used/usedAt/user solo aplican a las de fidelidad,
+    // que crea el programa de visitas. En una campaña siempre están vacíos.
     hidden: ['code', 'used', 'usedAt', 'user'],
-    readOnly: ['kind'],
+    // `kind` NO va como solo lectura: es obligatorio, y si se bloquea no se
+    // puede crear una promoción desde el panel de Strapi.
+    readOnly: [],
     list: ['title', 'kind', 'discountType', 'discountValue', 'availability', 'active', 'used'],
     mainField: 'title',
   },

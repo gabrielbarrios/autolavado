@@ -805,9 +805,7 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'dateRange'>;
-    code: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
+    code: Schema.Attribute.String & Schema.Attribute.Unique;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -818,7 +816,7 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
     discountValue: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
     kind: Schema.Attribute.Enumeration<['personal', 'campaign']> &
       Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'personal'>;
+      Schema.Attribute.DefaultTo<'campaign'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

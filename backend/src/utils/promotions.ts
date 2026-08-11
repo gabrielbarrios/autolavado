@@ -120,6 +120,28 @@ export function round2(n) {
   return Math.round(Number(n ?? 0) * 100) / 100;
 }
 
+/**
+ * "Miércoles de chicas" → "MIERCOLES-DE-CHICAS". Vive acá porque lo usan tanto
+ * el controller (cuando el alta viene del formulario de la app) como el
+ * lifecycle (cuando viene del panel de Strapi, que no pasa por el controller).
+ */
+export function slugCode(text) {
+  return String(text ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // quita acentos
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 30);
+}
+
+/** Código único a partir del título. El sufijo evita choques por el índice único. */
+export function generatePromotionCode(title) {
+  const base = slugCode(title) || 'PROMO';
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${base}-${suffix}`;
+}
+
 /** Texto corto del descuento, para listas y tarjetas. */
 export function describeDiscount(promo) {
   if (promo.discountType === 'percent') return `${Number(promo.discountValue ?? 0)}%`;
