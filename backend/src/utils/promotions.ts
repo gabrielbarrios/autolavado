@@ -20,6 +20,28 @@ import { computeItemPrice } from './pricing';
 /** 0 = domingo … 6 = sábado, igual que Date#getDay. */
 export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
 
+/**
+ * Zona horaria del negocio. NO se usa la del servidor: en Docker/producción es
+ * UTC, y con eso "los jueves" se apagaba solo a las 18:00 hora de México porque
+ * allá ya era viernes.
+ */
+export const BUSINESS_TIMEZONE = process.env.BUSINESS_TIMEZONE || 'America/Mexico_City';
+
+const WEEKDAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/** Día de la semana (0-6) en la zona del negocio, no en la del servidor. */
+export function businessWeekday(now = new Date(), timeZone = BUSINESS_TIMEZONE) {
+  try {
+    const short = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(now);
+    const day = WEEKDAY_INDEX[short];
+    // Una zona inválida no debe dejar al cajero sin promos: se cae a la del
+    // servidor, que es lo que había antes.
+    return day === undefined ? now.getDay() : day;
+  } catch {
+    return now.getDay();
+  }
+}
+
 function parseWeekdays(value) {
   if (Array.isArray(value)) return value.map(Number).filter((n) => n >= 0 && n <= 6);
   if (typeof value === 'string') {
@@ -37,8 +59,8 @@ function parseWeekdays(value) {
  *
  * `now` se recibe como parámetro (y no se lee de Date.now dentro) para que el
  * cajero y el cliente evalúen el mismo instante, y para poder probarlo.
- * El día de la semana se toma en la zona horaria del servidor; para "miércoles"
- * eso basta porque la ventana es de 24 h.
+ * El día de la semana se toma en la zona del negocio (ver `businessWeekday`):
+ * "jueves" significa jueves en México, corra el servidor donde corra.
  */
 export function isPromotionAvailable(promo, now = new Date()) {
   if (!promo) return false;
@@ -53,7 +75,7 @@ export function isPromotionAvailable(promo, now = new Date()) {
     case 'weekdays': {
       const days = parseWeekdays(promo.weekdays);
       if (days.length === 0) return false;
-      if (!days.includes(now.getDay())) return false;
+      if (!days.includes(businessWeekday(now))) return false;
       // Un día de la semana puede además acotarse a un rango (ej. "los
       // miércoles de septiembre"). Si no hay rango, aplica siempre.
       return withinRange(promo, now);
