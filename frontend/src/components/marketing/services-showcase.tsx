@@ -18,6 +18,7 @@ import {
   type VehicleSelection,
 } from "./package-type-picker";
 import type { Package } from "@/types/models";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 const FALLBACK: Package[] = [
   {
@@ -72,6 +73,7 @@ export function ServicesShowcase({
   /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
   isVip?: boolean;
 }) {
+  const vehicleTypes = useVehicleTypes();
   const priceCtx = { isVip };
   const list = packages?.length ? packages : FALLBACK;
   const [selection, setSelection] = React.useState<VehicleSelection>({
@@ -159,7 +161,7 @@ export function ServicesShowcase({
                     Precio para{" "}
                     {selection.isUberTaxi
                       ? "Uber/Taxi"
-                      : vehicleTypeLabel(selection.vehicleType)}
+                      : vehicleTypeLabel(selection.vehicleType, vehicleTypes)}
                   </p>
                 )}
                 <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{pkg.description}</p>

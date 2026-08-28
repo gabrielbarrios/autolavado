@@ -12,6 +12,7 @@ const PUBLIC_PERMISSIONS: Record<string, string[]> = {
   'api::package.package': ['find', 'findOne'],
   'api::product.product': ['find', 'findOne'],
   'api::extra-service.extra-service': ['find', 'findOne'],
+  'api::vehicle-type.vehicle-type': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
 };
 
@@ -20,6 +21,7 @@ const AUTHENTICATED_PERMISSIONS: Record<string, string[]> = {
   'api::package.package': ['find', 'findOne'],
   'api::product.product': ['find', 'findOne'],
   'api::extra-service.extra-service': ['find', 'findOne'],
+  'api::vehicle-type.vehicle-type': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'availableSlots'],
@@ -51,6 +53,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::package.package': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::product.product': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::extra-service.extra-service': ['find', 'findOne', 'create', 'update', 'delete'],
+  'api::vehicle-type.vehicle-type': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::site-setting.site-setting': ['find', 'update'],
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'delete', 'availableSlots'],
@@ -157,6 +160,42 @@ async function promoteOwnerToSuperAdmin() {
     data: { role: role.id },
   });
   strapi.log.info(`[bootstrap] Promoted ${OWNER_EMAIL} to Super Admin`);
+}
+
+/**
+ * Los tipos de auto que hasta ahora vivían hardcodeados en el enum de `vehicle`,
+ * `service` y el componente de precios. Se siembran una vez para que la
+ * colección arranque con lo que ya usaba el negocio; a partir de ahí se
+ * crean/editan/borran desde el Content Manager y NO se vuelven a tocar aquí.
+ *
+ * Los `slug` son los valores que ya están guardados en la base: cambiarlos
+ * dejaría huérfanas las filas de precio y los autos existentes.
+ */
+const SEED_VEHICLE_TYPES = [
+  { slug: 'chico', name: 'Chico', order: 1 },
+  { slug: 'sedan', name: 'Sedán', order: 2 },
+  { slug: 'suv', name: 'SUV (Camioneta)', order: 3 },
+  { slug: 'camioneta_grande', name: 'Camioneta grande', order: 4 },
+  { slug: 'combi', name: 'Combi / Van', order: 5 },
+];
+
+/**
+ * Crea los tipos de auto que falten. Idempotente por `slug`: si el dueño
+ * renombró "SUV" o borró un tipo, no se le resucita ni se le pisa el nombre.
+ */
+async function seedVehicleTypes() {
+  const existing = await strapi.db.query('api::vehicle-type.vehicle-type').findMany({
+    select: ['slug'],
+    limit: 500,
+  });
+  if (existing.length > 0) return; // ya inicializado: la colección es del dueño
+
+  for (const type of SEED_VEHICLE_TYPES) {
+    await strapi.db.query('api::vehicle-type.vehicle-type').create({
+      data: { ...type, active: true },
+    });
+  }
+  strapi.log.info(`[bootstrap] Seeded ${SEED_VEHICLE_TYPES.length} tipos de auto`);
 }
 
 /**
@@ -422,6 +461,11 @@ export default {
       await promoteOwnerToSuperAdmin();
     } catch (err) {
       strapi.log.error('[bootstrap] Error setting permissions:', err);
+    }
+    try {
+      await seedVehicleTypes();
+    } catch (err) {
+      strapi.log.error('[bootstrap] Error seeding vehicle types:', err);
     }
     try {
       await seedExtraServicePricing();

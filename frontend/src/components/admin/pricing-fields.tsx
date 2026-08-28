@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { VEHICLE_TYPES } from "@/lib/pricing";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 /**
  * Rejilla de precios por tipo de auto, compartida por el alta de paquetes y la
@@ -13,6 +13,8 @@ import { VEHICLE_TYPES } from "@/lib/pricing";
  * contrato con `parsePricing` en src/actions/catalog.ts.
  */
 export function PricingFields() {
+  const vehicleTypes = useVehicleTypes();
+
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm font-medium">Precios por tipo de auto</legend>
@@ -32,17 +34,17 @@ export function PricingFields() {
             </tr>
           </thead>
           <tbody>
-            {VEHICLE_TYPES.map((t) => (
-              <tr key={t.value}>
-                <td className="py-1.5 pr-3 whitespace-nowrap">{t.label}</td>
+            {vehicleTypes.map((t) => (
+              <tr key={t.slug}>
+                <td className="py-1.5 pr-3 whitespace-nowrap">{t.name}</td>
                 <td className="py-1.5 pr-3">
-                  <PriceInput name={`price_${t.value}`} label={`Precio ${t.label}`} />
+                  <PriceInput name={`price_${t.slug}`} label={`Precio ${t.name}`} />
                 </td>
                 <td className="py-1.5 pr-3">
-                  <PriceInput name={`uber_${t.value}`} label={`Precio Uber/Taxi ${t.label}`} />
+                  <PriceInput name={`uber_${t.slug}`} label={`Precio Uber/Taxi ${t.name}`} />
                 </td>
                 <td className="py-1.5">
-                  <PriceInput name={`vip_${t.value}`} label={`Precio VIP ${t.label}`} />
+                  <PriceInput name={`vip_${t.slug}`} label={`Precio VIP ${t.name}`} />
                 </td>
               </tr>
             ))}

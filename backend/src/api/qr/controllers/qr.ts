@@ -21,6 +21,7 @@ import {
   describeDiscount,
   round2,
 } from '../../../utils/promotions';
+import { validateVehicleTypeSlug } from '../../../utils/vehicle-types';
 
 /** Populate necesario para recalcular precios de un service al cobrarlo. */
 const SERVICE_PRICING_POPULATE = {
@@ -202,6 +203,11 @@ export default {
     if (!packageId && (!Array.isArray(extraServiceIds) || extraServiceIds.length === 0)) {
       return ctx.badRequest('Selecciona al menos un paquete o un servicio extra');
     }
+
+    // El tipo de auto ya no es un enum del schema: se valida contra el catálogo
+    // (api::vehicle-type), que es de donde el precio saca su fila de `pricing`.
+    const typeError = await validateVehicleTypeSlug(vehicleType);
+    if (typeError) return ctx.badRequest(typeError);
 
     let pkg = null;
     if (packageId) {

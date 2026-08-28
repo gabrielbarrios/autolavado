@@ -15,9 +15,9 @@ export const vehicleSchema = z.object({
     .optional()
     .transform((v) => (v ? v.toUpperCase().trim() : "")),
   notes: z.string().max(500).optional().or(z.literal("")),
-  vehicleType: z.enum(["chico", "sedan", "suv", "camioneta_grande", "combi"], {
-    errorMap: () => ({ message: "Selecciona el tipo de auto" }),
-  }),
+  // Slug de un Tipo de auto (api::vehicle-type): la lista la administra el
+  // dueño en Strapi, así que aquí solo se exige que venga algo.
+  vehicleType: z.string().min(1, "Selecciona el tipo de auto"),
   isUberTaxi: z.boolean().default(false),
 });
 

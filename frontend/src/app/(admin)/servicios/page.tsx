@@ -3,11 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { listAllServices } from "@/lib/strapi/visits";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { vehicleTypeLabel } from "@/lib/pricing";
+import { listVehicleTypes } from "@/lib/strapi/vehicle-types";
 
 export const metadata = { title: "Servicios" };
 
 export default async function ServiciosPage() {
-  const services = await listAllServices().catch(() => []);
+  const [services, vehicleTypes] = await Promise.all([
+    listAllServices().catch(() => []),
+    listVehicleTypes().catch(() => []),
+  ]);
 
   const total = services.reduce((acc, s) => acc + Number(s.totalAmount ?? 0), 0);
   const walkInCount = services.filter((s) => s.isWalkIn).length;
@@ -81,7 +85,7 @@ export default async function ServiciosPage() {
                         {s.vehicle
                           ? `${s.vehicle.brand} ${s.vehicle.model} · ${s.vehicle.plate || "—"}`
                           : s.vehicleType
-                            ? `${vehicleTypeLabel(s.vehicleType)}${s.isUberTaxi ? " · Uber/Taxi" : ""}`
+                            ? `${vehicleTypeLabel(s.vehicleType, vehicleTypes)}${s.isUberTaxi ? " · Uber/Taxi" : ""}`
                             : "—"}
                       </td>
                       <td className="px-4 py-3">{s.package?.name ?? "—"}</td>
@@ -118,7 +122,7 @@ export default async function ServiciosPage() {
                 const auto = s.vehicle
                   ? `${s.vehicle.brand} ${s.vehicle.model} · ${s.vehicle.plate || "—"}`
                   : s.vehicleType
-                    ? `${vehicleTypeLabel(s.vehicleType)}${s.isUberTaxi ? " · Uber/Taxi" : ""}`
+                    ? `${vehicleTypeLabel(s.vehicleType, vehicleTypes)}${s.isUberTaxi ? " · Uber/Taxi" : ""}`
                     : "—";
                 const cliente = s.isWalkIn
                   ? s.customerName || "Sin nombre"

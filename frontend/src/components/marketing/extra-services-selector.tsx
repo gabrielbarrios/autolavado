@@ -18,6 +18,7 @@ import {
   type VehicleSelection,
 } from "./package-type-picker";
 import type { ExtraService, Vehicle } from "@/types/models";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 export function ExtraServicesSelector({
   services,
@@ -27,6 +28,7 @@ export function ExtraServicesSelector({
   /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
   isVip?: boolean;
 }) {
+  const vehicleTypes = useVehicleTypes();
   const priceCtx = { isVip };
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [vehicleSel, setVehicleSel] = React.useState<VehicleSelection>({
@@ -163,7 +165,7 @@ export function ExtraServicesSelector({
                           <span className="text-[10px] text-muted-foreground">
                             {vehicleSel.isUberTaxi
                               ? "Uber/Taxi"
-                              : vehicleTypeLabel(vehicleSel.vehicleType)}
+                              : vehicleTypeLabel(vehicleSel.vehicleType, vehicleTypes)}
                           </span>
                         </>
                       ) : (
@@ -201,7 +203,7 @@ export function ExtraServicesSelector({
               <p className="text-2xl font-bold">{formatPrice(total)}</p>
               <p className="text-xs text-muted-foreground">
                 {hasSelection
-                  ? `Precio para ${vehicleSel.isUberTaxi ? "Uber/Taxi" : vehicleTypeLabel(vehicleSel.vehicleType)}`
+                  ? `Precio para ${vehicleSel.isUberTaxi ? "Uber/Taxi" : vehicleTypeLabel(vehicleSel.vehicleType, vehicleTypes)}`
                   : "Precio base — varía según tipo de auto"}
                 {totalMinutes > 0 && ` · ~${totalMinutes} min`}
               </p>

@@ -37,16 +37,10 @@
       "type": "text"
     },
     "vehicleType": {
-      "type": "enumeration",
-      "enum": [
-        "chico",
-        "sedan",
-        "suv",
-        "camioneta_grande",
-        "combi"
-      ],
+      "type": "string",
       "default": "sedan",
-      "required": true
+      "required": true,
+      "description": "Slug de un Tipo de auto (api::vehicle-type). Antes era un enum fijo."
     },
     "isUberTaxi": {
       "type": "boolean",

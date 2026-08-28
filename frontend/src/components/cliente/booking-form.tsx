@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { BusinessHour, ClosedDate, ExtraService, Package, Vehicle, WeekDay } from "@/types/models";
 import { Check, Sparkles } from "lucide-react";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 interface SlotInfo {
   slot: string;
@@ -65,6 +66,7 @@ export function BookingForm({
   /** El cliente que reserva tiene rol VIP → paga la tarifa VIP. */
   isVip?: boolean;
 }) {
+  const vehicleTypes = useVehicleTypes();
   const priceCtx = React.useMemo(() => ({ isVip }), [isVip]);
   const router = useRouter();
   const params = useSearchParams();
@@ -339,7 +341,7 @@ export function BookingForm({
                   {v.brand} {v.model}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {v.plate || "Sin placa"} · {vehicleTypeLabel(v.vehicleType)}
+                  {v.plate || "Sin placa"} · {vehicleTypeLabel(v.vehicleType, vehicleTypes)}
                 </p>
                 {v.isUberTaxi && (
                   <Badge variant="info" className="mt-2 text-[10px]">
@@ -534,7 +536,7 @@ export function BookingForm({
                     {selectedVehicle.brand} {selectedVehicle.model}
                   </span>{" "}
                   <span className="text-muted-foreground">
-                    ({vehicleTypeLabel(selectedVehicle.vehicleType)}
+                    ({vehicleTypeLabel(selectedVehicle.vehicleType, vehicleTypes)}
                     {selectedVehicle.isUberTaxi ? " · Uber/Taxi" : ""})
                   </span>
                 </p>

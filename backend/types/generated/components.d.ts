@@ -118,10 +118,7 @@ export interface SharedVehicleTypePrice extends Struct.ComponentSchema {
         },
         number
       >;
-    vehicleType: Schema.Attribute.Enumeration<
-      ['chico', 'sedan', 'suv', 'camioneta_grande', 'combi', 'uber_taxi']
-    > &
-      Schema.Attribute.Required;
+    vehicleType: Schema.Attribute.String & Schema.Attribute.Required;
     vipPrice: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
         {

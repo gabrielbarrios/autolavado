@@ -3,25 +3,47 @@ import type {
   Package,
   Vehicle,
   VehicleType,
+  VehicleTypeDef,
   VehicleTypePrice,
 } from "@/types/models";
 
-export const VEHICLE_TYPES: { value: VehicleType; label: string }[] = [
-  { value: "chico", label: "Chico" },
-  { value: "sedan", label: "Sedán" },
-  { value: "suv", label: "SUV (Camioneta)" },
-  { value: "camioneta_grande", label: "Camioneta grande" },
-  { value: "combi", label: "Combi / Van" },
+/**
+ * Los tipos de auto con los que nació la app. Ya NO son la lista real —esa vive
+ * en Strapi (api::vehicle-type) y se lee con `listVehicleTypes()`— pero se
+ * conservan como respaldo: si el catálogo no carga, los selectores siguen
+ * ofreciendo algo en vez de quedarse vacíos.
+ */
+export const FALLBACK_VEHICLE_TYPES: VehicleTypeDef[] = [
+  { id: -1, slug: "chico", name: "Chico", order: 1 },
+  { id: -2, slug: "sedan", name: "Sedán", order: 2 },
+  { id: -3, slug: "suv", name: "SUV (Camioneta)", order: 3 },
+  { id: -4, slug: "camioneta_grande", name: "Camioneta grande", order: 4 },
+  { id: -5, slug: "combi", name: "Combi / Van", order: 5 },
 ];
 
-const TYPE_LABELS: Record<string, string> = {
-  ...Object.fromEntries(VEHICLE_TYPES.map((t) => [t.value, t.label])),
-  uber_taxi: "Uber / Taxi",
-};
+/** "camioneta_grande" → "Camioneta grande". Para slugs que ya no están en el catálogo. */
+function prettifySlug(slug: string): string {
+  const words = slug.replace(/[_-]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
-export function vehicleTypeLabel(t: VehicleType | string | null | undefined): string {
+/**
+ * Etiqueta de un tipo de auto. `types` es el catálogo vivo: pásalo donde lo
+ * tengas a mano (o usa el hook `useVehicleTypes`) para que un tipo renombrado
+ * en Strapi se lea con su nombre nuevo. Sin catálogo cae al respaldo y, si el
+ * slug tampoco está ahí (un tipo borrado que sigue guardado en un auto viejo),
+ * lo muestra legible en vez de crudo.
+ */
+export function vehicleTypeLabel(
+  t: VehicleType | string | null | undefined,
+  types?: VehicleTypeDef[],
+): string {
   if (!t) return "—";
-  return TYPE_LABELS[t] ?? t;
+  if (t === "uber_taxi") return "Uber / Taxi";
+  const found = (types ?? FALLBACK_VEHICLE_TYPES).find((v) => v.slug === t);
+  if (found) return found.name;
+  const fallback = FALLBACK_VEHICLE_TYPES.find((v) => v.slug === t);
+  return fallback ? fallback.name : prettifySlug(t);
 }
 
 /**

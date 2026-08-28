@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VEHICLE_TYPES } from "@/lib/pricing";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 import { cn } from "@/lib/utils";
 import type { Vehicle } from "@/types/models";
 
@@ -33,6 +33,7 @@ export function VehicleForm({ vehicle, embedded = false, onSuccess, onCancel }: 
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
   const isEdit = Boolean(vehicle);
+  const vehicleTypes = useVehicleTypes();
 
   const form = useForm<VehicleInput>({
     resolver: zodResolver(vehicleSchema),
@@ -43,7 +44,9 @@ export function VehicleForm({ vehicle, embedded = false, onSuccess, onCancel }: 
       color: vehicle?.color ?? "",
       plate: vehicle?.plate ?? "",
       notes: vehicle?.notes ?? "",
-      vehicleType: vehicle?.vehicleType ?? "sedan",
+      // El auto que se edita manda; si es nuevo, el primer tipo del catálogo
+      // (el dueño pudo renombrar o borrar "sedan").
+      vehicleType: vehicle?.vehicleType ?? vehicleTypes[0]?.slug ?? "",
       isUberTaxi: vehicle?.isUberTaxi ?? false,
     },
   });
@@ -133,13 +136,13 @@ export function VehicleForm({ vehicle, embedded = false, onSuccess, onCancel }: 
             name="vehicleType"
             render={({ field }) => (
               <div className="flex flex-wrap gap-2">
-                {VEHICLE_TYPES.map((t) => {
-                  const selected = field.value === t.value;
+                {vehicleTypes.map((t) => {
+                  const selected = field.value === t.slug;
                   return (
                     <button
-                      key={t.value}
+                      key={t.slug}
                       type="button"
-                      onClick={() => field.onChange(t.value)}
+                      onClick={() => field.onChange(t.slug)}
                       className={cn(
                         "rounded-lg border px-3 py-2 text-sm transition-all",
                         selected
@@ -147,7 +150,7 @@ export function VehicleForm({ vehicle, embedded = false, onSuccess, onCancel }: 
                           : "border-border hover:border-primary/60",
                       )}
                     >
-                      {t.label}
+                      {t.name}
                     </button>
                   );
                 })}

@@ -19,7 +19,23 @@ export interface User {
   updatedAt?: string;
 }
 
-export type VehicleType = "chico" | "sedan" | "suv" | "camioneta_grande" | "combi";
+/**
+ * Slug de un tipo de auto. Dejó de ser un enum cerrado: la lista vive en la
+ * colección "Tipo de auto" de Strapi (api::vehicle-type) y el dueño la
+ * crea/edita/borra desde el Content Manager. Lo que se guarda en autos,
+ * servicios y filas de precio sigue siendo este slug.
+ */
+export type VehicleType = string;
+
+/** Una entrada del catálogo de tipos de auto. */
+export interface VehicleTypeDef {
+  id: number;
+  documentId?: string;
+  name: string;
+  slug: string;
+  order?: number;
+  active?: boolean;
+}
 
 /** Tier de precio: tipos de auto + alias "uber_taxi". Sólo se usa dentro del componente `pricing`. */
 export type PricingTier = VehicleType | "uber_taxi";

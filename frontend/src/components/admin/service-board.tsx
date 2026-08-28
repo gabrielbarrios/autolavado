@@ -16,7 +16,8 @@ import { ChargeDialog } from "@/components/admin/charge-dialog";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { formatTime } from "@/lib/business-hours";
 import { vehicleTypeLabel } from "@/lib/pricing";
-import type { Service } from "@/types/models";
+import type { Service, VehicleTypeDef } from "@/types/models";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 export interface AdminOption {
   id: number;
@@ -32,9 +33,11 @@ interface ServiceBoardProps {
   currentUserId?: number | null;
 }
 
-function describeAuto(s: Service): string {
+function describeAuto(s: Service, types?: VehicleTypeDef[]): string {
   if (s.vehicle) return `${s.vehicle.brand} ${s.vehicle.model} · ${s.vehicle.plate || "—"}`;
-  if (s.vehicleType) return `${vehicleTypeLabel(s.vehicleType)}${s.isUberTaxi ? " · Uber/Taxi" : ""}`;
+  if (s.vehicleType) {
+    return `${vehicleTypeLabel(s.vehicleType, types)}${s.isUberTaxi ? " · Uber/Taxi" : ""}`;
+  }
   return "—";
 }
 
@@ -128,6 +131,8 @@ function Column({
 
 /** Encabezado común de cada tarjeta: cliente, auto, paquete, extras, total. */
 function ServiceSummary({ service: s }: { service: Service }) {
+  const vehicleTypes = useVehicleTypes();
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-2">
@@ -143,7 +148,7 @@ function ServiceSummary({ service: s }: { service: Service }) {
         </div>
         <span className="font-mono text-sm">{formatPrice(s.totalAmount)}</span>
       </div>
-      <p className="text-xs text-muted-foreground">{describeAuto(s)}</p>
+      <p className="text-xs text-muted-foreground">{describeAuto(s, vehicleTypes)}</p>
       <p className="text-xs">{s.package?.name ?? "—"}</p>
       {s.extraServices && s.extraServices.length > 0 && (
         <div className="flex flex-wrap gap-1 pt-0.5">

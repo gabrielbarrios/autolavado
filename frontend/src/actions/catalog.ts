@@ -16,7 +16,7 @@ import {
 } from "@/lib/strapi/extra-services";
 import { createProduct, productSlugTaken, type ProductPayload } from "@/lib/strapi/products";
 import { PRODUCT_CATEGORIES } from "@/lib/constants";
-import { VEHICLE_TYPES } from "@/lib/pricing";
+import { listVehicleTypes } from "@/lib/strapi/vehicle-types";
 import type { ProductCategory } from "@/types/models";
 import type { ActionResult } from "./auth";
 
@@ -57,17 +57,22 @@ function num(formData: FormData, key: string): number | null {
  * Filas del componente `shared.vehicle-type-price`. El formulario manda un
  * trío de campos por tipo de auto (`price_sedan`, `uber_sedan`, `vip_sedan`);
  * los tipos sin precio normal simplemente no generan fila.
+ *
+ * Los tipos se leen del catálogo (api::vehicle-type), el mismo que pinta la
+ * rejilla del formulario: así un tipo nuevo creado en Strapi se guarda sin
+ * tocar este archivo.
  */
-function parsePricing(formData: FormData): VehicleTypePricePayload[] {
+async function parsePricing(formData: FormData): Promise<VehicleTypePricePayload[]> {
+  const types = await listVehicleTypes().catch(() => []);
   const rows: VehicleTypePricePayload[] = [];
-  for (const { value } of VEHICLE_TYPES) {
-    const price = num(formData, `price_${value}`);
+  for (const { slug } of types) {
+    const price = num(formData, `price_${slug}`);
     if (price === null) continue;
     rows.push({
-      vehicleType: value,
+      vehicleType: slug,
       price,
-      uberTaxiPrice: num(formData, `uber_${value}`),
-      vipPrice: num(formData, `vip_${value}`),
+      uberTaxiPrice: num(formData, `uber_${slug}`),
+      vipPrice: num(formData, `vip_${slug}`),
     });
   }
   return rows;
@@ -98,7 +103,7 @@ export async function createPackageAction(
   const durationMinutes = num(formData, "durationMinutes") ?? 30;
   if (durationMinutes < 5) return { ok: false, error: "La duración mínima son 5 minutos" };
 
-  const pricing = parsePricing(formData);
+  const pricing = await parsePricing(formData);
   if (pricing.length === 0) {
     return { ok: false, error: "Pon al menos un precio por tipo de auto" };
   }
@@ -142,7 +147,7 @@ export async function createExtraServiceAction(
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "Ponle un nombre al servicio" };
 
-  const pricing = parsePricing(formData);
+  const pricing = await parsePricing(formData);
   if (pricing.length === 0) {
     return { ok: false, error: "Pon al menos un precio por tipo de auto" };
   }

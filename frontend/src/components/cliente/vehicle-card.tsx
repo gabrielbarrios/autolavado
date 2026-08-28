@@ -13,8 +13,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EditVehicleDialog } from "./edit-vehicle-dialog";
 import type { Vehicle } from "@/types/models";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  const vehicleTypes = useVehicleTypes();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -65,7 +67,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
           <div className="flex flex-wrap items-center gap-2">
             {vehicle.vehicleType && (
               <Badge variant="secondary" className="gap-1">
-                <Car className="h-3 w-3" /> {vehicleTypeLabel(vehicle.vehicleType)}
+                <Car className="h-3 w-3" /> {vehicleTypeLabel(vehicle.vehicleType, vehicleTypes)}
               </Badge>
             )}
             {vehicle.isUberTaxi && <Badge variant="info">Uber / Taxi</Badge>}

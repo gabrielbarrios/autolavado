@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { vehicleTypeLabel } from "@/lib/pricing";
-import type { Service, ServiceStatus } from "@/types/models";
+import type { Service, ServiceStatus, VehicleTypeDef } from "@/types/models";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 /**
  * Seguimiento del auto para el cliente. Espeja el tablero del admin
@@ -28,9 +29,9 @@ function stepIndex(status?: ServiceStatus): number {
   return i === -1 ? 0 : i;
 }
 
-function describeAuto(s: Service): string {
+function describeAuto(s: Service, types?: VehicleTypeDef[]): string {
   if (s.vehicle) return `${s.vehicle.brand} ${s.vehicle.model}${s.vehicle.plate ? ` · ${s.vehicle.plate}` : ""}`;
-  if (s.vehicleType) return vehicleTypeLabel(s.vehicleType);
+  if (s.vehicleType) return vehicleTypeLabel(s.vehicleType, types);
   return "Tu auto";
 }
 
@@ -92,6 +93,7 @@ export function ServiceTracker({
 }
 
 function ServiceTrackerCard({ service: s }: { service: Service }) {
+  const vehicleTypes = useVehicleTypes();
   const active = stepIndex(s.status);
   const current = STEPS[active];
 
@@ -100,7 +102,7 @@ function ServiceTrackerCard({ service: s }: { service: Service }) {
       <CardContent className="space-y-5 p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="font-semibold">{describeAuto(s)}</p>
+            <p className="font-semibold">{describeAuto(s, vehicleTypes)}</p>
             <p className="text-xs text-muted-foreground">
               {s.package?.name ?? "Servicio"} · {formatPrice(s.totalAmount)}
             </p>

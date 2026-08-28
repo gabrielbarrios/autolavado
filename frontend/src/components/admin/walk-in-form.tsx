@@ -13,11 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { walkInServiceAction } from "@/actions/qr";
 import { cn, formatPrice } from "@/lib/utils";
-import {
-  VEHICLE_TYPES,
-  computePackagePrice,
-  computeExtraServicePrice,
-} from "@/lib/pricing";
+import { computePackagePrice, computeExtraServicePrice, vehicleTypeLabel } from "@/lib/pricing";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 import type { ExtraService, Package, VehicleType, Vehicle } from "@/types/models";
 
 export function WalkInForm({
@@ -29,7 +26,11 @@ export function WalkInForm({
 }) {
   const router = useRouter();
   const [customerName, setCustomerName] = React.useState("");
-  const [vehicleType, setVehicleType] = React.useState<VehicleType>("sedan");
+  const vehicleTypes = useVehicleTypes();
+  // Arranca en el primer tipo del catálogo: "sedan" pudo renombrarse o borrarse.
+  const [vehicleType, setVehicleType] = React.useState<VehicleType>(
+    () => vehicleTypes[0]?.slug ?? "",
+  );
   const [isUberTaxi, setIsUberTaxi] = React.useState(false);
   const [packageId, setPackageId] = React.useState<number | null>(null);
   const [selectedExtras, setSelectedExtras] = React.useState<Set<number>>(new Set());
@@ -131,19 +132,19 @@ export function WalkInForm({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {VEHICLE_TYPES.map((t) => (
+            {vehicleTypes.map((t) => (
               <button
-                key={t.value}
+                key={t.slug}
                 type="button"
-                onClick={() => setVehicleType(t.value)}
+                onClick={() => setVehicleType(t.slug)}
                 className={cn(
                   "rounded-lg border px-3 py-2 text-sm",
-                  vehicleType === t.value
+                  vehicleType === t.slug
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border hover:border-primary/60",
                 )}
               >
-                {t.label}
+                {t.name}
               </button>
             ))}
           </div>
@@ -264,7 +265,7 @@ export function WalkInForm({
                     <span className="text-muted-foreground">Cliente sin nombre</span>
                   )}
                   {" · "}
-                  {VEHICLE_TYPES.find((t) => t.value === vehicleType)?.label}
+                  {vehicleTypeLabel(vehicleType, vehicleTypes)}
                   {isUberTaxi && (
                     <Badge variant="info" className="ml-1 text-[10px]">
                       Uber/Taxi

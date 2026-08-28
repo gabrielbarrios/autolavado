@@ -60,13 +60,22 @@ Strapi is the source of truth for identity. The frontend never exposes the JWT t
 
 The protected-route lists live in [frontend/proxy.ts](frontend/proxy.ts); update them there when adding new gated routes.
 
+### Vehicle types are data, not an enum
+
+`vehicleType` used to be an `enumeration` in three schemas (`vehicle`, `service`, `shared.vehicle-type-price`). It is now a plain `string` holding the **slug** of an `api::vehicle-type` entry, which the owner creates/edits/deletes in the Strapi Content Manager ("Tipo de auto").
+
+- The stored value is the slug, so **renaming a type's `name` is safe; changing its `slug` orphans** every vehicle, service and pricing row that still points at the old one.
+- The schemas no longer validate the value. `validateVehicleTypeSlug` ([backend/src/utils/vehicle-types.ts](backend/src/utils/vehicle-types.ts)) does, and is called from the `vehicle` controller and from `qr.walkInService`.
+- The frontend reads the catalog with `listVehicleTypes()` and hands it to client components through `VehicleTypesProvider` / `useVehicleTypes()`, mounted in the three route-group layouts. `FALLBACK_VEHICLE_TYPES` in [frontend/src/lib/pricing.ts](frontend/src/lib/pricing.ts) is only a safety net for when the catalog can't be fetched — it is not the source of truth.
+- `bootstrap` seeds the original five types **only when the collection is empty**, so a deleted type never comes back.
+
 ### Strapi domain helpers
 
 [frontend/src/lib/strapi/](frontend/src/lib/strapi/) has one file per content type (`vehicles.ts`, `appointments.ts`, `packages.ts`, `orders.ts`, etc.). All HTTP goes through `strapiFetch` / `strapiServerFetch` / `strapiAdminFetch` — do not introduce raw `fetch` calls to Strapi elsewhere. Per-user filtering is done by appending `filters[user][id][$eq]=<id>` from the frontend.
 
 ### Strapi backend layout
 
-Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appointment`, `vehicle`, `package`, `product`, `order`, `order-item`, `service`, `visit`, `promotion`, `loyalty-progress`, `site-setting`, `extra-service`, and a custom `qr` API.
+Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appointment`, `vehicle`, `vehicle-type`, `package`, `product`, `order`, `order-item`, `service`, `visit`, `promotion`, `loyalty-progress`, `site-setting`, `extra-service`, and a custom `qr` API.
 
 [backend/src/index.ts](backend/src/index.ts) does two important things at bootstrap, idempotently:
 

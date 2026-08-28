@@ -931,9 +931,7 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       'plugin::users-permissions.user'
     >;
     vehicle: Schema.Attribute.Relation<'manyToOne', 'api::vehicle.vehicle'>;
-    vehicleType: Schema.Attribute.Enumeration<
-      ['chico', 'sedan', 'suv', 'camioneta_grande', 'combi']
-    >;
+    vehicleType: Schema.Attribute.String;
   };
 }
 
@@ -1001,6 +999,38 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiVehicleTypeVehicleType extends Struct.CollectionTypeSchema {
+  collectionName: 'vehicle_types';
+  info: {
+    description: 'Cat\u00E1logo de tipos de auto: alimenta los selectores y las filas de precio';
+    displayName: 'Tipo de auto';
+    pluralName: 'vehicle-types';
+    singularName: 'vehicle-type';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::vehicle-type.vehicle-type'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiVehicleVehicle extends Struct.CollectionTypeSchema {
   collectionName: 'vehicles';
   info: {
@@ -1037,9 +1067,7 @@ export interface ApiVehicleVehicle extends Struct.CollectionTypeSchema {
       'manyToOne',
       'plugin::users-permissions.user'
     >;
-    vehicleType: Schema.Attribute.Enumeration<
-      ['chico', 'sedan', 'suv', 'camioneta_grande', 'combi']
-    > &
+    vehicleType: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'sedan'>;
     year: Schema.Attribute.Integer &
@@ -1623,6 +1651,7 @@ declare module '@strapi/strapi' {
       'api::promotion.promotion': ApiPromotionPromotion;
       'api::service.service': ApiServiceService;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
+      'api::vehicle-type.vehicle-type': ApiVehicleTypeVehicleType;
       'api::vehicle.vehicle': ApiVehicleVehicle;
       'api::visit.visit': ApiVisitVisit;
       'plugin::content-releases.release': PluginContentReleasesRelease;

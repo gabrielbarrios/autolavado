@@ -9,6 +9,7 @@
  *   puede leer SUS vehículos aunque pase otros filtros.
  */
 import { factories } from '@strapi/strapi';
+import { validateVehicleTypeSlug } from '../../../utils/vehicle-types';
 
 export default factories.createCoreController('api::vehicle.vehicle', ({ strapi }) => ({
   async create(ctx) {
@@ -17,6 +18,10 @@ export default factories.createCoreController('api::vehicle.vehicle', ({ strapi 
 
     const data = ctx.request.body?.data ?? {};
     delete data.user;
+
+    // El schema ya no es un enum: el tipo se valida contra el catálogo.
+    const typeError = await validateVehicleTypeSlug(data.vehicleType);
+    if (typeError) return ctx.badRequest(typeError);
 
     const vehicle = await strapi.entityService.create('api::vehicle.vehicle', {
       data: { ...data, user: userId },
@@ -39,6 +44,9 @@ export default factories.createCoreController('api::vehicle.vehicle', ({ strapi 
 
     const data = ctx.request.body?.data ?? {};
     delete data.user;
+
+    const typeError = await validateVehicleTypeSlug(data.vehicleType);
+    if (typeError) return ctx.badRequest(typeError);
 
     const updated = await strapi.entityService.update('api::vehicle.vehicle', id, {
       data,

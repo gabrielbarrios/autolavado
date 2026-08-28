@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { VEHICLE_TYPES } from "@/lib/pricing";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 import type { VehicleType } from "@/types/models";
 
 export interface VehicleSelection {
@@ -28,6 +28,8 @@ export function PackageTypePicker({
   onChange: (next: VehicleSelection) => void;
   className?: string;
 }) {
+  const vehicleTypes = useVehicleTypes();
+
   return (
     <div
       className={`flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-card/30 p-4 sm:flex-row sm:justify-between ${className ?? ""}`}
@@ -46,9 +48,9 @@ export function PackageTypePicker({
             <SelectValue placeholder="Selecciona el tipo" />
           </SelectTrigger>
           <SelectContent>
-            {VEHICLE_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
+            {vehicleTypes.map((t) => (
+              <SelectItem key={t.slug} value={t.slug}>
+                {t.name}
               </SelectItem>
             ))}
           </SelectContent>

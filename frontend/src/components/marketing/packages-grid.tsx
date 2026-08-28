@@ -20,6 +20,7 @@ import {
   type VehicleSelection,
 } from "./package-type-picker";
 import type { ExtraService, Package, Vehicle } from "@/types/models";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 export function PackagesGrid({
   packages,
@@ -31,6 +32,7 @@ export function PackagesGrid({
   /** El visitante tiene rol VIP → se le muestra la tarifa VIP donde exista. */
   isVip?: boolean;
 }) {
+  const vehicleTypes = useVehicleTypes();
   const priceCtx = { isVip };
   const [selection, setSelection] = React.useState<VehicleSelection>({
     vehicleType: null,
@@ -132,7 +134,7 @@ export function PackagesGrid({
                     Precio para{" "}
                     {selection.isUberTaxi
                       ? "Uber/Taxi"
-                      : vehicleTypeLabel(selection.vehicleType)}
+                      : vehicleTypeLabel(selection.vehicleType, vehicleTypes)}
                   </p>
                 )}
                 <p className="line-clamp-2 text-sm text-muted-foreground">{pkg.description}</p>
@@ -256,7 +258,7 @@ export function PackagesGrid({
                               <span className="text-[10px] text-muted-foreground">
                                 {selection.isUberTaxi
                                   ? "Uber/Taxi"
-                                  : vehicleTypeLabel(selection.vehicleType)}
+                                  : vehicleTypeLabel(selection.vehicleType, vehicleTypes)}
                               </span>
                             </>
                           ) : (
@@ -291,7 +293,7 @@ export function PackagesGrid({
                     <p className="text-2xl font-bold">{formatPrice(extrasTotal)}</p>
                     <p className="text-xs text-muted-foreground">
                       {hasSelection
-                        ? `Precio para ${selection.isUberTaxi ? "Uber/Taxi" : vehicleTypeLabel(selection.vehicleType)}`
+                        ? `Precio para ${selection.isUberTaxi ? "Uber/Taxi" : vehicleTypeLabel(selection.vehicleType, vehicleTypes)}`
                         : "Precio base — varía según tipo de auto"}
                       {totalMinutes > 0 && ` · ~${totalMinutes} min`}
                     </p>

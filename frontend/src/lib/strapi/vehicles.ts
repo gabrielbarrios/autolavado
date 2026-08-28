@@ -1,5 +1,5 @@
 import { strapiServerFetch } from "./server";
-import type { Vehicle } from "@/types/models";
+import type { Vehicle, VehicleType } from "@/types/models";
 import type { StrapiCollectionResponse, StrapiSingleResponse } from "@/types/strapi";
 
 /** Lista los vehículos del usuario autenticado. El backend filtra por el JWT. */
@@ -32,7 +32,8 @@ export interface CreateVehiclePayload {
   color: string;
   plate?: string;
   notes?: string;
-  vehicleType?: "chico" | "sedan" | "suv" | "camioneta_grande" | "combi";
+  /** Slug de un Tipo de auto (api::vehicle-type). */
+  vehicleType?: VehicleType;
   isUberTaxi?: boolean;
 }
 

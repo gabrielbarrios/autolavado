@@ -101,6 +101,16 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
     list: ['date', 'timeSlot', 'status', 'user', 'package'],
   },
 
+  'api::vehicle-type.vehicle-type': {
+    labels: {
+      name: 'Nombre',
+      slug: 'Slug (lo que se guarda)',
+      order: 'Orden',
+      active: 'Activo',
+    },
+    list: ['name', 'slug', 'order', 'active'],
+  },
+
   'api::vehicle.vehicle': {
     labels: {
       brand: 'Marca',

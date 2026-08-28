@@ -25,6 +25,7 @@ import {
 } from "@/lib/pricing";
 import type { AppointmentStatus, ExtraService, Package } from "@/types/models";
 import type { QRScanResult } from "@/lib/strapi/qr";
+import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 const APPT_STATUS_VARIANT = {
   pending: "warning",
@@ -116,6 +117,7 @@ export function QrScanner({
   packages: Package[];
   extraServices?: ExtraService[];
 }) {
+  const vehicleTypes = useVehicleTypes();
   const [scanning, setScanning] = React.useState(false);
   const [manualToken, setManualToken] = React.useState("");
   const [result, setResult] = React.useState<QRScanResult | null>(null);
@@ -386,7 +388,7 @@ export function QrScanner({
                         {v.brand} {v.model} · {v.plate || "Sin placa"}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        {vehicleTypeLabel(v.vehicleType)}
+                        {vehicleTypeLabel(v.vehicleType, vehicleTypes)}
                         {v.isUberTaxi ? " · Uber/Taxi" : ""}
                       </div>
                     </button>
