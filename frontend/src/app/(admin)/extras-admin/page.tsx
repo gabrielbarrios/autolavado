@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { listAllExtraServicesAdmin } from "@/lib/strapi/extra-services";
 import { strapiMediaUrl, formatPrice } from "@/lib/utils";
 import { extraServicePriceRange } from "@/lib/pricing";
+import { ExtraServiceForm } from "@/components/admin/extra-service-form";
 
 export const metadata = { title: "Otros servicios" };
 
@@ -12,27 +13,29 @@ export default async function ExtrasAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Otros servicios</h1>
           <p className="text-muted-foreground">
-            Servicios sueltos con precio fijo (encerado, lavado de asientos, lavado de cielo, etc.).
+            Servicios sueltos (encerado, lavado de asientos, lavado de cielo, etc.). Para imágenes
+            y ajustes finos,{" "}
+            <a
+              href={`${process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337"}/admin/content-manager/collection-types/api::extra-service.extra-service`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              abrir en Strapi →
+            </a>
           </p>
         </div>
-        <a
-          href={`${process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337"}/admin/content-manager/collection-types/api::extra-service.extra-service`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Abrir en Strapi →
-        </a>
+        <ExtraServiceForm />
       </div>
 
       {items.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center text-sm text-muted-foreground">
-            Aún no hay servicios extras. Agrégalos desde Strapi → Content Manager → Extra Service.
+            Aún no hay servicios extras. Crea el primero con el botón de arriba.
           </CardContent>
         </Card>
       ) : (

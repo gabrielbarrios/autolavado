@@ -1,6 +1,7 @@
 import { strapiServerFetch } from "./server";
 import type { ExtraService } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
+import type { VehicleTypePricePayload } from "./packages";
 
 interface ListOpts {
   featuredOnly?: boolean;
@@ -46,4 +47,44 @@ export async function listAllExtraServicesAdmin(): Promise<ExtraService[]> {
     },
   );
   return res.data ?? [];
+}
+
+/* ------------------------------------------------------------------ */
+/* Administración del catálogo                                         */
+/* ------------------------------------------------------------------ */
+
+export interface ExtraServicePayload {
+  name: string;
+  slug: string;
+  description?: string;
+  estimatedDuration?: number | null;
+  featured: boolean;
+  active: boolean;
+  order?: number;
+  pricing: VehicleTypePricePayload[];
+}
+
+/**
+ * `status=published` es necesario: el content-type tiene draftAndPublish y sin
+ * él la entrada nace como borrador, invisible para `find` (y por tanto para el
+ * cliente). El rol admin tiene el permiso `create` (ver backend/src/index.ts).
+ */
+export async function createExtraService(payload: ExtraServicePayload) {
+  return strapiServerFetch("/api/extra-services", {
+    method: "POST",
+    query: { status: "published" },
+    body: { data: payload },
+  });
+}
+
+/** ¿Ya hay un servicio con este slug? Mira borradores y publicados. */
+export async function extraServiceSlugTaken(slug: string): Promise<boolean> {
+  const res = await strapiServerFetch<StrapiCollectionResponse<ExtraService>>(
+    "/api/extra-services",
+    {
+      query: { "filters[slug][$eq]": slug, "fields[0]": "slug", status: "draft" },
+      cache: "no-store",
+    },
+  );
+  return (res.data ?? []).length > 0;
 }

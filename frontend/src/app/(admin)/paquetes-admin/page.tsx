@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { listPackages } from "@/lib/strapi/packages";
 import { strapiMediaUrl, formatPrice } from "@/lib/utils";
 import { packagePriceRange } from "@/lib/pricing";
+import { PackageForm } from "@/components/admin/package-form";
 
 export const metadata = { title: "Paquetes" };
 
@@ -11,21 +12,22 @@ export default async function PaquetesAdminPage() {
   const packages = await listPackages().catch(() => []);
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Paquetes</h1>
           <p className="text-muted-foreground">
-            Gestión completa desde Strapi admin (Content Manager → Package).
+            Crea aquí lo básico; para imágenes y ajustes finos,{" "}
+            <a
+              href={`${process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337"}/admin/content-manager/collection-types/api::package.package`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              abrir en Strapi →
+            </a>
           </p>
         </div>
-        <a
-          href={`${process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337"}/admin/content-manager/collection-types/api::package.package`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Abrir en Strapi →
-        </a>
+        <PackageForm />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -54,3 +54,48 @@ export async function getPackage(id: number): Promise<Package | null> {
     return null;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Administración del catálogo                                         */
+/* ------------------------------------------------------------------ */
+
+/** Fila de precio tal como la espera el componente `shared.vehicle-type-price`. */
+export interface VehicleTypePricePayload {
+  vehicleType: string;
+  price: number;
+  uberTaxiPrice?: number | null;
+  vipPrice?: number | null;
+}
+
+export interface PackagePayload {
+  name: string;
+  slug: string;
+  description?: string;
+  durationMinutes: number;
+  benefits?: string[];
+  featured: boolean;
+  order?: number;
+  pricing: VehicleTypePricePayload[];
+}
+
+/**
+ * `status=published` es necesario: el content-type tiene draftAndPublish y sin
+ * él la entrada nace como borrador, invisible para `find` (y por tanto para el
+ * cliente). El rol admin tiene el permiso `create` (ver backend/src/index.ts).
+ */
+export async function createPackage(payload: PackagePayload) {
+  return strapiServerFetch("/api/packages", {
+    method: "POST",
+    query: { status: "published" },
+    body: { data: payload },
+  });
+}
+
+/** ¿Ya hay un paquete con este slug? Mira borradores y publicados. */
+export async function packageSlugTaken(slug: string): Promise<boolean> {
+  const res = await strapiServerFetch<StrapiCollectionResponse<Package>>("/api/packages", {
+    query: { "filters[slug][$eq]": slug, "fields[0]": "slug", status: "draft" },
+    cache: "no-store",
+  });
+  return (res.data ?? []).length > 0;
+}
