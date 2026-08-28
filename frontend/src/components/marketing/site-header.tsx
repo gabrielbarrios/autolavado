@@ -4,11 +4,13 @@ import { SiteLogo } from "@/components/shared/site-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { MobileNav } from "@/components/marketing/mobile-nav";
 import { getSession } from "@/lib/auth/session";
+import { STORE_ENABLED } from "@/lib/constants";
 import type { SiteSetting } from "@/types/models";
 
 const NAV = [
   { href: "/paquetes", label: "Paquetes" },
-  { href: "/tienda", label: "Tienda" },
+  { href: "/promociones", label: "Promociones" },
+  ...(STORE_ENABLED ? [{ href: "/tienda", label: "Tienda" }] : []),
   { href: "/contacto", label: "Contacto" },
 ];
 

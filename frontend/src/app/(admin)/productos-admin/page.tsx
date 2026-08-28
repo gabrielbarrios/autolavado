@@ -1,13 +1,18 @@
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listAllProductsAdmin } from "@/lib/strapi/products";
 import { strapiMediaUrl, formatPrice } from "@/lib/utils";
 import { ProductForm } from "@/components/admin/product-form";
+import { STORE_ENABLED } from "@/lib/constants";
 
 export const metadata = { title: "Productos" };
 
 export default async function ProductosAdminPage() {
+  // La tienda está apagada (STORE_ENABLED): la ruta no existe para nadie.
+  if (!STORE_ENABLED) notFound();
+
   const products = await listAllProductsAdmin().catch(() => []);
   return (
     <div className="space-y-6">

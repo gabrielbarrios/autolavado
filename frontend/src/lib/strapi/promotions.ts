@@ -1,5 +1,6 @@
+import { strapiFetch } from "./client";
 import { strapiServerFetch } from "./server";
-import type { Promotion, LoyaltyProgress } from "@/types/models";
+import type { Promotion, LoyaltyProgress, PublicCampaign } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
 
 /**
@@ -27,6 +28,18 @@ export async function listAvailablePromotions(): Promise<Promotion[]> {
     "/api/promotions/available",
     { cache: "no-store" },
   );
+  return res.data ?? [];
+}
+
+/**
+ * Campañas vigentes hoy para la web pública. Va por `strapiFetch` (anónimo) a
+ * propósito: la ruta del backend es `auth: false` y no devuelve nada de nadie,
+ * así que no hay JWT que reenviar ni precio VIP que filtrar.
+ */
+export async function listPublicCampaigns(): Promise<PublicCampaign[]> {
+  const res = await strapiFetch<{ data: PublicCampaign[] }>("/api/promotions/campaigns", {
+    cache: "no-store",
+  });
   return res.data ?? [];
 }
 

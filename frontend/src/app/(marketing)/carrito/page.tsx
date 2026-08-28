@@ -1,9 +1,14 @@
+import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { CartView } from "@/components/tienda/cart-view";
+import { STORE_ENABLED } from "@/lib/constants";
 
 export const metadata = { title: "Carrito" };
 
 export default async function CarritoPage() {
+  // La tienda está apagada (STORE_ENABLED): la ruta no existe para nadie.
+  if (!STORE_ENABLED) notFound();
+
   const session = await getSession();
   return (
     <div className="container mx-auto max-w-6xl px-4 py-16">

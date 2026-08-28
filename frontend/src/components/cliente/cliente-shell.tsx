@@ -3,6 +3,7 @@
 import { User, Car, QrCode, Calendar, History, Gift, ShoppingBag, Receipt, Sparkles } from "lucide-react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
+import { STORE_ENABLED } from "@/lib/constants";
 
 const NAV = [
   { href: "/perfil", label: "Perfil", icon: User },
@@ -11,9 +12,13 @@ const NAV = [
   { href: "/qr", label: "Mi QR", icon: QrCode },
   { href: "/reservar", label: "Reservar", icon: Calendar },
   { href: "/historial", label: "Historial", icon: History },
-  { href: "/promociones", label: "Promociones", icon: Gift },
-  { href: "/pedidos", label: "Mis pedidos", icon: Receipt },
-  { href: "/tienda", label: "Tienda", icon: ShoppingBag },
+  { href: "/mis-promociones", label: "Promociones", icon: Gift },
+  ...(STORE_ENABLED
+    ? [
+        { href: "/pedidos", label: "Mis pedidos", icon: Receipt },
+        { href: "/tienda", label: "Tienda", icon: ShoppingBag },
+      ]
+    : []),
 ];
 
 export function ClienteShell({

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Facebook, Instagram, MessageCircle, Music2 } from "lucide-react";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { dayLabel, hoursByDay, WEEK_DAYS, formatTime } from "@/lib/business-hours";
+import { STORE_ENABLED } from "@/lib/constants";
 import type { SiteSetting } from "@/types/models";
 
 export function SiteFooter({ setting }: { setting?: SiteSetting | null }) {
@@ -24,7 +25,10 @@ export function SiteFooter({ setting }: { setting?: SiteSetting | null }) {
             <h4 className="mb-3 text-sm font-semibold">Navegación</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link className="hover:text-foreground" href="/paquetes">Paquetes</Link></li>
-              <li><Link className="hover:text-foreground" href="/tienda">Tienda</Link></li>
+              <li><Link className="hover:text-foreground" href="/promociones">Promociones</Link></li>
+              {STORE_ENABLED && (
+                <li><Link className="hover:text-foreground" href="/tienda">Tienda</Link></li>
+              )}
               <li><Link className="hover:text-foreground" href="/contacto">Contacto</Link></li>
               <li><Link className="hover:text-foreground" href="/login">Iniciar sesión</Link></li>
             </ul>

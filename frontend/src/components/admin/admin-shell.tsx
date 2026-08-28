@@ -3,6 +3,7 @@
 import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock, ShieldCheck } from "lucide-react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
+import { STORE_ENABLED } from "@/lib/constants";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -12,7 +13,7 @@ const NAV = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/paquetes-admin", label: "Paquetes", icon: Package },
   { href: "/extras-admin", label: "Otros servicios", icon: Sparkles },
-  { href: "/productos-admin", label: "Productos", icon: ShoppingBag },
+  ...(STORE_ENABLED ? [{ href: "/productos-admin", label: "Productos", icon: ShoppingBag }] : []),
   { href: "/promociones-admin", label: "Promociones", icon: Gift },
   { href: "/reservaciones", label: "Reservaciones", icon: Calendar },
   { href: "/servicios", label: "Servicios", icon: Wrench },

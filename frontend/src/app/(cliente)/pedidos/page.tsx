@@ -1,8 +1,10 @@
+import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth/guards";
 import { listMyOrders } from "@/lib/strapi/orders";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { STORE_ENABLED } from "@/lib/constants";
 
 export const metadata = { title: "Mis pedidos" };
 
@@ -22,6 +24,9 @@ const statusVariant: Record<string, "warning" | "info" | "success" | "destructiv
 };
 
 export default async function PedidosPage() {
+  // La tienda está apagada (STORE_ENABLED): la ruta no existe para nadie.
+  if (!STORE_ENABLED) notFound();
+
   // Solo como guardia de sesión: el backend resuelve el dueño desde el JWT.
   await requireUser();
   const orders = await listMyOrders().catch(() => []);

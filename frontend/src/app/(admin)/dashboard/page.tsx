@@ -6,6 +6,7 @@ import { adminStats } from "@/lib/strapi/admin";
 import { listAllAppointments } from "@/lib/strapi/appointments";
 import { StatCard } from "@/components/admin/stat-card";
 import { RecentAppointments } from "@/components/admin/recent-appointments";
+import { STORE_ENABLED } from "@/lib/constants";
 
 export const metadata = { title: "Dashboard" };
 
@@ -31,11 +32,20 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        className={
+          STORE_ENABLED
+            ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        }
+      >
         <StatCard icon={Users} label="Clientes" value={stats.usersCount} />
         <StatCard icon={Sparkles} label="Visitas totales" value={stats.visitsCount} />
         <StatCard icon={Calendar} label="Reservas pendientes" value={pending.length} />
-        <StatCard icon={Receipt} label="Pedidos totales" value={stats.ordersCount} />
+        {/* Los pedidos son de la tienda: sin tienda, la métrica no dice nada. */}
+        {STORE_ENABLED && (
+          <StatCard icon={Receipt} label="Pedidos totales" value={stats.ordersCount} />
+        )}
       </div>
 
       {pending.length > 0 && (

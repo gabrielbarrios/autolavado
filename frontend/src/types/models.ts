@@ -181,6 +181,25 @@ export interface Promotion {
   discountLabel?: string;
 }
 
+/**
+ * Campaña tal como la devuelve `/api/promotions/campaigns` (público): sin
+ * `code`, sin dueño y solo las vigentes hoy. Ver el controller de promotion.
+ */
+export interface PublicCampaign {
+  id: number;
+  title: string;
+  description?: string | null;
+  kind?: PromotionKind;
+  appliesTo?: PromotionAppliesTo;
+  availability?: PromotionAvailability;
+  weekdays?: number[] | null;
+  discountType: DiscountType;
+  discountValue: number;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  discountLabel?: string;
+}
+
 export interface LoyaltyProgress {
   id: number;
   documentId?: string;

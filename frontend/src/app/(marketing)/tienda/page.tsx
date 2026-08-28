@@ -1,12 +1,17 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { listProducts } from "@/lib/strapi/products";
 import { ProductCard } from "@/components/tienda/product-card";
+import { STORE_ENABLED } from "@/lib/constants";
 
 export const metadata = { title: "Tienda" };
 
 export default async function TiendaPage() {
+  // La tienda está apagada (STORE_ENABLED): la ruta no existe para nadie.
+  if (!STORE_ENABLED) notFound();
+
   const products = await listProducts().catch(() => []);
 
   return (

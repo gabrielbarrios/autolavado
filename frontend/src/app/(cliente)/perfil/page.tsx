@@ -39,7 +39,7 @@ export default async function PerfilPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon={Car} label="Autos registrados" value={vehicles.length.toString()} href="/autos" />
-        <StatCard icon={Gift} label="Promociones activas" value={promos.length.toString()} href="/promociones" />
+        <StatCard icon={Gift} label="Promociones activas" value={promos.length.toString()} href="/mis-promociones" />
         <StatCard
           icon={Calendar}
           label="Próxima reservación"
@@ -110,7 +110,7 @@ export default async function PerfilPage() {
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/promociones">
+                <Link href="/mis-promociones">
                   <Gift className="h-4 w-4" /> Promociones
                 </Link>
               </Button>

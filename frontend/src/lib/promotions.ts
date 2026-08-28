@@ -1,4 +1,4 @@
-import type { Promotion } from "@/types/models";
+import type { Promotion, PromotionAvailability } from "@/types/models";
 import { formatDate } from "@/lib/utils";
 
 const DAY_NAMES = ["domingos", "lunes", "martes", "miércoles", "jueves", "viernes", "sábados"];
@@ -17,12 +17,20 @@ export function appliesToLabel(appliesTo: Promotion["appliesTo"]): string {
   return "Lavado y extras";
 }
 
+/** Lo mínimo para describir la vigencia: lo cumplen `Promotion` y `PublicCampaign`. */
+interface AvailabilityShape {
+  availability?: PromotionAvailability;
+  weekdays?: number[] | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+}
+
 /**
  * Frase legible de cuándo aplica: "Todos los miércoles", "Del 3 al 7 de sep",
  * "Siempre disponible". Se usa igual en el panel del admin y en la página del
  * cliente para que ambos lean lo mismo.
  */
-export function availabilityLabel(promo: Promotion): string {
+export function availabilityLabel(promo: AvailabilityShape): string {
   const { availability, weekdays, validFrom, validUntil } = promo;
 
   if (availability === "always") return "Siempre disponible";

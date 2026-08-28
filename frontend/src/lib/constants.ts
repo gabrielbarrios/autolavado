@@ -13,3 +13,10 @@ export const PRODUCT_CATEGORIES = ["limpieza", "interior", "exterior", "accesori
 export const DISCOUNT_TYPES = ["percent", "fixed", "free"] as const;
 
 export const VISITS_FOR_REWARD = 3;
+
+/**
+ * Interruptor de la tienda online (productos, carrito y pedidos). Con `false`
+ * desaparece de todos los menús y sus rutas devuelven 404, pero el código sigue
+ * ahí: para reactivarla basta con ponerlo en `true`.
+ */
+export const STORE_ENABLED = false;

@@ -139,6 +139,47 @@ export default factories.createCoreController('api::promotion.promotion', () => 
 
     ctx.body = { data, meta: {} };
   },
+
+  /**
+   * GET /api/promotions/campaigns  — público (la ruta va con `auth: false`).
+   *
+   * El escaparate de la web: TODAS las campañas encendidas, aunque hoy no sea
+   * su día ni estemos dentro de su rango de fechas. A diferencia de
+   * `/available` (lo que el cajero puede aplicar AHORA), esto es publicidad:
+   * cada tarjeta lleva su vigencia escrita para que el cliente sepa cuándo
+   * volver. Apagar una campaña (`active: false`) es lo que la quita de aquí.
+   *
+   * Nunca salen promociones personales, y se devuelve un objeto recortado a
+   * mano en vez de la entrada entera porque esto lo ve cualquiera: fuera
+   * `code` (se menciona en caja, no hace falta publicarlo) y fuera cualquier
+   * dato del dueño.
+   */
+  async campaigns(ctx) {
+    const promos = await strapi.db.query('api::promotion.promotion').findMany({
+      where: { kind: 'campaign', user: null },
+      orderBy: [{ validUntil: 'asc' }],
+      limit: 100,
+    });
+
+    const data = promos
+      .filter((p) => p.active !== false)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        kind: p.kind,
+        appliesTo: p.appliesTo,
+        availability: p.availability,
+        weekdays: p.weekdays,
+        discountType: p.discountType,
+        discountValue: p.discountValue,
+        validFrom: p.validFrom,
+        validUntil: p.validUntil,
+        discountLabel: describeDiscount(p),
+      }));
+
+    ctx.body = { data, meta: {} };
+  },
 }));
 
 const AVAILABILITY = ['always', 'weekdays', 'dateRange'];
