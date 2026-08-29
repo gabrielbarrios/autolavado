@@ -99,7 +99,7 @@ export function PackageForm() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            La imagen se sube después desde Strapi (Content Manager → Paquete de lavado).
+            La foto del paquete se agrega después desde el panel de contenido.
           </p>
 
           <div className="flex flex-wrap gap-2">

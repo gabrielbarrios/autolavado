@@ -13,7 +13,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { walkInServiceAction } from "@/actions/qr";
 import { cn, formatPrice } from "@/lib/utils";
-import { computePackagePrice, computeExtraServicePrice, vehicleTypeLabel } from "@/lib/pricing";
+import {
+  computePackagePrice,
+  computeExtraServicePrice,
+  extraServicePriceText,
+  vehicleTypeLabel,
+} from "@/lib/pricing";
 import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 import type { ExtraService, Package, VehicleType, Vehicle } from "@/types/models";
 
@@ -241,7 +246,7 @@ export function WalkInForm({
                     </span>
                     <span className="flex-1 leading-tight">{s.name}</span>
                     <span className="shrink-0 font-semibold">
-                      {formatPrice(computeExtraServicePrice(s, fakeVehicle))}
+                      {extraServicePriceText(s, fakeVehicle, {}, true)}
                     </span>
                   </button>
                 );
@@ -289,7 +294,7 @@ export function WalkInForm({
                 <div key={e.id} className="flex justify-between">
                   <span>+ {e.name}</span>
                   <span className="font-mono">
-                    {formatPrice(computeExtraServicePrice(e, fakeVehicle))}
+                    {extraServicePriceText(e, fakeVehicle, {}, true)}
                   </span>
                 </div>
               ))}

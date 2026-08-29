@@ -1,3 +1,8 @@
+"use client";
+
+// Componente de cliente: lee el catálogo de tipos de auto del contexto
+// (`useVehicleTypes`) para etiquetar el auto. Lo renderizan páginas de servidor
+// (/perfil, /qr, /mi-auto) pasándole datos ya serializados.
 import Link from "next/link";
 import { Clock, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";

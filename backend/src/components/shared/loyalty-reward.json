@@ -1,0 +1,40 @@
+{
+  "collectionName": "components_shared_loyalty_rewards",
+  "info": {
+    "displayName": "Promoción de fidelidad",
+    "icon": "gift",
+    "description": "Qué recompensa se genera automáticamente al completar el ciclo de visitas"
+  },
+  "options": {},
+  "attributes": {
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Apagado: se siguen contando las visitas, pero no se genera ninguna promoción."
+    },
+    "discountType": {
+      "type": "enumeration",
+      "enum": ["percent", "fixed", "free"],
+      "default": "percent",
+      "required": true
+    },
+    "discountValue": {
+      "type": "decimal",
+      "default": 10,
+      "min": 0,
+      "description": "Porcentaje (1-100) o pesos a descontar. Con \"free\" se ignora."
+    },
+    "validDays": {
+      "type": "integer",
+      "default": 30,
+      "min": 1,
+      "description": "Días que dura la recompensa desde que se gana."
+    },
+    "packages": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::package.package",
+      "description": "Paquetes en los que se puede usar. Vacío = cualquiera."
+    }
+  }
+}

@@ -21,6 +21,10 @@ export function ExtraServiceForm() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState(false);
+  // Las dos formas de poner precio son excluyentes: o tabla por tipo de auto,
+  // o "se cotiza en sucursal". Cada una deshabilita a la otra.
+  const [quoteOnRequest, setQuoteOnRequest] = React.useState(false);
+  const [hasPrices, setHasPrices] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -32,6 +36,8 @@ export function ExtraServiceForm() {
     if (!res.ok) return toast.error(res.error);
     toast.success("Servicio creado");
     formRef.current?.reset();
+    setQuoteOnRequest(false);
+    setHasPrices(false);
     setOpen(false);
     router.refresh();
   }
@@ -76,7 +82,32 @@ export function ExtraServiceForm() {
             />
           </div>
 
-          <PricingFields />
+          <div className="space-y-3">
+            <PricingFields disabled={quoteOnRequest} onHasPricesChange={setHasPrices} />
+
+            <label
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition-colors ${
+                quoteOnRequest ? "border-amber-500/60 bg-amber-500/5" : "border-border"
+              } ${hasPrices ? "cursor-not-allowed opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                name="quoteOnRequest"
+                className="mt-0.5"
+                checked={quoteOnRequest}
+                disabled={hasPrices}
+                onChange={(e) => setQuoteOnRequest(e.target.checked)}
+              />
+              <span>
+                El precio depende del tamaño del carro, favor de cotizar el costo
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {hasPrices
+                    ? "Disponible solo si no capturas precios por tipo de auto."
+                    : "El servicio se muestra sin precio y la caja captura el monto al cobrar."}
+                </span>
+              </span>
+            </label>
+          </div>
 
           <div className="flex flex-wrap items-end gap-4">
             <div className="w-28 space-y-2">
@@ -88,7 +119,7 @@ export function ExtraServiceForm() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            La imagen se sube después desde Strapi (Content Manager → Servicio extra).
+            La foto del servicio se agrega después desde el panel de contenido.
           </p>
 
           <div className="flex flex-wrap gap-2">

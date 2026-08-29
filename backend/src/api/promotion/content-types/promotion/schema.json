@@ -90,6 +90,12 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
+    },
+    "packages": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::package.package",
+      "description": "Paquetes en los que se puede usar. Vacío = cualquiera."
     }
   }
 }

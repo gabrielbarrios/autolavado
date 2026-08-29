@@ -531,6 +531,8 @@ export interface ApiExtraServiceExtraService
       >;
     pricing: Schema.Attribute.Component<'shared.vehicle-type-price', true>;
     publishedAt: Schema.Attribute.DateTime;
+    quoteOnRequest: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     uberTaxiPrice: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
@@ -823,6 +825,7 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
       'api::promotion.promotion'
     > &
       Schema.Attribute.Private;
+    packages: Schema.Attribute.Relation<'oneToMany', 'api::package.package'>;
     publishedAt: Schema.Attribute.DateTime;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -862,6 +865,14 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
     customerName: Schema.Attribute.String;
     date: Schema.Attribute.DateTime & Schema.Attribute.Required;
     discountNote: Schema.Attribute.String;
+    extrasCharge: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
     extraServices: Schema.Attribute.Relation<
       'manyToMany',
       'api::extra-service.extra-service'
@@ -974,6 +985,7 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.Private;
     logo: Schema.Attribute.Media<'images'>;
+    loyaltyReward: Schema.Attribute.Component<'shared.loyalty-reward', false>;
     maxBookingsPerSlot: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {

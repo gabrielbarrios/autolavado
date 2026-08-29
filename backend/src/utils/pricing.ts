@@ -66,6 +66,9 @@ export function resolveRowPrice(row, opts = {}) {
  */
 export function computeItemPrice(item, vehicleLike, isVip = false) {
   if (!item) return 0;
+  // "A cotizar": el precio depende del auto y lo pone la caja al cobrar
+  // (service.extrasCharge). En el catálogo vale 0 para no inventar un total.
+  if (item.quoteOnRequest) return 0;
   const pricing = Array.isArray(item.pricing) ? item.pricing : [];
   const isUberTaxi = !!vehicleLike?.isUberTaxi;
   const vehicleType = vehicleLike?.vehicleType;

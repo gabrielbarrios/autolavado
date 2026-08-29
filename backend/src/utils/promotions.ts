@@ -108,11 +108,38 @@ export function servicePriceBreakdown(service, isVip = false) {
     (acc, e) => acc + computeItemPrice(e, vehicleLike, isVip),
     0,
   );
-  return { packagePrice, extrasPrice, total: packagePrice + extrasPrice };
+  return {
+    packagePrice,
+    extrasPrice,
+    total: packagePrice + extrasPrice,
+    // Para las promos limitadas a ciertos paquetes (ver `appliesToPackage`).
+    packageId: service.package?.id ?? service.package ?? null,
+  };
+}
+
+/**
+ * ¿La promo se puede usar con el paquete de este servicio?
+ *
+ * `promo.packages` vacío (o sin poblar) significa "cualquier paquete": es el
+ * caso normal y el que traen todas las promos anteriores a esta función. Con
+ * una lista, la promo solo vale si el servicio lleva uno de esos paquetes — un
+ * servicio de solo extras, por tanto, no la puede usar.
+ */
+export function appliesToPackage(promo, packageId) {
+  const allowed = (promo?.packages ?? [])
+    .map((p) => (typeof p === 'object' ? p?.id : p))
+    .filter((id) => id != null)
+    .map(Number);
+  if (allowed.length === 0) return true;
+  if (packageId == null) return false;
+  return allowed.includes(Number(packageId));
 }
 
 /** Sobre qué parte del ticket pega la promo. */
 export function discountBase(promo, breakdown) {
+  // Limitada a ciertos paquetes y el servicio no lleva ninguno de ellos: no hay
+  // nada que descontar, aunque el ticket traiga extras.
+  if (!appliesToPackage(promo, breakdown?.packageId)) return 0;
   if (promo.appliesTo === 'package') return breakdown.packagePrice;
   if (promo.appliesTo === 'extras') return breakdown.extrasPrice;
   return breakdown.total;

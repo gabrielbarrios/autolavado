@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { togglePromotionAction, deletePromotionAction } from "@/actions/promotions";
-import { discountLabel, appliesToLabel, availabilityLabel } from "@/lib/promotions";
+import { discountLabel, appliesToLabel, availabilityLabel, packagesLabel } from "@/lib/promotions";
 import type { Promotion } from "@/types/models";
 
 export function CampaignList({ promos }: { promos: Promotion[] }) {
@@ -76,6 +76,9 @@ function CampaignCard({ promo }: { promo: Promotion }) {
         <div className="flex flex-wrap gap-2 text-xs">
           <Badge variant="outline">{availabilityLabel(promo)}</Badge>
           <Badge variant="outline">{appliesToLabel(promo.appliesTo)}</Badge>
+          {packagesLabel(promo.packages) && (
+            <Badge variant="outline">{packagesLabel(promo.packages)}</Badge>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3">

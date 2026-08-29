@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listAllExtraServicesAdmin } from "@/lib/strapi/extra-services";
 import { strapiMediaUrl, formatPrice } from "@/lib/utils";
-import { extraServicePriceRange } from "@/lib/pricing";
+import { extraServicePriceRange, QUOTE_ON_REQUEST_SHORT } from "@/lib/pricing";
 import { ExtraServiceForm } from "@/components/admin/extra-service-form";
 
 export const metadata = { title: "Otros servicios" };
@@ -60,6 +60,13 @@ export default async function ExtrasAdminPage() {
                     {s.estimatedDuration ? `${s.estimatedDuration} min` : ""}
                   </span>
                   {(() => {
+                    if (s.quoteOnRequest) {
+                      return (
+                        <span className="text-xs font-medium text-amber-400">
+                          {QUOTE_ON_REQUEST_SHORT}
+                        </span>
+                      );
+                    }
                     const { min, max } = extraServicePriceRange(s);
                     if (min === 0 && max === 0) {
                       return <span className="text-xs text-amber-400">Sin precio</span>;

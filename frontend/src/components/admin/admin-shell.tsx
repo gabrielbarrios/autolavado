@@ -2,6 +2,7 @@
 
 import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock, ShieldCheck } from "lucide-react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
+import { NewAppointmentWatcher } from "@/components/admin/new-appointment-watcher";
 import { logoutAction } from "@/actions/auth";
 import { STORE_ENABLED } from "@/lib/constants";
 import type { DashboardShellProps } from "@/components/shared/dashboard-shell";
@@ -42,6 +43,8 @@ export function AdminShell({
       user={{ name: user.name, email: user.email, role: isSuperAdmin ? "Super Admin" : "admin" }}
       onLogout={() => logoutAction()}
     >
+      {/* Sondea reservaciones nuevas mientras el panel esté abierto. */}
+      <NewAppointmentWatcher />
       {children}
     </DashboardShell>
   );

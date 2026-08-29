@@ -14,6 +14,7 @@ import {
   computeAppointmentTotal,
   APPOINTMENT_PRICING_POPULATE,
 } from '../../../utils/pricing';
+import { businessNow, BOOKING_LEAD_MINUTES } from '../../../utils/business-time';
 
 const WEEK_DAYS = [
   'monday',
@@ -125,6 +126,16 @@ async function getDayContext(date, packageId, excludeAppointmentId, extraService
     return { closed: true, reason: blocked.reason ?? 'Cerrado', slotDuration, maxParallel, slots: [] };
   }
 
+  // Nadie reserva hacia atrás: ni un día que ya pasó, ni una hora de hoy que ya
+  // pasó. `create` valida contra esta misma función, así que el corte protege
+  // también a quien llame la API directo.
+  const nowInBusiness = businessNow();
+  if (date < nowInBusiness.date) {
+    return { closed: true, reason: 'Esa fecha ya pasó', slotDuration, maxParallel, slots: [] };
+  }
+  const isToday = date === nowInBusiness.date;
+  const earliestMin = isToday ? nowInBusiness.minutes + BOOKING_LEAD_MINUTES : null;
+
   const day = weekDayFromISO(date);
   const hours = (setting?.businessHours ?? []).find((h) => h.day === day);
   if (!hours || hours.closed || !hours.open || !hours.close) {
@@ -182,7 +193,13 @@ async function getDayContext(date, packageId, excludeAppointmentId, extraService
 
   // Genera slots candidatos donde el paquete cabe completo
   const slots = [];
+  let cutByLeadTime = false;
   for (let m = openMin; m + packageMinutes <= closeMin; m += slotDuration) {
+    // Hoy solo se ofrece de `ahora + margen` en adelante.
+    if (earliestMin !== null && m < earliestMin) {
+      cutByLeadTime = true;
+      continue;
+    }
     let blocked = false;
     // overflow = el horario de inicio tiene cupo, pero un slot POSTERIOR
     // requerido por la duración total del servicio ya llegó al máximo.
@@ -213,6 +230,11 @@ async function getDayContext(date, packageId, excludeAppointmentId, extraService
     open: minutesToHHMM(openMin),
     close: minutesToHHMM(closeMin),
     slots,
+    // Para que el cliente no crea que el día está lleno cuando en realidad ya
+    // es tarde: hoy se quedó sin horarios por el margen, no por ocupación.
+    ...(cutByLeadTime && slots.length === 0
+      ? { notice: 'Ya no hay horarios para hoy. Elige otro día.' }
+      : {}),
   };
 }
 

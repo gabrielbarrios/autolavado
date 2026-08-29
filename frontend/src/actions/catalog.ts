@@ -147,9 +147,14 @@ export async function createExtraServiceAction(
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "Ponle un nombre al servicio" };
 
-  const pricing = await parsePricing(formData);
-  if (pricing.length === 0) {
-    return { ok: false, error: "Pon al menos un precio por tipo de auto" };
+  // O precios por tipo de auto, o "se cotiza en sucursal". Nunca las dos.
+  const quoteOnRequest = formData.get("quoteOnRequest") === "on";
+  const pricing = quoteOnRequest ? [] : await parsePricing(formData);
+  if (!quoteOnRequest && pricing.length === 0) {
+    return {
+      ok: false,
+      error: "Pon al menos un precio por tipo de auto, o marca que se cotiza en sucursal",
+    };
   }
 
   try {
@@ -162,6 +167,7 @@ export async function createExtraServiceAction(
       active: formData.get("active") === "on",
       order: num(formData, "order") ?? 0,
       pricing,
+      quoteOnRequest,
     };
     await createExtraService(payload);
     revalidatePath("/extras-admin");

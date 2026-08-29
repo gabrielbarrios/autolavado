@@ -84,6 +84,11 @@ export interface ExtraService {
    * para que el extra tenga precio.
    */
   pricing?: VehicleTypePrice[];
+  /**
+   * El precio depende del tamaño del auto y se cotiza en sucursal: el servicio
+   * vale 0 en el catálogo y la caja captura el monto al cobrar.
+   */
+  quoteOnRequest?: boolean;
   /** @deprecated usar pricing con vehicleType="uber_taxi". Solo legacy/migración. */
   uberTaxiPrice?: number | null;
   estimatedDuration?: number | null;
@@ -133,6 +138,8 @@ export interface Service {
   totalAmount: number;
   /** Precio antes de descuentos. Solo se llena al cobrar. */
   subtotalAmount?: number | null;
+  /** Lo que capturó la caja por los servicios que se cotizan (sin precio de catálogo). */
+  extrasCharge?: number | null;
   promotionDiscount?: number | null;
   manualDiscount?: number | null;
   discountNote?: string | null;
@@ -195,6 +202,11 @@ export interface Promotion {
   user?: User;
   /** Solo lo devuelve /promotions/available: "20%", "-$50", "Gratis". */
   discountLabel?: string;
+  /**
+   * Nombres de los paquetes en los que se puede usar. Vacío o ausente = en
+   * cualquiera. El backend los manda ya aplanados a nombre.
+   */
+  packages?: string[];
 }
 
 /**
@@ -214,6 +226,8 @@ export interface PublicCampaign {
   validFrom?: string | null;
   validUntil?: string | null;
   discountLabel?: string;
+  /** Paquetes en los que aplica (nombres). Vacío = cualquiera. */
+  packages?: string[];
 }
 
 export interface LoyaltyProgress {
@@ -318,6 +332,15 @@ export interface ClosedDate {
   reason?: string | null;
 }
 
+/** Bloque "Promoción de fidelidad" de Configuración del sitio. */
+export interface LoyaltyReward {
+  active?: boolean;
+  discountType?: DiscountType;
+  discountValue?: number;
+  validDays?: number;
+  packages?: Package[];
+}
+
 export interface SiteSetting {
   id: number;
   documentId?: string;
@@ -331,6 +354,7 @@ export interface SiteSetting {
   bookingSlotDuration?: number;
   maxBookingsPerSlot?: number;
   visitsForReward?: number;
+  loyaltyReward?: LoyaltyReward;
   businessHours?: BusinessHour[];
   closedDates?: ClosedDate[];
   faqs?: Faq[];

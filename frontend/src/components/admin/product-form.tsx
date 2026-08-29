@@ -107,7 +107,7 @@ export function ProductForm() {
           <CheckPill name="active" label="Activo" defaultChecked />
 
           <p className="text-xs text-muted-foreground">
-            Las imágenes se suben después desde Strapi (Content Manager → Producto).
+            Las fotos del producto se agregan después desde el panel de contenido.
           </p>
 
           <div className="flex flex-wrap gap-2">

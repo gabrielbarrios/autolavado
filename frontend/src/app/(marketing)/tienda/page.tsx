@@ -30,7 +30,7 @@ export default async function TiendaPage() {
 
       {products.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card/30 p-12 text-center text-muted-foreground">
-          No hay productos publicados aún.
+          Por el momento no tenemos productos disponibles.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

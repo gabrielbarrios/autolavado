@@ -44,6 +44,12 @@ export default {
     },
     {
       method: 'POST',
+      path: '/qr/revert-to-waiting',
+      handler: 'qr.revertToWaiting',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'POST',
       path: '/qr/finish-service',
       handler: 'qr.finishService',
       config: { policies: [], middlewares: [] },

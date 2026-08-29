@@ -68,6 +68,11 @@
       "default": 3,
       "min": 1
     },
+    "loyaltyReward": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.loyalty-reward"
+    },
     "businessHours": {
       "type": "component",
       "repeatable": true,

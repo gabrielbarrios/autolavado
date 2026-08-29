@@ -21,6 +21,7 @@ import {
   isVipUser,
   computePackagePrice,
   computeExtraServicePrice,
+  extraServicePriceText,
   vehicleTypeLabel,
 } from "@/lib/pricing";
 import type { AppointmentStatus, ExtraService, Package } from "@/types/models";
@@ -452,7 +453,7 @@ export function QrScanner({
                           </span>
                           <span className="flex-1 leading-tight">{s.name}</span>
                           <span className="shrink-0 font-semibold">
-                            {formatPrice(computeExtraServicePrice(s, vForPrice, priceCtx))}
+                            {extraServicePriceText(s, vForPrice, priceCtx, true)}
                           </span>
                         </button>
                       );

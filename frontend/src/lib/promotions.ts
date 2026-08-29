@@ -10,6 +10,15 @@ export function discountLabel(promo: Pick<Promotion, "discountType" | "discountV
   return "Gratis";
 }
 
+/**
+ * "Solo en: Básico, Premium" cuando la promo está limitada a ciertos paquetes.
+ * Devuelve null si aplica a cualquiera, para no ensuciar la tarjeta.
+ */
+export function packagesLabel(packages?: string[] | null): string | null {
+  if (!packages || packages.length === 0) return null;
+  return `Solo en: ${packages.join(", ")}`;
+}
+
 /** "Solo lavado", "Solo servicios extra", "Lavado y extras". */
 export function appliesToLabel(appliesTo: Promotion["appliesTo"]): string {
   if (appliesTo === "package") return "Solo lavado";

@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
@@ -12,18 +13,34 @@ import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
  * Los nombres de los campos (`price_sedan`, `uber_sedan`, `vip_sedan`) son el
  * contrato con `parsePricing` en src/actions/catalog.ts.
  */
-export function PricingFields() {
+export function PricingFields({
+  disabled = false,
+  onHasPricesChange,
+}: {
+  /** Apagado cuando el servicio se cotiza en sucursal. */
+  disabled?: boolean;
+  /** Avisa si hay al menos un "Precio" capturado, para bloquear la cotización. */
+  onHasPricesChange?: (hasPrices: boolean) => void;
+} = {}) {
   const vehicleTypes = useVehicleTypes();
 
+  // Se mira el DOM del propio fieldset en vez de llevar estado por input: los
+  // campos son no controlados y así el aviso vale para cualquier tipo de auto.
+  function handleChange(e: React.ChangeEvent<HTMLFieldSetElement>) {
+    if (!onHasPricesChange) return;
+    const inputs = e.currentTarget.querySelectorAll<HTMLInputElement>('input[name^="price_"]');
+    onHasPricesChange(Array.from(inputs).some((i) => i.value.trim() !== ""));
+  }
+
   return (
-    <fieldset className="space-y-3">
+    <fieldset className="space-y-3" disabled={disabled} onChange={handleChange}>
       <legend className="text-sm font-medium">Precios por tipo de auto</legend>
       <p className="text-xs text-muted-foreground">
         Deja en blanco los tipos que no apliquen. Uber/Taxi y VIP son opcionales: si los dejas
         vacíos se cobra el precio normal.
       </p>
 
-      <div className="overflow-x-auto">
+      <div className={`overflow-x-auto ${disabled ? "opacity-40" : ""}`}>
         <table className="w-full min-w-[30rem] text-sm">
           <thead className="text-left text-xs uppercase text-muted-foreground">
             <tr>

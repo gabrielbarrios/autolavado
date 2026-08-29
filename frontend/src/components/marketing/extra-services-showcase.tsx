@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { strapiMediaUrl, formatPrice } from "@/lib/utils";
-import { extraServicePriceRange } from "@/lib/pricing";
+import { extraServicePriceRange, QUOTE_ON_REQUEST_LABEL } from "@/lib/pricing";
 import type { ExtraService } from "@/types/models";
 
 const FALLBACK: ExtraService[] = [
@@ -96,10 +96,14 @@ export function ExtraServicesShowcase({
                       </span>
                     ) : null}
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    {hasRange && <span className="text-xs text-muted-foreground">desde</span>}
-                    <span className="text-2xl font-bold tracking-tight">{formatPrice(min || Number(s.price))}</span>
-                  </div>
+                  {s.quoteOnRequest ? (
+                    <p className="text-xs font-medium text-amber-400">{QUOTE_ON_REQUEST_LABEL}</p>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      {hasRange && <span className="text-xs text-muted-foreground">desde</span>}
+                      <span className="text-2xl font-bold tracking-tight">{formatPrice(min || Number(s.price))}</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

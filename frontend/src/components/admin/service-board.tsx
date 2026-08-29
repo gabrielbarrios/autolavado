@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Play, CheckCircle2, X } from "lucide-react";
+import { Loader2, Play, CheckCircle2, X, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   startServiceAction,
   finishServiceAction,
   cancelServiceAction,
+  revertServiceToWaitingAction,
 } from "@/actions/qr";
 import { ChargeDialog } from "@/components/admin/charge-dialog";
 import { formatPrice, formatDateTime } from "@/lib/utils";
@@ -161,6 +162,41 @@ function ServiceSummary({ service: s }: { service: Service }) {
   );
 }
 
+/**
+ * Devuelve un lavado a la fila. Para cuando se asignó al empleado equivocado o
+ * el trabajo se detuvo (se acabó un material): el servicio no se pierde, vuelve
+ * a "En espera" y se puede volver a tomar. El backend limpia quién lo lavaba y
+ * la hora de inicio, para no acreditarle a nadie un tiempo que no trabajó.
+ */
+function BackToWaitingButton({ serviceId, disabled }: { serviceId: number; disabled?: boolean }) {
+  const router = useRouter();
+  const [loading, setLoading] = React.useState(false);
+
+  async function onRevert() {
+    if (!window.confirm("¿Regresar este lavado a la fila de espera?")) return;
+    const reason = window.prompt("Motivo (opcional): empleado equivocado, falta material…") ?? undefined;
+    setLoading(true);
+    const res = await revertServiceToWaitingAction(serviceId, reason?.trim() || undefined);
+    setLoading(false);
+    if (!res.ok) return toast.error(res.error);
+    toast.success("El lavado volvió a la fila de espera");
+    router.refresh();
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="w-full"
+      onClick={onRevert}
+      disabled={loading || disabled}
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
+      Regresar a espera
+    </Button>
+  );
+}
+
 /** Botón de cancelar reutilizable: pide un motivo opcional y cancela el servicio. */
 function CancelButton({ serviceId }: { serviceId: number }) {
   const router = useRouter();
@@ -284,6 +320,7 @@ function InProgressCard({ service: s }: { service: Service }) {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           Terminar lavado
         </Button>
+        <BackToWaitingButton serviceId={s.id} disabled={loading} />
         <CancelButton serviceId={s.id} />
       </CardContent>
     </Card>

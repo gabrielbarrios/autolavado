@@ -12,6 +12,7 @@ import {
   appliesToVehicleType,
   computeExtraServicePrice,
   extraServicePriceRange,
+  QUOTE_ON_REQUEST_LABEL,
   vehicleTypeLabel,
 } from "@/lib/pricing";
 import {
@@ -81,7 +82,7 @@ export function ExtraServicesSelector({
   if (services.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/30 p-12 text-center text-muted-foreground">
-        Aún no hay servicios extras publicados.
+        Por el momento no tenemos servicios adicionales disponibles.
       </div>
     );
   }
@@ -168,7 +169,11 @@ export function ExtraServicesSelector({
                       ) : null}
                     </div>
                     <div className="flex flex-col items-end">
-                      {hasSelection ? (
+                      {s.quoteOnRequest ? (
+                        <span className="max-w-[13rem] text-right text-[11px] font-medium text-amber-400">
+                          {QUOTE_ON_REQUEST_LABEL}
+                        </span>
+                      ) : hasSelection ? (
                         <>
                           <span className="text-2xl font-bold tracking-tight">
                             {formatPrice(computed)}

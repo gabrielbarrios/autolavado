@@ -19,6 +19,7 @@ import {
   servicePriceBreakdown,
   computePromotionDiscount,
   describeDiscount,
+  appliesToPackage,
   round2,
 } from '../../../utils/promotions';
 import { validateVehicleTypeSlug } from '../../../utils/vehicle-types';
@@ -98,6 +99,7 @@ export default {
       }),
       strapi.entityService.findMany('api::promotion.promotion', {
         filters: { user: user.id, used: false },
+        populate: { packages: true },
       }),
       strapi.db.query('api::appointment.appointment').findMany({
         where: {
@@ -401,6 +403,38 @@ export default {
   },
 
   /**
+   * POST /api/qr/revert-to-waiting
+   * in_progress → waiting. Se equivocaron de empleado al asignarlo, o el lavado
+   * se detuvo (se acabó un material). Se limpia `startedAt` y `performedBy`
+   * porque el lavado no empezó de verdad: si quedaran puestos, el tiempo del
+   * empleado contaría un trabajo que no hizo (ver employeeTimes).
+   */
+  async revertToWaiting(ctx) {
+    const { serviceId, reason } = ctx.request.body ?? {};
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+    if (service.status !== 'in_progress') {
+      return ctx.badRequest('Solo un servicio en progreso puede regresar a la fila');
+    }
+
+    const data = { status: 'waiting', startedAt: null, performedBy: null };
+    // Con motivo queda rastro de por qué se detuvo, igual que al cancelar.
+    if (reason && String(reason).trim()) {
+      const prefix = service.notes ? `${service.notes}\n` : '';
+      data.notes = `${prefix}[Regresado a espera] ${String(reason).trim()}`;
+    }
+    const updated = await strapi.entityService.update('api::service.service', service.id, { data });
+
+    ctx.body = { service: { id: updated.id, status: 'waiting' } };
+  },
+
+  /**
    * POST /api/qr/finish-service
    * in_progress → to_pay. El empleado termina el lavado: se graba la hora de
    * fin (finishedAt). La duración se deriva de startedAt→finishedAt.
@@ -481,12 +515,21 @@ export default {
 
     const isVip = service.user ? await isVipUserId(service.user.id) : false;
     const breakdown = servicePriceBreakdown(service, isVip);
+    // Los que se cobran a criterio de la caja: se listan para que el cajero
+    // sepa por qué tiene que capturar un monto.
+    const quotedExtraNames = (service.extraServices ?? [])
+      .filter((e) => e?.quoteOnRequest)
+      .map((e) => e.name)
+      .filter(Boolean);
 
     // Campañas (de todos) + las personales del dueño del servicio, si lo tiene.
     const owners = [{ user: null }];
     if (service.user) owners.push({ user: { id: service.user.id } });
     const promos = await strapi.db.query('api::promotion.promotion').findMany({
       where: { $or: owners },
+      // `packages` limita la promo a ciertos paquetes: sin poblarlo, una promo
+      // restringida se ofrecería para cualquier servicio.
+      populate: { packages: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 300,
     });
@@ -504,6 +547,8 @@ export default {
         discountType: p.discountType,
         discountValue: p.discountValue,
         discountLabel: describeDiscount(p),
+        /** Nombres de los paquetes a los que está limitada. Vacío = cualquiera. */
+        packages: (p.packages ?? []).map((pkg) => pkg?.name).filter(Boolean),
         /** Lo que descontaría en pesos sobre este servicio en concreto. */
         discountAmount: computePromotionDiscount(p, breakdown),
       }))
@@ -518,6 +563,8 @@ export default {
         packagePrice: round2(breakdown.packagePrice),
         extrasPrice: round2(breakdown.extrasPrice),
         subtotal: round2(breakdown.total),
+        /** Nombres de los servicios que se cobran a cotización. */
+        quotedExtras: quotedExtraNames,
       },
       promotions: available,
       canApplyManualDiscount: isSuperAdmin(
@@ -541,7 +588,8 @@ export default {
    * que es lo que suman las ganancias por empleado.
    */
   async chargeService(ctx) {
-    const { serviceId, promotionId, manualDiscount, discountNote } = ctx.request.body ?? {};
+    const { serviceId, promotionId, manualDiscount, discountNote, extrasCharge } =
+      ctx.request.body ?? {};
     if (!serviceId) return ctx.badRequest('serviceId requerido');
     const actingUserId = ctx.state.user?.id;
     if (!actingUserId) return ctx.unauthorized('Sesión requerida');
@@ -562,7 +610,12 @@ export default {
     // El subtotal recalculado puede diferir del totalAmount guardado si el admin
     // cambió precios entre el registro y el cobro; manda el guardado, que es lo
     // que se le cotizó al cliente.
-    const subtotal = round2(Number(service.totalAmount ?? breakdown.total));
+    // Servicios "a cotizar" (sin precio de catálogo): el monto lo captura la
+    // caja. Suma al subtotal, pero NO entra en la base del descuento: la promo
+    // se calcula sobre precios de catálogo, que es lo que la app ya le mostró
+    // al cajero, así el número del diálogo es exactamente el que se cobra.
+    const quotedExtras = round2(Math.max(0, Number(extrasCharge ?? 0)));
+    const subtotal = round2(Number(service.totalAmount ?? breakdown.total) + quotedExtras);
 
     // --- Promoción del catálogo ---
     let promotion = null;
@@ -570,7 +623,7 @@ export default {
     if (promotionId) {
       promotion = await strapi.db.query('api::promotion.promotion').findOne({
         where: { id: Number(promotionId) },
-        populate: { user: true },
+        populate: { user: true, packages: true },
       });
       if (!promotion) return ctx.notFound('Promoción no encontrada');
       if (!isPromotionAvailable(promotion, now)) {
@@ -579,6 +632,14 @@ export default {
       // Una promo personal solo vale para su dueño.
       if (promotion.kind !== 'campaign' && promotion.user?.id !== service.user?.id) {
         return ctx.badRequest('Esa promoción es de otro cliente');
+      }
+      // Limitada a ciertos paquetes: se rechaza en vez de cobrar un descuento
+      // de $0 y dejar al cliente creyendo que se le aplicó.
+      if (!appliesToPackage(promotion, breakdown.packageId)) {
+        const nombres = (promotion.packages ?? []).map((pkg) => pkg?.name).filter(Boolean);
+        return ctx.badRequest(
+          `Esa promoción solo aplica en: ${nombres.join(', ') || 'otros paquetes'}`,
+        );
       }
       promotionDiscount = computePromotionDiscount(promotion, breakdown);
     }
@@ -607,6 +668,7 @@ export default {
       data: {
         status: 'completed',
         subtotalAmount: subtotal,
+        extrasCharge: quotedExtras,
         promotionDiscount: round2(promotionDiscount),
         manualDiscount: manual,
         discountNote: discountNote ? String(discountNote).slice(0, 255) : null,
@@ -673,6 +735,7 @@ export default {
         id: updated.id,
         status: 'completed',
         subtotalAmount: subtotal,
+        extrasCharge: quotedExtras,
         promotionDiscount: round2(promotionDiscount),
         manualDiscount: manual,
         totalAmount: finalAmount,

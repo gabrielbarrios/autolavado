@@ -62,6 +62,8 @@ export interface ExtraServicePayload {
   active: boolean;
   order?: number;
   pricing: VehicleTypePricePayload[];
+  /** Sin precio de catálogo: la caja cotiza el monto al cobrar. */
+  quoteOnRequest?: boolean;
 }
 
 /**

@@ -34,6 +34,11 @@
       "repeatable": true,
       "component": "shared.vehicle-type-price"
     },
+    "quoteOnRequest": {
+      "type": "boolean",
+      "default": false,
+      "description": "El precio depende del tamaño del auto y se cotiza en sucursal. Solo si no hay precios por tipo de auto."
+    },
     "uberTaxiPrice": {
       "type": "decimal",
       "min": 0

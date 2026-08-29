@@ -9,6 +9,7 @@ import {
   appointmentToBoard,
   startService,
   finishService,
+  revertServiceToWaiting,
   chargeService,
   cancelService,
   availablePromotions,
@@ -147,6 +148,25 @@ export async function finishServiceAction(
     return {
       ok: false,
       error: err instanceof StrapiError ? err.message : "No se pudo terminar el lavado",
+    };
+  }
+}
+
+/** in_progress → waiting: regresa el lavado a la fila (empleado mal asignado, pausa). */
+export async function revertServiceToWaitingAction(
+  serviceId: number,
+  reason?: string,
+): Promise<ActionResult<{ service: { id: number; status: string } }>> {
+  await requireAdmin();
+  try {
+    const data = await revertServiceToWaiting(serviceId, reason);
+    revalidatePath("/en-progreso");
+    revalidatePath("/servicios");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo regresar el servicio a espera",
     };
   }
 }

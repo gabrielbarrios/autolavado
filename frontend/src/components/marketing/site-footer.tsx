@@ -3,6 +3,7 @@ import { Facebook, Instagram, MessageCircle, Music2 } from "lucide-react";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { dayLabel, hoursByDay, WEEK_DAYS, formatTime } from "@/lib/business-hours";
 import { STORE_ENABLED } from "@/lib/constants";
+import { CreatedBy } from "@/components/marketing/created-by";
 import type { SiteSetting } from "@/types/models";
 
 export function SiteFooter({ setting }: { setting?: SiteSetting | null }) {
@@ -91,8 +92,17 @@ export function SiteFooter({ setting }: { setting?: SiteSetting | null }) {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-border/40 pt-6 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} {setting?.businessName ?? "AutoLavado"}. Todos los derechos reservados.
+        <div className="mt-10 flex flex-col items-center gap-3 border-t border-border/40 pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
+          <p>
+            © {new Date().getFullYear()} {setting?.businessName ?? "AutoLavado"}. Todos los derechos
+            reservados.
+          </p>
+          <div className="flex items-center gap-4">
+            <Link className="hover:text-foreground" href="/clausulas">
+              Cláusulas
+            </Link>
+            <CreatedBy />
+          </div>
         </div>
       </div>
     </footer>

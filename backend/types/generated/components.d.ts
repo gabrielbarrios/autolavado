@@ -71,6 +71,38 @@ export interface SharedFaq extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedLoyaltyReward extends Struct.ComponentSchema {
+  collectionName: 'components_shared_loyalty_rewards';
+  info: {
+    description: 'Qu\u00E9 recompensa se genera autom\u00E1ticamente al completar el ciclo de visitas';
+    displayName: 'Promoci\u00F3n de fidelidad';
+    icon: 'gift';
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    discountType: Schema.Attribute.Enumeration<['percent', 'fixed', 'free']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'percent'>;
+    discountValue: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<10>;
+    packages: Schema.Attribute.Relation<'oneToMany', 'api::package.package'>;
+    validDays: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<30>;
+  };
+}
+
 export interface SharedTestimonial extends Struct.ComponentSchema {
   collectionName: 'components_shared_testimonials';
   info: {
@@ -136,6 +168,7 @@ declare module '@strapi/strapi' {
       'shared.closed-date': SharedClosedDate;
       'shared.contact-info': SharedContactInfo;
       'shared.faq': SharedFaq;
+      'shared.loyalty-reward': SharedLoyaltyReward;
       'shared.testimonial': SharedTestimonial;
       'shared.vehicle-type-price': SharedVehicleTypePrice;
     }

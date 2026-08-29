@@ -1,3 +1,4 @@
+import { formatPrice } from "@/lib/utils";
 import type {
   ExtraService,
   Package,
@@ -178,6 +179,8 @@ export function computeExtraServicePrice(
   vehicle?: Vehicle | null,
   ctx: PriceContext = {},
 ): number {
+  // A cotizar: no tiene precio de catálogo, lo pone la caja al cobrar.
+  if (extra.quoteOnRequest) return 0;
   const pricing = extra.pricing ?? [];
   const isUberTaxi = !!vehicle?.isUberTaxi;
   const isVip = !!ctx.isVip;
@@ -214,6 +217,7 @@ export function extraServicePriceRange(
   extra: ExtraService,
   ctx: PriceContext = {},
 ): { min: number; max: number } {
+  if (extra.quoteOnRequest) return { min: 0, max: 0 };
   const prices: number[] = [];
   if (extra.pricing) {
     for (const p of extra.pricing) {
@@ -227,6 +231,32 @@ export function extraServicePriceRange(
   }
   if (prices.length === 0) return { min: 0, max: 0 };
   return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
+/**
+ * Frase que ve el cliente cuando el servicio se cotiza en sucursal. Está en un
+ * solo lugar porque aparece en el home, en /otros-servicios, en /paquetes y al
+ * reservar: si cambia el texto, cambia en todos.
+ */
+export const QUOTE_ON_REQUEST_LABEL =
+  "El precio depende del tamaño del carro, favor de cotizar el costo";
+
+/** Versión corta, para donde no cabe la frase completa (tarjetas, resúmenes). */
+export const QUOTE_ON_REQUEST_SHORT = "A cotizar";
+
+/**
+ * Texto de precio de un servicio extra, ya resuelto: el monto para ese auto o,
+ * si se cotiza en sucursal, el aviso. Centralizado para que las seis pantallas
+ * que muestran extras digan lo mismo.
+ */
+export function extraServicePriceText(
+  extra: ExtraService,
+  vehicle?: Vehicle | null,
+  ctx: PriceContext = {},
+  short = false,
+): string {
+  if (extra.quoteOnRequest) return short ? QUOTE_ON_REQUEST_SHORT : QUOTE_ON_REQUEST_LABEL;
+  return formatPrice(computeExtraServicePrice(extra, vehicle, ctx));
 }
 
 /** ¿El extra tiene al menos un precio configurado? */

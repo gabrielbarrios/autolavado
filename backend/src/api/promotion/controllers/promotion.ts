@@ -39,7 +39,7 @@ export default factories.createCoreController('api::promotion.promotion', () => 
 
     const items = await strapi.db.query('api::promotion.promotion').findMany({
       where,
-      populate: isAdmin ? { user: true } : {},
+      populate: isAdmin ? { user: true, packages: true } : { packages: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 300,
     });
@@ -128,6 +128,7 @@ export default factories.createCoreController('api::promotion.promotion', () => 
 
     const promos = await strapi.db.query('api::promotion.promotion').findMany({
       where: { $or: [{ user: { id: userId } }, { user: null }] },
+      populate: { packages: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 300,
     });
@@ -135,7 +136,12 @@ export default factories.createCoreController('api::promotion.promotion', () => 
     const now = new Date();
     const data = promos
       .filter((p) => isPromotionAvailable(p, now))
-      .map((p) => ({ ...p, discountLabel: describeDiscount(p) }));
+      .map((p) => ({
+        ...p,
+        discountLabel: describeDiscount(p),
+        // Nombres planos: el cliente solo necesita saber dónde puede usarla.
+        packages: (p.packages ?? []).map((pkg) => pkg?.name).filter(Boolean),
+      }));
 
     ctx.body = { data, meta: {} };
   },
@@ -157,6 +163,7 @@ export default factories.createCoreController('api::promotion.promotion', () => 
   async campaigns(ctx) {
     const promos = await strapi.db.query('api::promotion.promotion').findMany({
       where: { kind: 'campaign', user: null },
+      populate: { packages: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 100,
     });
@@ -176,6 +183,7 @@ export default factories.createCoreController('api::promotion.promotion', () => 
         validFrom: p.validFrom,
         validUntil: p.validUntil,
         discountLabel: describeDiscount(p),
+        packages: (p.packages ?? []).map((pkg) => pkg?.name).filter(Boolean),
       }));
 
     ctx.body = { data, meta: {} };

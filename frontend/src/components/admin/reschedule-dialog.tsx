@@ -34,6 +34,8 @@ interface AvailabilityResponse {
   closed: boolean;
   reason?: string;
   error?: string;
+  /** Hoy se quedó sin horarios por el margen mínimo, no por ocupación. */
+  notice?: string;
   slotDuration?: number;
   maxParallel?: number;
   bookingNumberSlot?: number;
@@ -296,7 +298,9 @@ export function RescheduleDialog({
                 )}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">No hay horarios disponibles.</p>
+              <p className="text-xs text-muted-foreground">
+                {availability?.notice ?? "No hay horarios disponibles."}
+              </p>
             )}
 
             <div className="space-y-2 pt-2">

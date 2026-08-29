@@ -36,6 +36,7 @@ export function ChargeDialog({ service }: { service: Service }) {
   const [data, setData] = React.useState<AvailablePromotionsResult | null>(null);
   const [promoId, setPromoId] = React.useState<number | null>(null);
   const [manual, setManual] = React.useState("");
+  const [extras, setExtras] = React.useState("");
   const [note, setNote] = React.useState("");
   const [charging, setCharging] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
@@ -54,11 +55,17 @@ export function ChargeDialog({ service }: { service: Service }) {
     if (!next) {
       setPromoId(null);
       setManual("");
+      setExtras("");
       setNote("");
     }
   }
 
-  const subtotal = data?.service.subtotal ?? Number(service.totalAmount ?? 0);
+  const catalogSubtotal = data?.service.subtotal ?? Number(service.totalAmount ?? 0);
+  // Servicios sin precio de catálogo: el cajero captura el monto. Suma al
+  // ticket pero no recibe descuento — igual que en el backend.
+  const extrasCharge = Math.max(0, Number(extras) || 0);
+  const subtotal = catalogSubtotal + extrasCharge;
+  const quotedExtras = data?.service.quotedExtras ?? [];
   const promo = data?.promotions.find((p) => p.id === promoId) ?? null;
   const promoDiscount = promo?.discountAmount ?? 0;
   // Se replica el tope del backend para que el número que ve el cajero sea el
@@ -73,6 +80,7 @@ export function ChargeDialog({ service }: { service: Service }) {
       serviceId: service.id,
       promotionId: promoId,
       manualDiscount: manualDiscount > 0 ? manualDiscount : undefined,
+      extrasCharge: extrasCharge > 0 ? extrasCharge : undefined,
       discountNote: note.trim() || undefined,
     });
     setCharging(false);
@@ -141,6 +149,26 @@ export function ChargeDialog({ service }: { service: Service }) {
               )}
             </section>
 
+            {/* Otros servicios cotizados en caja */}
+            <section className="space-y-2 rounded-lg border border-border/50 p-3">
+              <Label htmlFor="extras">Extras (pesos)</Label>
+              <Input
+                id="extras"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={extras}
+                onChange={(e) => setExtras(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                {quotedExtras.length > 0
+                  ? `Este servicio lleva ${quotedExtras.join(", ")}: su precio depende del auto, cobra lo acordado.`
+                  : "Para cobrar servicios sin precio de catálogo. Se suma al total y no recibe descuento."}
+              </p>
+            </section>
+
             {/* Descuento manual: solo super admin */}
             {data?.canApplyManualDiscount && (
               <section className="space-y-3 rounded-lg border border-border/50 p-3">
@@ -179,7 +207,8 @@ export function ChargeDialog({ service }: { service: Service }) {
 
             {/* Desglose */}
             <section className="space-y-1.5 rounded-lg bg-card/50 p-4 text-sm">
-              <Line label="Subtotal" value={formatPrice(subtotal)} />
+              <Line label="Subtotal" value={formatPrice(catalogSubtotal)} />
+              {extrasCharge > 0 && <Line label="Extras" value={formatPrice(extrasCharge)} />}
               {promo && (
                 <Line
                   label={`${promo.title} (${promo.discountLabel})`}
@@ -248,6 +277,7 @@ function PromoOption({
             {promo.discountLabel}
             {promo.appliesTo === "package" && " · solo lavado"}
             {promo.appliesTo === "extras" && " · solo extras"}
+            {promo.packages && promo.packages.length > 0 && ` · ${promo.packages.join(", ")}`}
           </p>
         )}
       </div>

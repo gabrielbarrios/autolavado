@@ -4,7 +4,8 @@
  *
  * Strapi no tiene un archivo declarativo para esto: la configuración de vistas
  * del Content Manager vive en la tabla `strapi_core_store_settings`, bajo la
- * clave `plugin_content_manager_configuration_content_types::<uid>`, y es lo que
+ * clave `plugin_content_manager_configuration_content_types::<uid>` (y
+ * `..._components::<uid>` para los campos de un componente), y es lo que
  * escribe el botón "Configure the view" del panel. Por eso se siembra desde el
  * bootstrap (ver applyAdminLabels): así las traducciones viajan con el código y
  * se vuelven a aplicar cuando Strapi regenera la configuración al cambiar un
@@ -46,6 +47,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       used: 'Ya se usó',
       usedAt: 'Fecha de uso',
       user: 'Cliente',
+      packages: 'Solo en estos paquetes (vacío = todos)',
     },
     // Estos los llena la app sola: `code` lo genera un lifecycle a partir del
     // título (ver index.ts), y used/usedAt/user solo aplican a las de fidelidad,
@@ -66,6 +68,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       notes: 'Notas',
       totalAmount: 'Total cobrado',
       subtotalAmount: 'Subtotal (antes de descuentos)',
+      extrasCharge: 'Otros servicios cobrados en caja',
       promotionDiscount: 'Descuento por promoción',
       manualDiscount: 'Descuento manual',
       discountNote: 'Motivo del descuento',
@@ -82,7 +85,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       isUberTaxi: 'Uber / Taxi',
       status: 'Estado',
     },
-    readOnly: ['subtotalAmount', 'promotionDiscount', 'manualDiscount', 'promotion'],
+    readOnly: ['subtotalAmount', 'extrasCharge', 'promotionDiscount', 'manualDiscount', 'promotion'],
     list: ['date', 'status', 'customerName', 'totalAmount', 'performedBy'],
   },
 
@@ -152,6 +155,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       description: 'Descripción',
       price: 'Precio base (obsoleto)',
       pricing: 'Precios por tipo de auto',
+      quoteOnRequest: 'El precio depende del tamaño del auto (cotizar en sucursal)',
       uberTaxiPrice: 'Precio Uber/Taxi (obsoleto)',
       estimatedDuration: 'Duración estimada (minutos)',
       image: 'Imagen',
@@ -233,11 +237,29 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       bookingSlotDuration: 'Duración de cada horario (minutos)',
       maxBookingsPerSlot: 'Máximo de citas por horario',
       visitsForReward: 'Visitas para ganar promoción',
+      loyaltyReward: 'Promoción de fidelidad',
       businessHours: 'Horarios de atención',
       closedDates: 'Días cerrados',
       faqs: 'Preguntas frecuentes',
       testimonials: 'Testimonios',
       contactInfo: 'Datos de contacto',
+    },
+  },
+};
+
+/**
+ * Etiquetas de los campos DENTRO de un componente. Su configuración vive en
+ * otra clave del store (`..._components::<uid>`), por eso va en un diccionario
+ * aparte del de content types.
+ */
+const COMPONENT_LABELS: Record<string, ContentTypeLabels> = {
+  'shared.loyalty-reward': {
+    labels: {
+      active: 'Activar',
+      discountType: 'Tipo de descuento',
+      discountValue: 'Valor del descuento',
+      validDays: 'Días de vigencia de la recompensa',
+      packages: 'Paquetes en los que aplica (vacío = todos)',
     },
   },
 };
@@ -253,10 +275,23 @@ export async function applyAdminLabels() {
   const knex = strapi.db.connection;
   const TABLE = 'strapi_core_store_settings';
 
-  for (const [uid, cfg] of Object.entries(ADMIN_LABELS)) {
+  const targets = [
+    ...Object.entries(ADMIN_LABELS).map(([uid, cfg]) => ({
+      uid,
+      cfg,
+      prefix: 'content_types',
+    })),
+    ...Object.entries(COMPONENT_LABELS).map(([uid, cfg]) => ({
+      uid,
+      cfg,
+      prefix: 'components',
+    })),
+  ];
+
+  for (const { uid, cfg, prefix } of targets) {
     // Se lee la fila directamente en vez de usar strapi.store() para no depender
     // de cómo compone la clave: este formato ya está verificado contra la base.
-    const storeKey = `plugin_content_manager_configuration_content_types::${uid}`;
+    const storeKey = `plugin_content_manager_configuration_${prefix}::${uid}`;
     const row = await knex(TABLE).where({ key: storeKey }).first();
     if (!row?.value) {
       strapi.log.warn(`[bootstrap] Sin configuración de vistas para ${uid}; se omite`);

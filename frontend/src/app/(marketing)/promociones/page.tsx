@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listPublicCampaigns } from "@/lib/strapi/promotions";
-import { discountLabel, appliesToLabel, availabilityLabel } from "@/lib/promotions";
+import { discountLabel, appliesToLabel, availabilityLabel, packagesLabel } from "@/lib/promotions";
 import { VISITS_FOR_REWARD } from "@/lib/constants";
 import { getSession } from "@/lib/auth/session";
 import type { PublicCampaign } from "@/types/models";
@@ -92,6 +92,7 @@ function CampaignCard({ campaign }: { campaign: PublicCampaign }) {
             {availabilityLabel(campaign)}
           </p>
           <p>{appliesToLabel(campaign.appliesTo)}</p>
+          {packagesLabel(campaign.packages) && <p>{packagesLabel(campaign.packages)}</p>}
         </div>
       </CardContent>
     </Card>

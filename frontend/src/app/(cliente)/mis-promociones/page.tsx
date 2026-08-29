@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth/guards";
 import { listAvailablePromotions, getMyLoyaltyProgress } from "@/lib/strapi/promotions";
 import { LoyaltyProgress } from "@/components/cliente/loyalty-progress";
-import { discountLabel, appliesToLabel, availabilityLabel } from "@/lib/promotions";
+import { discountLabel, appliesToLabel, availabilityLabel, packagesLabel } from "@/lib/promotions";
 import type { Promotion } from "@/types/models";
 
 export const metadata = { title: "Promociones" };
@@ -95,6 +95,7 @@ function PromoCard({ promo, personal = false }: { promo: Promotion; personal?: b
             {availabilityLabel(promo)}
           </p>
           <p>{appliesToLabel(promo.appliesTo)}</p>
+          {packagesLabel(promo.packages) && <p>{packagesLabel(promo.packages)}</p>}
         </div>
         {personal && (
           <div className="rounded-lg bg-background/60 p-2 text-center font-mono text-xs">

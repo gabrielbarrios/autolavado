@@ -15,6 +15,7 @@ import { dayLabel, weekDayFromISODate, hoursByDay } from "@/lib/business-hours";
 import {
   computePackagePrice,
   computeExtraServicePrice,
+  extraServicePriceText,
   vehicleTypeLabel,
 } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,8 @@ interface AvailabilityResponse {
   closed: boolean;
   reason?: string;
   error?: string;
+  /** Hoy se quedó sin horarios por el margen mínimo, no por ocupación. */
+  notice?: string;
   slotDuration?: number;
   maxParallel?: number;
   bookingNumberSlot?: number;
@@ -270,11 +273,49 @@ export function BookingForm({
     <form onSubmit={onSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>1. Elige paquete {selectedExtras.size > 0 && <span className="text-sm font-normal text-muted-foreground">(opcional con extras)</span>}</CardTitle>
+          <CardTitle>1. Elige tu auto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {vehicles.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setVehicleId(v.id)}
+                className={cn(
+                  "rounded-xl border p-4 text-left transition-all hover:border-primary/60",
+                  vehicleId === v.id
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                    : "border-border",
+                )}
+              >
+                <p className="font-semibold">
+                  {v.brand} {v.model}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {v.plate || "Sin placa"} · {vehicleTypeLabel(v.vehicleType, vehicleTypes)}
+                </p>
+                {v.isUberTaxi && (
+                  <Badge variant="info" className="mt-2 text-[10px]">
+                    Uber / Taxi
+                  </Badge>
+                )}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>2. Elige paquete {selectedExtras.size > 0 && <span className="text-sm font-normal text-muted-foreground">(opcional con extras)</span>}</CardTitle>
         </CardHeader>
         <CardContent>
           {packages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay paquetes disponibles aún.</p>
+            <p className="text-sm text-muted-foreground">
+              Por el momento no tenemos paquetes disponibles. Puedes reservar solo servicios
+              adicionales.
+            </p>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <button
@@ -316,41 +357,6 @@ export function BookingForm({
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>2. Elige tu auto</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {vehicles.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => setVehicleId(v.id)}
-                className={cn(
-                  "rounded-xl border p-4 text-left transition-all hover:border-primary/60",
-                  vehicleId === v.id
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                    : "border-border",
-                )}
-              >
-                <p className="font-semibold">
-                  {v.brand} {v.model}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {v.plate || "Sin placa"} · {vehicleTypeLabel(v.vehicleType, vehicleTypes)}
-                </p>
-                {v.isUberTaxi && (
-                  <Badge variant="info" className="mt-2 text-[10px]">
-                    Uber / Taxi
-                  </Badge>
-                )}
-              </button>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
@@ -448,6 +454,11 @@ export function BookingForm({
                     </div>
                   )}
                 </>
+              ) : availability?.notice ? (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-300">
+                  <CalendarX className="h-4 w-4 shrink-0" />
+                  <span>{availability.notice}</span>
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
                   No hay horarios disponibles para este paquete en esta fecha.
@@ -509,7 +520,7 @@ export function BookingForm({
                       )}
                     </div>
                     <span className="shrink-0 text-sm font-semibold">
-                      {formatPrice(computeExtraServicePrice(s, selectedVehicle, priceCtx))}
+                      {extraServicePriceText(s, selectedVehicle, priceCtx, true)}
                     </span>
                   </button>
                 );

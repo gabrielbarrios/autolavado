@@ -34,6 +34,12 @@
       "type": "decimal",
       "min": 0
     },
+    "extrasCharge": {
+      "type": "decimal",
+      "default": 0,
+      "min": 0,
+      "description": "Monto capturado en caja por los servicios que se cotizan (no llevan precio de catálogo)."
+    },
     "promotionDiscount": {
       "type": "decimal",
       "default": 0,

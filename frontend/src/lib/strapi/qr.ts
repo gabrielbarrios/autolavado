@@ -108,11 +108,26 @@ export async function finishService(
   });
 }
 
+/**
+ * in_progress → waiting: se asignó al empleado equivocado o el lavado se
+ * detuvo. Vuelve a la fila sin dueño ni hora de inicio.
+ */
+export async function revertServiceToWaiting(
+  serviceId: number,
+  reason?: string,
+): Promise<{ service: { id: number; status: ServiceStatus } }> {
+  return strapiServerFetch("/api/qr/revert-to-waiting", {
+    method: "POST",
+    body: { serviceId, ...(reason ? { reason } : {}) },
+  });
+}
+
 export interface ChargeServiceResult {
   service: {
     id: number;
     status: ServiceStatus;
     subtotalAmount: number;
+    extrasCharge: number;
     promotionDiscount: number;
     manualDiscount: number;
     totalAmount: number;
@@ -133,12 +148,21 @@ export interface ApplicablePromotion {
   discountType: "percent" | "fixed" | "free";
   discountValue: number;
   discountLabel: string;
+  /** Nombres de los paquetes en los que aplica. Vacío = cualquiera. */
+  packages?: string[];
   /** Pesos que descontaría en ESTE ticket. */
   discountAmount: number;
 }
 
 export interface AvailablePromotionsResult {
-  service: { id: number; packagePrice: number; extrasPrice: number; subtotal: number };
+  service: {
+    id: number;
+    packagePrice: number;
+    extrasPrice: number;
+    subtotal: number;
+    /** Servicios de este ticket que se cobran a cotización (nombres). */
+    quotedExtras?: string[];
+  };
   promotions: ApplicablePromotion[];
   /** El descuento manual es exclusivo del super admin. */
   canApplyManualDiscount: boolean;
@@ -156,6 +180,8 @@ export interface ChargeServicePayload {
   promotionId?: number | null;
   manualDiscount?: number;
   discountNote?: string;
+  /** Monto capturado en caja por los servicios que se cotizan. */
+  extrasCharge?: number;
 }
 
 /** to_pay → completed: la caja cobra al cliente y se dispara la fidelidad. */

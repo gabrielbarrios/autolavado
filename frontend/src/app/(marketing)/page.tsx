@@ -7,6 +7,7 @@ import { Gallery } from "@/components/marketing/gallery";
 import { Testimonials } from "@/components/marketing/testimonials";
 import { FAQ } from "@/components/marketing/faq";
 import { CTA } from "@/components/marketing/cta";
+import { Clauses } from "@/components/marketing/clauses";
 import { listPackages } from "@/lib/strapi/packages";
 import { listExtraServices } from "@/lib/strapi/extra-services";
 import { getSiteSetting } from "@/lib/strapi/site-setting";
@@ -31,6 +32,7 @@ export default async function HomePage() {
       <Gallery images={setting?.gallery} />
       <Testimonials items={setting?.testimonials} />
       <FAQ faqs={setting?.faqs} />
+      <Clauses businessName={setting?.businessName} />
       <CTA />
     </>
   );

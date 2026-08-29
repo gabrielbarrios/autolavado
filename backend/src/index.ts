@@ -2,7 +2,7 @@
 import crypto from 'node:crypto';
 import type { Core } from '@strapi/strapi';
 import { applyAdminLabels } from './utils/admin-labels';
-import { generatePromotionCode } from './utils/promotions';
+import { generatePromotionCode, describeDiscount } from './utils/promotions';
 
 /**
  * Permisos que se aplican automáticamente al arrancar Strapi.
@@ -71,6 +71,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
     'board',
     'appointmentToBoard',
     'startService',
+    'revertToWaiting',
     'finishService',
     'chargeService',
     'cancelService',
@@ -92,6 +93,7 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
     'board',
     'appointmentToBoard',
     'startService',
+    'revertToWaiting',
     'finishService',
     'chargeService',
     'cancelService',
@@ -100,6 +102,55 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
     'employeeTimes',
   ],
 };
+
+/**
+ * Configuración de la recompensa de fidelidad, tal como la dejó el dueño en
+ * Configuración del sitio → Promoción de fidelidad. Los valores por defecto son
+ * los que tenía la app cuando esto vivía hardcodeado (3 visitas, 10%, 30 días),
+ * para que un sitio sin configurar siga comportándose igual que antes.
+ */
+async function loadLoyaltyConfig() {
+  const defaults = {
+    visitsForReward: 3,
+    active: true,
+    discountType: 'percent',
+    discountValue: 10,
+    validDays: 30,
+    packageIds: [],
+  };
+  try {
+    // db.query y no entityService: con este último la relación anidada dentro
+    // del componente vuelve vacía (verificado contra la base). Se prefiere la
+    // versión publicada, que es la que ve el resto de la app.
+    const setting =
+      (await strapi.db.query('api::site-setting.site-setting').findOne({
+        where: { publishedAt: { $notNull: true } },
+        populate: { loyaltyReward: { populate: { packages: true } } },
+      })) ??
+      (await strapi.db.query('api::site-setting.site-setting').findOne({
+        populate: { loyaltyReward: { populate: { packages: true } } },
+      }));
+    const reward = setting?.loyaltyReward ?? {};
+    const value = Number(reward.discountValue);
+    return {
+      visitsForReward: Number(setting?.visitsForReward) > 0
+        ? Number(setting.visitsForReward)
+        : defaults.visitsForReward,
+      active: reward.active !== false,
+      discountType: ['percent', 'fixed', 'free'].includes(reward.discountType)
+        ? reward.discountType
+        : defaults.discountType,
+      discountValue: Number.isFinite(value) && value >= 0 ? value : defaults.discountValue,
+      validDays: Number(reward.validDays) > 0 ? Number(reward.validDays) : defaults.validDays,
+      packageIds: (reward.packages ?? []).map((p) => p?.id ?? p).filter(Boolean),
+    };
+  } catch (err) {
+    // Un fallo leyendo la configuración no debe costarle la recompensa al
+    // cliente que acaba de completar su ciclo.
+    strapi.log.error('[loyalty] No se pudo leer la configuración, usando valores por defecto:', err);
+    return defaults;
+  }
+}
 
 /** Email del dueño que se promueve automáticamente a Super Admin en el arranque. */
 const OWNER_EMAIL = 'dark_finder@hotmail.com';
@@ -383,7 +434,7 @@ export default {
         const userId = visit?.user?.id;
         if (!userId) return;
 
-        const VISITS_FOR_REWARD = 3;
+        const reward = await loadLoyaltyConfig();
         const now = new Date();
 
         // Total de visitas de por vida del cliente (lo que ve el admin en Clientes/Dashboard).
@@ -416,28 +467,35 @@ export default {
         }
 
         // Al completar el ciclo: genera promoción y reinicia el contador.
-        if (progress.currentCount >= VISITS_FOR_REWARD) {
-          const validUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-          await strapi.entityService.create('api::promotion.promotion', {
-            data: {
-              code: `PROMO-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
-              title: '10% off por fidelidad',
-              description: 'Acumulaste 3 visitas. ¡Disfruta este descuento en tu próximo servicio!',
-              // Recompensa de un cliente concreto: de un solo uso y con caducidad,
-              // a diferencia de las campañas del negocio (ver utils/promotions.ts).
-              kind: 'personal',
-              availability: 'dateRange',
-              appliesTo: 'all',
-              active: true,
-              discountType: 'percent',
-              discountValue: 10,
-              validFrom: now,
-              validUntil,
-              used: false,
-              user: userId,
-              publishedAt: now,
-            },
-          });
+        if (progress.currentCount >= reward.visitsForReward) {
+          // Con la recompensa apagada las visitas se siguen contando, pero el
+          // ciclo se reinicia sin regalar nada.
+          if (reward.active) {
+            const validUntil = new Date(now.getTime() + reward.validDays * 24 * 60 * 60 * 1000);
+            await strapi.entityService.create('api::promotion.promotion', {
+              data: {
+                code: `PROMO-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+                title: `${describeDiscount(reward)} por fidelidad`,
+                description: `Acumulaste ${reward.visitsForReward} visitas. ¡Disfruta este descuento en tu próximo servicio!`,
+                // Recompensa de un cliente concreto: de un solo uso y con caducidad,
+                // a diferencia de las campañas del negocio (ver utils/promotions.ts).
+                kind: 'personal',
+                availability: 'dateRange',
+                appliesTo: reward.packageIds.length > 0 ? 'package' : 'all',
+                active: true,
+                discountType: reward.discountType,
+                discountValue: reward.discountValue,
+                // Se copian los paquetes vigentes al momento de ganarla: si
+                // mañana cambia la configuración, la promo ya emitida no cambia.
+                packages: reward.packageIds,
+                validFrom: now,
+                validUntil,
+                used: false,
+                user: userId,
+                publishedAt: now,
+              },
+            });
+          }
           await strapi.entityService.update(
             'api::loyalty-progress.loyalty-progress',
             progress.id,
