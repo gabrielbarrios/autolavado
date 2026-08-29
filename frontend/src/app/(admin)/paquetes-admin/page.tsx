@@ -15,17 +15,7 @@ export default async function PaquetesAdminPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Paquetes</h1>
-          <p className="text-muted-foreground">
-            Crea aquí lo básico; para imágenes y ajustes finos,{" "}
-            <a
-              href={`${process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337"}/admin/content-manager/collection-types/api::package.package`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary hover:underline"
-            >
-              abrir en Strapi →
-            </a>
-          </p>
+          <p className="text-muted-foreground">Los paquetes de lavado que ofrece el negocio.</p>
         </div>
         <PackageForm />
       </div>

@@ -4,6 +4,7 @@ import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, W
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
 import { STORE_ENABLED } from "@/lib/constants";
+import type { DashboardShellProps } from "@/components/shared/dashboard-shell";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -24,10 +25,12 @@ const SUPERADMIN_NAV = [{ href: "/empleados", label: "Empleados", icon: ShieldCh
 
 export function AdminShell({
   user,
+  brand,
   isSuperAdmin = false,
   children,
 }: {
   user: { name?: string; email: string };
+  brand?: DashboardShellProps["brand"];
   isSuperAdmin?: boolean;
   children: React.ReactNode;
 }) {
@@ -35,6 +38,7 @@ export function AdminShell({
   return (
     <DashboardShell
       nav={nav}
+      brand={brand}
       user={{ name: user.name, email: user.email, role: isSuperAdmin ? "Super Admin" : "admin" }}
       onLogout={() => logoutAction()}
     >

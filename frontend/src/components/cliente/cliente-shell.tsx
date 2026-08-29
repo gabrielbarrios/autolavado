@@ -4,6 +4,7 @@ import { User, Car, QrCode, Calendar, History, Gift, ShoppingBag, Receipt, Spark
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
 import { STORE_ENABLED } from "@/lib/constants";
+import type { DashboardShellProps } from "@/components/shared/dashboard-shell";
 
 const NAV = [
   { href: "/perfil", label: "Perfil", icon: User },
@@ -23,10 +24,12 @@ const NAV = [
 
 export function ClienteShell({
   user,
+  brand,
   activeServices = 0,
   children,
 }: {
   user: { name?: string; email: string };
+  brand?: DashboardShellProps["brand"];
   /** Lavados en curso: alimenta el contador junto a "Estado de mi auto". */
   activeServices?: number;
   children: React.ReactNode;
@@ -38,6 +41,7 @@ export function ClienteShell({
   return (
     <DashboardShell
       nav={nav}
+      brand={brand}
       user={{ name: user.name, email: user.email, role: "cliente" }}
       onLogout={() => logoutAction()}
     >

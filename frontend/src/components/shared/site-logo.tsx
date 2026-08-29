@@ -21,15 +21,15 @@ export function SiteLogo({ className, href = "/", name, logo }: SiteLogoProps) {
   return (
     <Link href={href} className={cn("flex items-center gap-2 font-semibold tracking-tight", className)}>
       {logoUrl ? (
-        <span className="relative h-9 w-9 overflow-hidden rounded-lg">
-          <Image src={logoUrl} alt={displayName} fill sizes="36px" className="object-cover" />
+        <span className="relative h-12 w-12 overflow-hidden rounded-lg">
+          <Image src={logoUrl} alt={displayName} fill sizes="48px" className="object-cover" />
         </span>
       ) : (
-        <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-cyan-400 shadow-lg shadow-blue-500/30">
-          <Droplets className="h-5 w-5 text-white" />
+        <span className="relative flex h-12 w-12 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-cyan-400 shadow-lg shadow-blue-500/30">
+          <Droplets className="h-7 w-7 text-white" />
         </span>
       )}
-      <span className="text-lg">
+      <span className="text-xl">
         {second ? (
           <>
             {first}

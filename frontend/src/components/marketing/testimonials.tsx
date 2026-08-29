@@ -4,14 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { strapiMediaUrl } from "@/lib/utils";
 import type { Testimonial } from "@/types/models";
 
-const FALLBACK: Testimonial[] = [
-  { id: 1, name: "María González", role: "Cliente desde 2024", message: "El mejor servicio que he probado. El programa de fidelidad realmente vale la pena.", rating: 5 },
-  { id: 2, name: "Luis Hernández", role: "Cliente premium", message: "Reservar desde el celular es increíble. Llego, escanean mi QR y listo.", rating: 5 },
-  { id: 3, name: "Andrea Ruiz", role: "Cliente VIP", message: "El detallado dejó mi auto como nuevo. 100% recomendado.", rating: 5 },
-];
-
+/**
+ * Sin testimonios cargados en Strapi la sección entera no se pinta: antes había
+ * un trío de clientes inventados de respaldo, y publicar reseñas falsas es peor
+ * que no tener sección.
+ */
 export function Testimonials({ items }: { items?: Testimonial[] }) {
-  const list = items?.length ? items : FALLBACK;
+  const list = items ?? [];
+  if (list.length === 0) return null;
+
   return (
     <section className="container mx-auto max-w-6xl px-4 py-20">
       <div className="mx-auto mb-12 max-w-2xl text-center">

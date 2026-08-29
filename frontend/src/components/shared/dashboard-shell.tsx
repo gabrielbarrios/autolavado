@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import type { StrapiMedia } from "@/types/strapi";
 
 export interface NavItem {
   href: string;
@@ -22,11 +23,13 @@ export interface NavItem {
 export interface DashboardShellProps {
   nav: NavItem[];
   user: { name?: string; email: string; role: string };
+  /** Marca del negocio (site-setting). Sin ella el logo cae al genérico. */
+  brand?: { name?: string; logo?: StrapiMedia | null };
   children: React.ReactNode;
   onLogout: () => void;
 }
 
-export function DashboardShell({ nav, user, children, onLogout }: DashboardShellProps) {
+export function DashboardShell({ nav, user, brand, children, onLogout }: DashboardShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -34,7 +37,7 @@ export function DashboardShell({ nav, user, children, onLogout }: DashboardShell
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/40 bg-background/70 px-4 backdrop-blur md:px-6">
-        <SiteLogo />
+        <SiteLogo name={brand?.name} logo={brand?.logo ?? null} />
         <div className="flex items-center gap-2">
           <div className="hidden text-right md:block">
             <p className="text-sm font-medium">{user.name ?? user.email}</p>

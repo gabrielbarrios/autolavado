@@ -17,16 +17,7 @@ export default async function ExtrasAdminPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Otros servicios</h1>
           <p className="text-muted-foreground">
-            Servicios sueltos (encerado, lavado de asientos, lavado de cielo, etc.). Para imágenes
-            y ajustes finos,{" "}
-            <a
-              href={`${process.env.NEXT_PUBLIC_STRAPI_URL ?? "http://localhost:1337"}/admin/content-manager/collection-types/api::extra-service.extra-service`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary hover:underline"
-            >
-              abrir en Strapi →
-            </a>
+            Servicios sueltos (encerado, lavado de asientos, lavado de cielo, etc.).
           </p>
         </div>
         <ExtraServiceForm />
