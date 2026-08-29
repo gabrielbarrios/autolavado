@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { strapiMediaUrl, formatPrice } from "@/lib/utils";
 import {
+  appliesToVehicleType,
   computePackagePrice,
   packagePriceRange,
   vehicleTypeLabel,
@@ -75,11 +76,13 @@ export function ServicesShowcase({
 }) {
   const vehicleTypes = useVehicleTypes();
   const priceCtx = { isVip };
-  const list = packages?.length ? packages : FALLBACK;
+  const all = packages?.length ? packages : FALLBACK;
   const [selection, setSelection] = React.useState<VehicleSelection>({
     vehicleType: null,
     isUberTaxi: false,
   });
+  // Con un tipo elegido, solo los paquetes que tienen precio para ese tipo.
+  const list = all.filter((p) => appliesToVehicleType(p, selection.vehicleType));
 
   return (
     <section className="container mx-auto max-w-6xl px-4 py-20">
@@ -97,6 +100,12 @@ export function ServicesShowcase({
 
       <PackageTypePicker value={selection} onChange={setSelection} className="mb-8" />
 
+      {list.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/30 p-12 text-center text-muted-foreground">
+          Ningún paquete aplica a {vehicleTypeLabel(selection.vehicleType, vehicleTypes)}. Prueba con
+          otro tipo de auto.
+        </div>
+      ) : (
       <div className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-3">
         {list.map((pkg, idx) => {
           const hasSelection = !!selection.vehicleType || selection.isUberTaxi;
@@ -188,6 +197,7 @@ export function ServicesShowcase({
           );
         })}
       </div>
+      )}
     </section>
   );
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { strapiMediaUrl, formatPrice, cn } from "@/lib/utils";
 import {
+  appliesToVehicleType,
   computeExtraServicePrice,
   extraServicePriceRange,
   vehicleTypeLabel,
@@ -61,7 +62,11 @@ export function ExtraServicesSelector({
       : null;
   const hasSelection = !!fakeVehicle;
 
-  const selectedList = services.filter((s) => selected.has(s.id));
+  // Con un tipo elegido, solo los servicios con precio para ese tipo. La
+  // selección se recorta a lo visible: un extra que deja de aplicar no puede
+  // seguir sumando en el total ni colarse en el enlace de reservar.
+  const visible = services.filter((s) => appliesToVehicleType(s, vehicleSel.vehicleType));
+  const selectedList = visible.filter((s) => selected.has(s.id));
   const total = selectedList.reduce(
     (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle, priceCtx),
     0,
@@ -70,7 +75,7 @@ export function ExtraServicesSelector({
     (acc, s) => acc + Number(s.estimatedDuration ?? 0),
     0,
   );
-  const ids = Array.from(selected).join(",");
+  const ids = selectedList.map((s) => s.id).join(",");
   const reserveHref = ids ? `/reservar?extraServiceIds=${ids}` : "#";
 
   if (services.length === 0) {
@@ -94,8 +99,14 @@ export function ExtraServicesSelector({
       )}
       <PackageTypePicker value={vehicleSel} onChange={setVehicleSel} className="mb-8" />
 
+      {visible.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/30 p-12 text-center text-muted-foreground">
+          Ningún servicio aplica a {vehicleTypeLabel(vehicleSel.vehicleType, vehicleTypes)}. Prueba
+          con otro tipo de auto.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {services.map((s) => {
+        {visible.map((s) => {
           const isSelected = selected.has(s.id);
           const computed = computeExtraServicePrice(s, fakeVehicle, priceCtx);
           const { min, max } = extraServicePriceRange(s, priceCtx);
@@ -186,19 +197,20 @@ export function ExtraServicesSelector({
           );
         })}
       </div>
+      )}
 
       <div
         className={cn(
           "sticky bottom-4 z-30 mt-10 transition-all",
-          selected.size === 0 ? "pointer-events-none opacity-0" : "opacity-100",
+          selectedList.length === 0 ? "pointer-events-none opacity-0" : "opacity-100",
         )}
       >
         <Card className="border-primary/40 bg-card/95 shadow-xl backdrop-blur">
           <CardContent className="flex flex-col items-stretch gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                {selected.size} servicio{selected.size === 1 ? "" : "s"} seleccionado
-                {selected.size === 1 ? "" : "s"}
+                {selectedList.length} servicio{selectedList.length === 1 ? "" : "s"} seleccionado
+                {selectedList.length === 1 ? "" : "s"}
               </p>
               <p className="text-2xl font-bold">{formatPrice(total)}</p>
               <p className="text-xs text-muted-foreground">
@@ -208,7 +220,7 @@ export function ExtraServicesSelector({
                 {totalMinutes > 0 && ` · ~${totalMinutes} min`}
               </p>
             </div>
-            <Button asChild size="lg" variant="premium" disabled={selected.size === 0}>
+            <Button asChild size="lg" variant="premium" disabled={selectedList.length === 0}>
               <Link href={reserveHref}>Reservar seleccionados</Link>
             </Button>
           </CardContent>

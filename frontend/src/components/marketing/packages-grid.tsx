@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { strapiMediaUrl, formatPrice, cn } from "@/lib/utils";
 import {
+  appliesToVehicleType,
   computePackagePrice,
   computeExtraServicePrice,
   extraServicePriceRange,
@@ -65,6 +66,12 @@ export function PackagesGrid({
       : null;
   const hasSelection = !!fakeVehicle;
 
+  // Con un tipo elegido solo se ofrece lo que tiene precio para ese tipo: un
+  // paquete sin fila para "cuatrimoto" simplemente no aplica a ese auto.
+  const visiblePackages = packages.filter((p) => appliesToVehicleType(p, selection.vehicleType));
+  const visibleExtras = extras.filter((e) => appliesToVehicleType(e, selection.vehicleType));
+  const selectedTypeLabel = vehicleTypeLabel(selection.vehicleType, vehicleTypes);
+
   if (packages.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/30 p-12 text-center text-muted-foreground">
@@ -86,8 +93,13 @@ export function PackagesGrid({
       )}
       <PackageTypePicker value={selection} onChange={setSelection} className="mb-8" />
 
+      {visiblePackages.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/30 p-12 text-center text-muted-foreground">
+          Ningún paquete aplica a {selectedTypeLabel}. Prueba con otro tipo de auto.
+        </div>
+      ) : (
       <div className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {packages.map((pkg) => {
+        {visiblePackages.map((pkg) => {
           const computed = fakeVehicle ? computePackagePrice(pkg, fakeVehicle, priceCtx) : 0;
           const { min, max } = packagePriceRange(pkg, priceCtx);
           const hasRange = min !== max && min > 0;
@@ -161,9 +173,12 @@ export function PackagesGrid({
           );
         })}
       </div>
+      )}
 
       {extras.length > 0 && (() => {
-        const selectedExtrasList = extras.filter((e) => selectedExtras.has(e.id));
+        // Solo cuentan los extras visibles: si al cambiar de tipo uno deja de
+        // aplicar, no debe seguir sumando en el total ni viajar al reservar.
+        const selectedExtrasList = visibleExtras.filter((e) => selectedExtras.has(e.id));
         const extrasTotal = selectedExtrasList.reduce(
           (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle, priceCtx),
           0,
@@ -172,7 +187,7 @@ export function PackagesGrid({
           (acc, s) => acc + Number(s.estimatedDuration ?? 0),
           0,
         );
-        const ids = Array.from(selectedExtras).join(",");
+        const ids = selectedExtrasList.map((e) => e.id).join(",");
         const reserveHref = ids ? `/reservar?extraServiceIds=${ids}` : "#";
 
         return (
@@ -188,8 +203,13 @@ export function PackagesGrid({
               </div>
             </div>
 
+            {visibleExtras.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card/30 p-8 text-center text-muted-foreground">
+                Ningún servicio suelto aplica a {selectedTypeLabel}.
+              </div>
+            ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {extras.map((s) => {
+              {visibleExtras.map((s) => {
                 const isSelected = selectedExtras.has(s.id);
                 const computed = computeExtraServicePrice(s, fakeVehicle, priceCtx);
                 const { min, max } = extraServicePriceRange(s, priceCtx);
@@ -276,19 +296,21 @@ export function PackagesGrid({
                 );
               })}
             </div>
+            )}
 
             <div
               className={cn(
                 "sticky bottom-4 z-30 mt-10 transition-all",
-                selectedExtras.size === 0 ? "pointer-events-none opacity-0" : "opacity-100",
+                selectedExtrasList.length === 0 ? "pointer-events-none opacity-0" : "opacity-100",
               )}
             >
               <Card className="border-primary/40 bg-card/95 shadow-xl backdrop-blur">
                 <CardContent className="flex flex-col items-stretch gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                      {selectedExtras.size} servicio{selectedExtras.size === 1 ? "" : "s"} seleccionado
-                      {selectedExtras.size === 1 ? "" : "s"}
+                      {selectedExtrasList.length} servicio
+                      {selectedExtrasList.length === 1 ? "" : "s"} seleccionado
+                      {selectedExtrasList.length === 1 ? "" : "s"}
                     </p>
                     <p className="text-2xl font-bold">{formatPrice(extrasTotal)}</p>
                     <p className="text-xs text-muted-foreground">
@@ -298,7 +320,7 @@ export function PackagesGrid({
                       {totalMinutes > 0 && ` · ~${totalMinutes} min`}
                     </p>
                   </div>
-                  <Button asChild size="lg" variant="premium" disabled={selectedExtras.size === 0}>
+                  <Button asChild size="lg" variant="premium" disabled={selectedExtrasList.length === 0}>
                     <Link href={reserveHref}>Reservar seleccionados</Link>
                   </Button>
                 </CardContent>

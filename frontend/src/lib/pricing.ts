@@ -145,6 +145,25 @@ export function packagePriceRange(
   return { min: Math.min(...prices), max: Math.max(...prices) };
 }
 
+/**
+ * ¿Este paquete o servicio tiene precio para ese tipo de auto?
+ *
+ * Sirve para no ofrecer lo que no aplica: si "cuatrimoto" solo tiene fila de
+ * precio en el paquete Moto, al elegir cuatrimoto el resto de paquetes no debe
+ * aparecer. Sin tipo elegido no filtra nada (se ve el catálogo completo, con su
+ * precio "desde").
+ *
+ * Basta con que exista la fila: darle precio a un tipo es justamente la forma
+ * de decir "este servicio aplica a estos autos".
+ */
+export function appliesToVehicleType(
+  item: { pricing?: VehicleTypePrice[] | null },
+  vehicleType?: VehicleType | null,
+): boolean {
+  if (!vehicleType) return true;
+  return (item.pricing ?? []).some((p) => p.vehicleType === vehicleType);
+}
+
 /** ¿El paquete tiene al menos un precio configurado? */
 export function packageHasPricing(pkg: Package): boolean {
   return Boolean(pkg.pricing && pkg.pricing.length > 0);
