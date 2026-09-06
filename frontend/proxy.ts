@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "autolavado_session";
 
 const CLIENT_PROTECTED = ["/perfil", "/autos", "/reservar", "/historial", "/mis-promociones", "/qr", "/pedidos", "/carrito/checkout"];
-const ADMIN_PROTECTED = ["/dashboard", "/escanear", "/walk-in", "/en-progreso", "/clientes", "/paquetes-admin", "/extras-admin", "/productos-admin", "/promociones-admin", "/reservaciones", "/servicios"];
+const ADMIN_PROTECTED = ["/dashboard", "/escanear", "/walk-in", "/en-progreso", "/clientes", "/paquetes-admin", "/extras-admin", "/productos-admin", "/snacks", "/promociones-admin", "/reservaciones", "/servicios"];
 const AUTH_ROUTES = ["/login", "/registro", "/recuperar"];
 
 export function proxy(req: NextRequest) {

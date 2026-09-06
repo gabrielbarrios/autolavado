@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth/guards";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,8 @@ import { PackageForm } from "@/components/admin/package-form";
 export const metadata = { title: "Paquetes" };
 
 export default async function PaquetesAdminPage() {
+  // Pantalla de administración: el empleado se queda en su dashboard.
+  await requireAdmin();
   const packages = await listPackages().catch(() => []);
   return (
     <div className="space-y-6">

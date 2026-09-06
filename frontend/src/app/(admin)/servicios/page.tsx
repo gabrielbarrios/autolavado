@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth/guards";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listAllServices } from "@/lib/strapi/visits";
@@ -8,6 +9,8 @@ import { listVehicleTypes } from "@/lib/strapi/vehicle-types";
 export const metadata = { title: "Servicios" };
 
 export default async function ServiciosPage() {
+  // Pantalla de administración: el empleado se queda en su dashboard.
+  await requireAdmin();
   const [services, vehicleTypes] = await Promise.all([
     listAllServices().catch(() => []),
     listVehicleTypes().catch(() => []),

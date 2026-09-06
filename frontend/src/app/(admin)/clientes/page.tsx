@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth/guards";
 import { listAllUsers } from "@/lib/strapi/admin";
 import { getSiteSetting } from "@/lib/strapi/site-setting";
 import { ClientesTable } from "@/components/admin/clientes-table";
@@ -5,6 +6,8 @@ import { ClientesTable } from "@/components/admin/clientes-table";
 export const metadata = { title: "Clientes" };
 
 export default async function ClientesPage() {
+  // Pantalla de administración: el empleado se queda en su dashboard.
+  await requireAdmin();
   const [users, setting] = await Promise.all([
     listAllUsers().catch(() => []),
     getSiteSetting().catch(() => null),

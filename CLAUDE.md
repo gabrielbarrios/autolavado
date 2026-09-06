@@ -56,9 +56,23 @@ Strapi is the source of truth for identity. The frontend never exposes the JWT t
 - `(marketing)` — public landing, paquetes, tienda, contacto.
 - `(auth)` — login, registro, recuperar (redirects logged-in users to `/perfil`).
 - `(cliente)` — perfil, autos, reservar, historial, promociones, qr, pedidos, carrito/checkout.
-- `(admin)` — dashboard, escanear, walk-in, clientes, paquetes-admin, productos-admin, promociones-admin, extras-admin, reservaciones, servicios.
+- `(admin)` — dashboard, escanear, walk-in, en-progreso, clientes, paquetes-admin, productos-admin, snacks, promociones-admin, extras-admin, reservaciones, servicios, empleados.
 
 The protected-route lists live in [frontend/proxy.ts](frontend/proxy.ts); update them there when adding new gated routes.
+
+### Roles and who gets which admin page
+
+Five roles, all of them users-permissions roles created idempotently by `bootstrap`: `cliente` (`authenticated`), `vip`, `employee`, `admin`, `superadmin`. `resolveRole` ([frontend/src/lib/auth/session.ts](frontend/src/lib/auth/session.ts)) maps the Strapi role onto that union.
+
+The `(admin)` layout is gated by **`requireStaff()`** — employees, admins and super admins all get in. Which page each one sees is decided **inside the page**:
+
+- Employee-visible pages (dashboard, escanear, walk-in, en-progreso, reservaciones) need no extra guard. The list is `EMPLOYEE_ROUTES` in [frontend/src/lib/constants.ts](frontend/src/lib/constants.ts), and it also drives the sidebar in `AdminShell`.
+- Every other `(admin)` page **must call `await requireAdmin()` first** — hiding the nav item is not access control. A new admin page without that call is reachable by an employee who types the URL.
+- `requireSuperAdmin()` for the owner-only pages (empleados).
+
+The backend mirror of `EMPLOYEE_ROUTES` is `EMPLOYEE_PERMISSIONS` in [backend/src/index.ts](backend/src/index.ts): the employee gets the whole `qr` counter API plus read-only catalog, but no create/delete on anything the owner administers. Adding an employee screen means touching both lists.
+
+`isAdminLike()` ([backend/src/utils/owner-scope.ts](backend/src/utils/owner-scope.ts)) means "works the counter" and **includes employees** — it is what lets them see other customers' appointments and services. For "may administer the catalog", use `isCatalogAdmin()` instead.
 
 ### Vehicle types are data, not an enum
 
@@ -75,7 +89,9 @@ The protected-route lists live in [frontend/proxy.ts](frontend/proxy.ts); update
 
 ### Strapi backend layout
 
-Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appointment`, `vehicle`, `vehicle-type`, `package`, `product`, `order`, `order-item`, `service`, `visit`, `promotion`, `loyalty-progress`, `site-setting`, `extra-service`, and a custom `qr` API.
+Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appointment`, `vehicle`, `vehicle-type`, `package`, `product`, `snack`, `order`, `order-item`, `service`, `visit`, `promotion`, `loyalty-progress`, `site-setting`, `extra-service`, and a custom `qr` API.
+
+Write endpoints address entries by **numeric id, not `documentId`** — the Strapi 5 default. That is why `promotion`, `vehicle` and `snack` override `update`/`delete` instead of using the core controller: a new collection the frontend has to edit needs the same override (see [backend/src/api/snack/controllers/snack.ts](backend/src/api/snack/controllers/snack.ts)).
 
 [backend/src/index.ts](backend/src/index.ts) does two important things at bootstrap, idempotently:
 

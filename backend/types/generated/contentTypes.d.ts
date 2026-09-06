@@ -1011,6 +1011,42 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiSnackSnack extends Struct.CollectionTypeSchema {
+  collectionName: 'snacks';
+  info: {
+    description: 'Snacks y bebidas a la venta en el mostrador: solo nombre y precio';
+    displayName: 'Snack';
+    pluralName: 'snacks';
+    singularName: 'snack';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::snack.snack'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    price: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiVehicleTypeVehicleType extends Struct.CollectionTypeSchema {
   collectionName: 'vehicle_types';
   info: {
@@ -1663,6 +1699,7 @@ declare module '@strapi/strapi' {
       'api::promotion.promotion': ApiPromotionPromotion;
       'api::service.service': ApiServiceService;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
+      'api::snack.snack': ApiSnackSnack;
       'api::vehicle-type.vehicle-type': ApiVehicleTypeVehicleType;
       'api::vehicle.vehicle': ApiVehicleVehicle;
       'api::visit.visit': ApiVisitVisit;

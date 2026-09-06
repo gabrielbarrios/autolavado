@@ -15,6 +15,23 @@ export const DISCOUNT_TYPES = ["percent", "fixed", "free"] as const;
 export const VISITS_FOR_REWARD = 3;
 
 /**
+ * Las únicas pantallas del panel a las que entra un empleado: la operación del
+ * día. Todo lo demás (catálogo, promociones, clientes, snacks) es de admin y lo
+ * bloquea `requireAdmin()` en cada página.
+ *
+ * Esta lista la usan el menú lateral (AdminShell) y `isEmployeeRoute()`. Su
+ * espejo en el backend son los `EMPLOYEE_PERMISSIONS` de backend/src/index.ts:
+ * si aquí se agrega una pantalla, allá hay que agregar sus permisos.
+ */
+export const EMPLOYEE_ROUTES = [
+  "/dashboard",
+  "/escanear",
+  "/walk-in",
+  "/en-progreso",
+  "/reservaciones",
+] as const;
+
+/**
  * Interruptor de la tienda online (productos, carrito y pedidos). Con `false`
  * desaparece de todos los menús y sus rutas devuelven 404, pero el código sigue
  * ahí: para reactivarla basta con ponerlo en `true`.

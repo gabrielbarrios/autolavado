@@ -13,6 +13,7 @@ const PUBLIC_PERMISSIONS: Record<string, string[]> = {
   'api::product.product': ['find', 'findOne'],
   'api::extra-service.extra-service': ['find', 'findOne'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne'],
+  'api::snack.snack': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
 };
 
@@ -22,6 +23,7 @@ const AUTHENTICATED_PERMISSIONS: Record<string, string[]> = {
   'api::product.product': ['find', 'findOne'],
   'api::extra-service.extra-service': ['find', 'findOne'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne'],
+  'api::snack.snack': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'availableSlots'],
@@ -54,6 +56,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::product.product': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::extra-service.extra-service': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne', 'create', 'update', 'delete'],
+  'api::snack.snack': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::site-setting.site-setting': ['find', 'update'],
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'delete', 'availableSlots'],
@@ -63,6 +66,55 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::service.service': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete', 'available'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne', 'create', 'update', 'delete'],
+  'api::qr.qr': [
+    'scan',
+    'registerVisit',
+    'walkInService',
+    'inProgressServices',
+    'board',
+    'appointmentToBoard',
+    'startService',
+    'revertToWaiting',
+    'finishService',
+    'chargeService',
+    'cancelService',
+    'availablePromotions',
+  ],
+};
+
+/**
+ * Permisos del rol Empleado (el que atiende el mostrador).
+ *
+ * Es un admin recortado: opera el día a día — escanea QR, levanta walk-ins,
+ * mueve el tablero y atiende reservaciones — pero NO toca el catálogo
+ * (paquetes, otros servicios, snacks, productos), ni las promociones, ni el
+ * padrón de clientes. Las pantallas que ve están listadas en
+ * `EMPLOYEE_ROUTES` (frontend/src/lib/auth/guards.ts): las dos listas tienen
+ * que moverse juntas.
+ */
+const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
+  // `count` alimenta la tarjeta de clientes del dashboard; `me` es la sesión.
+  'plugin::users-permissions.user': ['me', 'count'],
+  // Sin leer los roles, `/users/me?populate[role]` devuelve el usuario SIN rol y
+  // la sesión del frontend lo degrada a "cliente" (ver resolveRole).
+  'plugin::users-permissions.role': ['find', 'findOne'],
+
+  // Catálogo: solo lectura, es lo que se elige al cobrar un servicio.
+  'api::package.package': ['find', 'findOne'],
+  'api::extra-service.extra-service': ['find', 'findOne'],
+  'api::vehicle-type.vehicle-type': ['find', 'findOne'],
+  'api::snack.snack': ['find', 'findOne'],
+  'api::site-setting.site-setting': ['find'],
+
+  'api::vehicle.vehicle': ['find', 'findOne'],
+  'api::appointment.appointment': ['find', 'findOne', 'update', 'availableSlots'],
+  'api::visit.visit': ['find', 'findOne'],
+  'api::service.service': ['find', 'findOne'],
+  // `update` es para marcar una promo como usada al cobrar; no puede crearlas.
+  'api::promotion.promotion': ['find', 'findOne', 'update', 'available'],
+  'api::loyalty-progress.loyalty-progress': ['find', 'findOne'],
+
+  // El mostrador completo. Sin employeeStats/employeeTimes: eso es del dueño.
   'api::qr.qr': [
     'scan',
     'registerVisit',
@@ -177,6 +229,14 @@ async function ensureSuperAdminRoleExists() {
     'superadmin',
     'Super Admin',
     'Dueño — supervisa a los administradores (empleados) además del acceso total',
+  );
+}
+
+async function ensureEmployeeRoleExists() {
+  return ensureRoleExists(
+    'employee',
+    'Empleado',
+    'Atiende el mostrador: escanea QR, levanta walk-ins, mueve el tablero y atiende reservaciones. No toca catálogo, promociones ni clientes',
   );
 }
 
@@ -510,10 +570,12 @@ export default {
     try {
       await ensureAdminRoleExists();
       await ensureSuperAdminRoleExists();
+      await ensureEmployeeRoleExists();
       await ensureVipRoleExists();
       await ensureRolePermissions('public', PUBLIC_PERMISSIONS);
       await ensureRolePermissions('authenticated', AUTHENTICATED_PERMISSIONS);
       await ensureRolePermissions('vip', VIP_PERMISSIONS);
+      await ensureRolePermissions('employee', EMPLOYEE_PERMISSIONS);
       await ensureRolePermissions('admin', ADMIN_PERMISSIONS);
       await ensureRolePermissions('superadmin', SUPERADMIN_PERMISSIONS);
       await promoteOwnerToSuperAdmin();

@@ -9,7 +9,7 @@
  *   por las reglas de disponibilidad.
  */
 import { factories } from '@strapi/strapi';
-import { isAdminLike, ownerScopedFindOne } from '../../../utils/owner-scope';
+import { isAdminLike, isCatalogAdmin, ownerScopedFindOne } from '../../../utils/owner-scope';
 import {
   isPromotionAvailable,
   describeDiscount,
@@ -56,7 +56,7 @@ export default factories.createCoreController('api::promotion.promotion', () => 
    */
   async create(ctx) {
     if (!ctx.state.user?.id) return ctx.unauthorized('Sesión requerida');
-    if (!isAdminLike(ctx.state.user)) return ctx.forbidden('Solo un administrador');
+    if (!isCatalogAdmin(ctx.state.user)) return ctx.forbidden('Solo un administrador');
 
     const data = ctx.request.body?.data ?? {};
     const clean = sanitizeCampaign(data);
@@ -75,8 +75,14 @@ export default factories.createCoreController('api::promotion.promotion', () => 
   },
 
   /**
-   * Un admin edita cualquier promoción. Un cliente solo puede tocar la SUYA y
-   * únicamente para marcarla como usada — antes podía marcar la de cualquiera.
+   * Dos operaciones distintas viajan por el mismo PUT:
+   *
+   * - CANJEAR (el body solo trae `used`): la hace el dueño de la promo o quien
+   *   esté en el mostrador. Se toca únicamente used/usedAt — pasarla por
+   *   `sanitizeCampaign` convertiría en campaña una promo de fidelidad y le
+   *   borraría el dueño.
+   * - EDITAR LA CAMPAÑA (cualquier otro body): es catálogo, solo admin. El
+   *   empleado cobra con promociones pero no las reescribe.
    */
   async update(ctx) {
     const userId = ctx.state.user?.id;
@@ -89,12 +95,16 @@ export default factories.createCoreController('api::promotion.promotion', () => 
     if (!existing) return ctx.notFound('Promoción no encontrada');
 
     const body = ctx.request.body?.data ?? {};
+    const isRedeem = 'used' in body && Object.keys(body).every((k) => k === 'used' || k === 'usedAt');
+
     let data;
-    if (isAdminLike(ctx.state.user)) {
-      data = sanitizeCampaign({ ...existing, ...body });
-    } else {
-      if (existing.user?.id !== userId) return ctx.forbidden('No es tu promoción');
+    if (isRedeem) {
+      const isOwner = existing.user?.id === userId;
+      if (!isOwner && !isAdminLike(ctx.state.user)) return ctx.forbidden('No es tu promoción');
       data = { used: !!body.used, usedAt: body.usedAt ?? new Date() };
+    } else {
+      if (!isCatalogAdmin(ctx.state.user)) return ctx.forbidden('Solo un administrador');
+      data = sanitizeCampaign({ ...existing, ...body });
     }
 
     const updated = await strapi.entityService.update('api::promotion.promotion', existing.id, {
@@ -105,7 +115,7 @@ export default factories.createCoreController('api::promotion.promotion', () => 
 
   async delete(ctx) {
     if (!ctx.state.user?.id) return ctx.unauthorized('Sesión requerida');
-    if (!isAdminLike(ctx.state.user)) return ctx.forbidden('Solo un administrador');
+    if (!isCatalogAdmin(ctx.state.user)) return ctx.forbidden('Solo un administrador');
 
     const existing = await strapi.db
       .query('api::promotion.promotion')

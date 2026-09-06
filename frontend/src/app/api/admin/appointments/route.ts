@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { getSession, isStaffRole } from "@/lib/auth/session";
 import { listAllAppointments } from "@/lib/strapi/appointments";
 
 /**
@@ -16,7 +16,8 @@ import { listAllAppointments } from "@/lib/strapi/appointments";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.role !== "admin" && session.role !== "superadmin") {
+  // El empleado también atiende reservaciones: el aviso es suyo también.
+  if (!isStaffRole(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

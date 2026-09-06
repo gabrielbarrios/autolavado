@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser, requireAdmin } from "@/lib/auth/guards";
+import { requireUser, requireStaff } from "@/lib/auth/guards";
 import { appointmentSchema } from "@/lib/validations/appointment";
 import {
   createAppointment,
@@ -55,7 +55,7 @@ export async function setAppointmentStatusAction(
   status: AppointmentStatus,
   adminNotes?: string,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff();
   try {
     await updateAppointmentStatus(id, status, adminNotes);
     revalidatePath("/reservaciones");
@@ -69,7 +69,7 @@ export async function rescheduleAppointmentAction(
   id: number,
   payload: { date: string; timeSlot: string; packageId?: number; adminNotes?: string },
 ): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.date)) {
     return { ok: false, error: "Fecha inválida" };
   }

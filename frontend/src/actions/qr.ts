@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import {
   scanQR,
   registerVisit,
@@ -28,7 +28,7 @@ import { StrapiError } from "@/lib/strapi/client";
 import type { ActionResult } from "./auth";
 
 export async function scanQRAction(qrToken: string): Promise<ActionResult<QRScanResult>> {
-  await requireAdmin();
+  await requireStaff();
   if (!qrToken?.trim()) return { ok: false, error: "Token vacío" };
   try {
     const data = await scanQR(qrToken.trim());
@@ -45,7 +45,7 @@ export async function registerVisitAction(payload: {
   notes?: string;
   extraServiceIds?: number[];
 }): Promise<ActionResult<RegisterVisitResult>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await registerVisit(payload);
     revalidatePath("/dashboard");
@@ -63,7 +63,7 @@ export async function registerVisitAction(payload: {
 export async function completeAppointmentFromQRAction(
   appointmentId: number,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff();
   try {
     await updateAppointmentStatus(appointmentId, "completed");
     revalidatePath("/dashboard");
@@ -81,7 +81,7 @@ export async function completeAppointmentFromQRAction(
 export async function walkInServiceAction(
   payload: WalkInServicePayload,
 ): Promise<ActionResult<WalkInServiceResult>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await walkInService(payload);
     revalidatePath("/dashboard");
@@ -102,7 +102,7 @@ export async function walkInServiceAction(
 export async function sendAppointmentToBoardAction(
   appointmentId: number,
 ): Promise<ActionResult<AppointmentToBoardResult>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await appointmentToBoard(appointmentId);
     revalidatePath("/reservaciones");
@@ -122,7 +122,7 @@ export async function startServiceAction(
   serviceId: number,
   performedByAdminId?: number,
 ): Promise<ActionResult<{ service: { id: number; status: string } }>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await startService(serviceId, performedByAdminId);
     revalidatePath("/en-progreso");
@@ -139,7 +139,7 @@ export async function startServiceAction(
 export async function finishServiceAction(
   serviceId: number,
 ): Promise<ActionResult<{ service: { id: number; status: string } }>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await finishService(serviceId);
     revalidatePath("/en-progreso");
@@ -157,7 +157,7 @@ export async function revertServiceToWaitingAction(
   serviceId: number,
   reason?: string,
 ): Promise<ActionResult<{ service: { id: number; status: string } }>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await revertServiceToWaiting(serviceId, reason);
     revalidatePath("/en-progreso");
@@ -175,7 +175,7 @@ export async function revertServiceToWaitingAction(
 export async function availablePromotionsAction(
   serviceId: number,
 ): Promise<ActionResult<AvailablePromotionsResult>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     return { ok: true, data: await availablePromotions(serviceId) };
   } catch (err) {
@@ -194,7 +194,7 @@ export async function availablePromotionsAction(
 export async function chargeServiceAction(
   payload: ChargeServicePayload,
 ): Promise<ActionResult<ChargeServiceResult>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await chargeService(payload);
     revalidatePath("/en-progreso");
@@ -217,7 +217,7 @@ export async function cancelServiceAction(
   serviceId: number,
   reason?: string,
 ): Promise<ActionResult<{ service: { id: number; status: string } }>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     const data = await cancelService(serviceId, reason);
     revalidatePath("/en-progreso");
@@ -231,7 +231,7 @@ export async function cancelServiceAction(
 }
 
 export async function redeemPromotionAction(promotionId: number): Promise<ActionResult> {
-  await requireAdmin();
+  await requireStaff();
   try {
     await redeemPromotion(promotionId);
     revalidatePath("/escanear");

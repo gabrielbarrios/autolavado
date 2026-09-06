@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth/guards";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,8 @@ import { ExtraServiceForm } from "@/components/admin/extra-service-form";
 export const metadata = { title: "Otros servicios" };
 
 export default async function ExtrasAdminPage() {
+  // Pantalla de administración: el empleado se queda en su dashboard.
+  await requireAdmin();
   const items = await listAllExtraServicesAdmin().catch(() => []);
 
   return (

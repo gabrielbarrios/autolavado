@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth/guards";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import { STORE_ENABLED } from "@/lib/constants";
 export const metadata = { title: "Productos" };
 
 export default async function ProductosAdminPage() {
+  // Pantalla de administración: el empleado se queda en su dashboard.
+  await requireAdmin();
   // La tienda está apagada (STORE_ENABLED): la ruta no existe para nadie.
   if (!STORE_ENABLED) notFound();
 

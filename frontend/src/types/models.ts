@@ -1,6 +1,10 @@
 import type { StrapiMedia } from "./strapi";
 
-export type UserRole = "admin" | "superadmin" | "vip" | "cliente";
+/**
+ * Roles de la app. `employee` es el mostrador: entra al panel pero solo a las
+ * pantallas de operación (ver EMPLOYEE_ROUTES en lib/auth/guards.ts).
+ */
+export type UserRole = "admin" | "superadmin" | "employee" | "vip" | "cliente";
 
 export interface User {
   id: number;
@@ -267,6 +271,20 @@ export interface Product {
   category: ProductCategory;
   active: boolean;
   images?: StrapiMedia[];
+}
+
+/**
+ * Snack o bebida del mostrador. A diferencia de `Product` (tienda online, con
+ * stock, fotos y carrito) esto es solo una lista de precios que el dueño
+ * mantiene desde /snacks y el mostrador consulta al cobrar.
+ */
+export interface Snack {
+  id: number;
+  documentId?: string;
+  name: string;
+  price: number;
+  order?: number;
+  active: boolean;
 }
 
 export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";

@@ -14,7 +14,7 @@
  */
 
 /** Roles que pueden VER el precio VIP en la API pública. */
-const VIP_PRICE_VIEWER_ROLES = ['admin', 'superadmin', 'vip'];
+const VIP_PRICE_VIEWER_ROLES = ['admin', 'superadmin', 'employee', 'vip'];
 
 /** Roles que PAGAN precio VIP. */
 const VIP_PRICED_ROLES = ['vip'];

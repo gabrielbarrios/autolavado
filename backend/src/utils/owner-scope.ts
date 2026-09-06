@@ -37,8 +37,22 @@ interface OwnerScopedFindOneOptions {
   notFoundMessage?: string;
 }
 
-/** ¿El usuario del JWT es admin o super admin? */
+/**
+ * ¿El usuario del JWT atiende el negocio (empleado, admin o super admin)?
+ * Los tres ven el mostrador completo: reservaciones y servicios de cualquier
+ * cliente, no solo los suyos. Lo que separa al empleado es a qué pantallas
+ * entra y qué puede escribir (ver EMPLOYEE_PERMISSIONS en src/index.ts).
+ */
 export function isAdminLike(user) {
+  const role = user?.role?.type ?? user?.role?.name?.toLowerCase();
+  return role === 'admin' || role === 'superadmin' || role === 'employee';
+}
+
+/**
+ * ¿Manda sobre el catálogo? Solo admin y super admin. El empleado atiende, no
+ * administra: puede cobrar con una promoción, no crear ni reescribir campañas.
+ */
+export function isCatalogAdmin(user) {
   const role = user?.role?.type ?? user?.role?.name?.toLowerCase();
   return role === 'admin' || role === 'superadmin';
 }

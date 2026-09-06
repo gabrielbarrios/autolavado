@@ -183,6 +183,17 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
     mainField: 'name',
   },
 
+  'api::snack.snack': {
+    labels: {
+      name: 'Nombre',
+      price: 'Precio',
+      order: 'Orden',
+      active: 'Activo',
+    },
+    list: ['name', 'price', 'order', 'active'],
+    mainField: 'name',
+  },
+
   'api::order.order': {
     labels: {
       status: 'Estado',

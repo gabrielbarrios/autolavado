@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "snacks",
+  "info": {
+    "singularName": "snack",
+    "pluralName": "snacks",
+    "displayName": "Snack",
+    "description": "Snacks y bebidas a la venta en el mostrador: solo nombre y precio"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

@@ -42,10 +42,10 @@ function isSuperAdmin(user) {
   return t === 'superadmin';
 }
 
-/** ¿El user (con role poblado) es admin o super admin? */
+/** ¿El user (con role poblado) atiende el negocio? Empleado, admin o super admin. */
 function isAnyAdmin(user) {
   const t = user?.role?.type;
-  return t === 'admin' || t === 'superadmin';
+  return t === 'admin' || t === 'superadmin' || t === 'employee';
 }
 
 /**
@@ -887,9 +887,9 @@ export default {
     });
     if (!isSuperAdmin(acting)) return ctx.forbidden('Solo el super admin');
 
-    // Todos los admins (admin + super admin)
+    // Todo el que atiende: empleados, admins y el propio super admin.
     const adminRoles = await strapi.db.query('plugin::users-permissions.role').findMany({
-      where: { type: { $in: ['admin', 'superadmin'] } },
+      where: { type: { $in: ['admin', 'superadmin', 'employee'] } },
     });
     const adminRoleIds = adminRoles.map((r) => r.id);
     const admins = await strapi.db.query('plugin::users-permissions.user').findMany({

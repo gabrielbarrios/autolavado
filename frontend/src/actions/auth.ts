@@ -11,6 +11,22 @@ export type ActionResult<T = unknown> =
   | { ok: true; data?: T }
   | { ok: false; error: string; fields?: Record<string, string> };
 
+/**
+ * A dónde mandar a alguien recién autenticado: "admin" = panel, "cliente" =
+ * perfil. Empleados y super admins también van al panel. Se mira `type` antes
+ * que `name` porque el nombre del rol es texto libre del panel de Strapi.
+ */
+function landingRole(user: { role?: string | { name?: string; type?: string } }): string {
+  const role = user.role;
+  const type = (typeof role === "string" ? role : role?.type ?? "").toLowerCase();
+  const name = (typeof role === "string" ? role : role?.name ?? "").toLowerCase();
+  const isStaff =
+    ["admin", "superadmin", "employee"].includes(type) ||
+    name.includes("admin") ||
+    name.includes("emplead");
+  return isStaff ? "admin" : "cliente";
+}
+
 function zodToFields(err: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of err.issues) {
@@ -30,9 +46,7 @@ export async function loginAction(_prev: unknown, formData: FormData): Promise<A
   try {
     const { jwt, user } = await strapiLogin(parsed.data.identifier, parsed.data.password);
     await setSessionCookie(jwt);
-    const roleName = typeof user.role === "string" ? user.role : user.role?.name?.toLowerCase() ?? "cliente";
-    const role = roleName.includes("admin") ? "admin" : "cliente";
-    return { ok: true, data: { role } };
+    return { ok: true, data: { role: landingRole(user) } };
   } catch (err) {
     const msg = err instanceof StrapiError ? err.message : "No se pudo iniciar sesión";
     return { ok: false, error: msg };
@@ -58,9 +72,7 @@ export async function registerAction(_prev: unknown, formData: FormData): Promis
       phone: parsed.data.phone || undefined,
     });
     await setSessionCookie(jwt);
-    const roleName = typeof user.role === "string" ? user.role : user.role?.name?.toLowerCase() ?? "cliente";
-    const role = roleName.includes("admin") ? "admin" : "cliente";
-    return { ok: true, data: { role } };
+    return { ok: true, data: { role: landingRole(user) } };
   } catch (err) {
     const msg = err instanceof StrapiError ? err.message : "No se pudo crear la cuenta";
     return { ok: false, error: msg };

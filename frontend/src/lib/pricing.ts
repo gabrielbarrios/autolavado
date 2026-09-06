@@ -156,12 +156,17 @@ export function packagePriceRange(
  *
  * Basta con que exista la fila: darle precio a un tipo es justamente la forma
  * de decir "este servicio aplica a estos autos".
+ *
+ * Excepción: un extra marcado como "a cotizar" no tiene filas de precio
+ * justamente porque el costo depende del tamaño del auto — aplica a todos, así
+ * que el filtro no lo puede esconder.
  */
 export function appliesToVehicleType(
-  item: { pricing?: VehicleTypePrice[] | null },
+  item: { pricing?: VehicleTypePrice[] | null; quoteOnRequest?: boolean },
   vehicleType?: VehicleType | null,
 ): boolean {
   if (!vehicleType) return true;
+  if (item.quoteOnRequest) return true;
   return (item.pricing ?? []).some((p) => p.vehicleType === vehicleType);
 }
 

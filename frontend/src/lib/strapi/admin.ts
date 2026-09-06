@@ -15,7 +15,7 @@ export async function listAllUsers(): Promise<User[]> {
   return res.data ?? [];
 }
 
-/** Solo los usuarios admin / super admin (empleados). */
+/** Todo el que atiende el negocio: empleados, admins y super admins. */
 export async function listAdmins(): Promise<User[]> {
   const users = await listAllUsers();
   return users.filter((u) => {
@@ -23,7 +23,7 @@ export async function listAdmins(): Promise<User[]> {
       typeof u.role === "string"
         ? u.role
         : (u.role?.type ?? u.role?.name ?? "").toLowerCase();
-    return r.includes("admin");
+    return r.includes("admin") || r === "employee" || r.includes("emplead");
   });
 }
 
