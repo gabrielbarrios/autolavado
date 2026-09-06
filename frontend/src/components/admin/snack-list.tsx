@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatPrice } from "@/lib/utils";
+import { SNACK_NO_PRICE_LABEL } from "@/lib/constants";
 import {
   createSnackAction,
   updateSnackAction,
@@ -333,8 +334,8 @@ function NewSnackForm({ categories }: { categories: SnackCategory[] }) {
             <Label htmlFor="snack-name">Nombre</Label>
             <Input id="snack-name" name="name" placeholder="Coca-Cola 600 ml" required />
           </div>
-          <div className="space-y-2 sm:w-32">
-            <Label htmlFor="snack-price">Precio</Label>
+          <div className="space-y-2 sm:w-36">
+            <Label htmlFor="snack-price">Precio (opcional)</Label>
             <Input
               id="snack-price"
               name="price"
@@ -342,8 +343,7 @@ function NewSnackForm({ categories }: { categories: SnackCategory[] }) {
               min="0"
               step="0.01"
               inputMode="decimal"
-              placeholder="25"
-              required
+              placeholder="Opcional"
             />
           </div>
           <div className="space-y-2 sm:w-48">
@@ -371,13 +371,14 @@ function SnackRow({ snack, categories }: { snack: Snack; categories: SnackCatego
   const [editing, setEditing] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [name, setName] = React.useState(snack.name);
-  const [price, setPrice] = React.useState(String(snack.price));
+  // Texto crudo del input: vacío = sin precio, y así llega tal cual a la action.
+  const [price, setPrice] = React.useState(snack.price == null ? "" : String(snack.price));
   const [category, setCategory] = React.useState(toSelectValue(snack.category?.id));
   const active = snack.active !== false;
 
   function cancelEdit() {
     setName(snack.name);
-    setPrice(String(snack.price));
+    setPrice(snack.price == null ? "" : String(snack.price));
     setCategory(toSelectValue(snack.category?.id));
     setEditing(false);
   }
@@ -386,7 +387,7 @@ function SnackRow({ snack, categories }: { snack: Snack; categories: SnackCatego
     setBusy(true);
     const res = await updateSnackAction(snack.id, {
       name,
-      price: Number(price),
+      price,
       category: toCategoryId(category),
     });
     setBusy(false);
@@ -431,6 +432,7 @@ function SnackRow({ snack, categories }: { snack: Snack; categories: SnackCatego
           min="0"
           step="0.01"
           inputMode="decimal"
+          placeholder="Sin precio"
           aria-label="Precio"
           className="sm:w-28"
         />
@@ -462,7 +464,11 @@ function SnackRow({ snack, categories }: { snack: Snack; categories: SnackCatego
         <p className="truncate font-medium">{snack.name}</p>
         {!active && <p className="text-xs text-muted-foreground">Fuera de la lista</p>}
       </div>
-      <span className="shrink-0 font-mono text-lg font-semibold">{formatPrice(snack.price)}</span>
+      {snack.price == null ? (
+        <span className="shrink-0 text-sm font-medium text-amber-500">{SNACK_NO_PRICE_LABEL}</span>
+      ) : (
+        <span className="shrink-0 font-mono text-lg font-semibold">{formatPrice(snack.price)}</span>
+      )}
       <div className="flex shrink-0 items-center gap-1">
         <Switch
           checked={active}

@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { listActiveSnacks, listActiveSnackCategories } from "@/lib/strapi/snacks";
+import { SNACK_NO_PRICE_LABEL } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
 import type { Snack } from "@/types/models";
 
@@ -68,9 +69,15 @@ export default async function SnacksPage() {
                           aria-hidden
                           className="hidden flex-1 border-b border-dashed border-border/60 sm:block"
                         />
-                        <span className="shrink-0 font-mono text-lg font-semibold">
-                          {formatPrice(snack.price)}
-                        </span>
+                        {snack.price == null ? (
+                          <span className="shrink-0 text-sm text-muted-foreground">
+                            {SNACK_NO_PRICE_LABEL}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 font-mono text-lg font-semibold">
+                            {formatPrice(snack.price)}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

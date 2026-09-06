@@ -290,14 +290,15 @@ export interface SnackCategory {
  * stock, fotos y carrito) esto es solo una lista de precios que el dueño
  * mantiene desde /snacks-admin y el cliente consulta en /snacks.
  *
- * `category` puede venir vacía: un snack sin categoría se agrupa aparte en vez
- * de desaparecer de la lista.
+ * Solo el nombre es obligatorio:
+ * - `price` vacío = se pregunta en caja (no es lo mismo que valer $0).
+ * - `category` vacía = el snack se agrupa aparte en vez de desaparecer.
  */
 export interface Snack {
   id: number;
   documentId?: string;
   name: string;
-  price: number;
+  price?: number | null;
   category?: SnackCategory | null;
   order?: number;
   active: boolean;

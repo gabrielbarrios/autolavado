@@ -93,6 +93,8 @@ Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appoint
 
 Snack categories (`gusgueritas`, `postres`, …) are **data, not an enum** — same idea as vehicle types: the owner creates them from /snacks-admin. A snack's `category` is optional and deleting a category leaves its snacks uncategorised rather than deleting them, so both list views always render a trailing "Sin categoría" / "Otros" group.
 
+A snack's `price` is optional too: only `name` is required. **Empty price means "ask at the counter", not zero** — it is stored as `null` and rendered as `SNACK_NO_PRICE_LABEL` ([frontend/src/lib/constants.ts](frontend/src/lib/constants.ts)) in both views, and skipped when computing the price range. Anything that reads `snack.price` must handle `null`.
+
 Write endpoints address entries by **numeric id, not `documentId`** — the Strapi 5 default. That is why `promotion`, `vehicle` and `snack` override `update`/`delete` instead of using the core controller: a new collection the frontend has to edit needs the same override (see [backend/src/api/snack/controllers/snack.ts](backend/src/api/snack/controllers/snack.ts)).
 
 [backend/src/index.ts](backend/src/index.ts) does two important things at bootstrap, idempotently:

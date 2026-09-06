@@ -29,13 +29,21 @@ function parseName(raw: FormDataEntryValue | string | null, max = 80): string {
   return String(raw ?? "").trim().slice(0, max);
 }
 
-/** El precio llega de un `<input type="number">`: puede venir vacío o con coma. */
-function parsePrice(raw: FormDataEntryValue | null): number | null {
+/**
+ * El precio llega de un `<input type="number">`: puede venir vacío o con coma.
+ *
+ * Es opcional — vacío significa "se pregunta en caja", que no es lo mismo que
+ * valer cero — así que hay que distinguir "no lo pusieron" (válido, `null`) de
+ * "pusieron cualquier cosa" (error del formulario).
+ */
+function parsePrice(
+  raw: FormDataEntryValue | string | null,
+): { ok: true; value: number | null } | { ok: false } {
   const value = String(raw ?? "").trim().replace(",", ".");
-  if (!value) return null;
+  if (!value) return { ok: true, value: null };
   const price = Number(value);
-  if (!isFinite(price) || price <= 0) return null;
-  return Math.round(price * 100) / 100;
+  if (!isFinite(price) || price <= 0) return { ok: false };
+  return { ok: true, value: Math.round(price * 100) / 100 };
 }
 
 /** El `<select>` de categoría manda "" cuando el snack no va en ninguna. */
@@ -57,12 +65,12 @@ export async function createSnackAction(_prev: unknown, formData: FormData): Pro
   if (!name) return { ok: false, error: "Ponle un nombre al snack" };
 
   const price = parsePrice(formData.get("price"));
-  if (price === null) return { ok: false, error: "El precio debe ser mayor a cero" };
+  if (!price.ok) return { ok: false, error: "El precio debe ser un número mayor a cero" };
 
   try {
     const payload: SnackPayload = {
       name,
-      price,
+      price: price.value,
       category: parseCategory(formData.get("category")),
       active: true,
     };
@@ -76,18 +84,24 @@ export async function createSnackAction(_prev: unknown, formData: FormData): Pro
 
 export async function updateSnackAction(
   id: number,
-  values: { name: string; price: number; category: number | null },
+  // `price` viaja como el texto del input, igual que en el alta: así un campo
+  // vacío llega como vacío y no como cero.
+  values: { name: string; price: string; category: number | null },
 ): Promise<ActionResult> {
   await requireAdmin();
 
   const name = parseName(values.name);
   if (!name) return { ok: false, error: "Ponle un nombre al snack" };
 
-  const price = parsePrice(String(values.price));
-  if (price === null) return { ok: false, error: "El precio debe ser mayor a cero" };
+  const price = parsePrice(values.price);
+  if (!price.ok) return { ok: false, error: "El precio debe ser un número mayor a cero" };
 
   try {
-    await updateSnack(id, { name, price, category: parseCategory(values.category) });
+    await updateSnack(id, {
+      name,
+      price: price.value,
+      category: parseCategory(values.category),
+    });
     revalidateSnacks();
     return { ok: true };
   } catch (err) {

@@ -13,11 +13,17 @@ export default async function SnacksAdminPage() {
     listAllSnackCategories().catch(() => []),
   ]);
   const active = snacks.filter((s) => s.active !== false);
-  const prices = active.map((s) => Number(s.price));
+  // Los snacks sin precio no cuentan para el rango: no valen cero, no tienen.
+  const prices = active.map((s) => s.price).filter((p): p is number => p != null);
+  const min = prices.length > 0 ? Math.min(...prices) : 0;
+  const max = prices.length > 0 ? Math.max(...prices) : 0;
+  // Con un solo precio (o todos iguales) "de $45 a $45" sobra.
   const range =
-    prices.length > 0
-      ? ` · de ${formatPrice(Math.min(...prices))} a ${formatPrice(Math.max(...prices))}`
-      : "";
+    prices.length === 0
+      ? ""
+      : min === max
+        ? ` · ${formatPrice(min)}`
+        : ` · de ${formatPrice(min)} a ${formatPrice(max)}`;
 
   return (
     <div className="space-y-6">

@@ -1047,7 +1047,7 @@ export interface ApiSnackCategorySnackCategory
 export interface ApiSnackSnack extends Struct.CollectionTypeSchema {
   collectionName: 'snacks';
   info: {
-    description: 'Snacks y bebidas a la venta en el mostrador: solo nombre y precio';
+    description: 'Snacks y bebidas a la venta en el mostrador: nombre y, si se quiere, precio';
     displayName: 'Snack';
     pluralName: 'snacks';
     singularName: 'snack';
@@ -1070,7 +1070,6 @@ export interface ApiSnackSnack extends Struct.CollectionTypeSchema {
     name: Schema.Attribute.String & Schema.Attribute.Required;
     order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     price: Schema.Attribute.Decimal &
-      Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
         {
           min: 0;

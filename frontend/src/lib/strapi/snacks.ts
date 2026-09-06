@@ -66,7 +66,8 @@ export async function listActiveSnackCategories(): Promise<SnackCategory[]> {
 
 export interface SnackPayload {
   name: string;
-  price: number;
+  /** Opcional: `null` es "se pregunta en caja", distinto de cero. */
+  price?: number | null;
   /** Id de la categoría, o `null` para dejarlo sin agrupar. */
   category?: number | null;
   order?: number;

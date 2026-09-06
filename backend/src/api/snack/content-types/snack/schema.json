@@ -5,7 +5,7 @@
     "singularName": "snack",
     "pluralName": "snacks",
     "displayName": "Snack",
-    "description": "Snacks y bebidas a la venta en el mostrador: solo nombre y precio"
+    "description": "Snacks y bebidas a la venta en el mostrador: nombre y, si se quiere, precio"
   },
   "options": {
     "draftAndPublish": false
@@ -18,8 +18,8 @@
     },
     "price": {
       "type": "decimal",
-      "required": true,
-      "min": 0
+      "min": 0,
+      "description": "Opcional: un snack sin precio se muestra como 'Consultar' y se cobra en caja"
     },
     "order": {
       "type": "integer",

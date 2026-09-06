@@ -186,7 +186,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
   'api::snack.snack': {
     labels: {
       name: 'Nombre',
-      price: 'Precio',
+      price: 'Precio (opcional)',
       category: 'Categoría',
       order: 'Orden',
       active: 'Activo',

@@ -15,6 +15,13 @@ export const DISCOUNT_TYPES = ["percent", "fixed", "free"] as const;
 export const VISITS_FOR_REWARD = 3;
 
 /**
+ * Lo que se muestra en lugar del precio de un snack cuando no tiene: el precio
+ * es opcional y sin él se pregunta en caja. Está aquí y no en lib/strapi/snacks
+ * porque lo pinta también el panel, que es un componente cliente.
+ */
+export const SNACK_NO_PRICE_LABEL = "Consultar";
+
+/**
  * Las únicas pantallas del panel a las que entra un empleado: la operación del
  * día. Todo lo demás (catálogo, promociones, clientes, snacks) es de admin y lo
  * bloquea `requireAdmin()` en cada página.
