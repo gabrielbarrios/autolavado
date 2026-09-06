@@ -31,7 +31,22 @@ function sanitize(data, { partial = false } = {}) {
   if (!partial || data.active !== undefined) {
     out.active = data.active !== false;
   }
+  // `null` es un valor válido: así se saca un snack de su categoría. Por eso se
+  // distingue "no vino en el body" de "vino vacío".
+  if (data.category !== undefined) {
+    const id = Number(data.category);
+    out.category = Number.isFinite(id) && id > 0 ? id : null;
+  }
   return out;
+}
+
+/** ¿Existe esa categoría? Un id inventado dejaría el snack sin agrupar y sin aviso. */
+async function categoryExists(id) {
+  if (id == null) return true;
+  const found = await strapi.db
+    .query('api::snack-category.snack-category')
+    .findOne({ where: { id } });
+  return !!found;
 }
 
 export default factories.createCoreController(UID, () => ({
@@ -40,7 +55,12 @@ export default factories.createCoreController(UID, () => ({
     if (!data.name) return ctx.badRequest('El snack necesita un nombre');
     if (!(data.price > 0)) return ctx.badRequest('El precio debe ser mayor a cero');
 
-    const created = await strapi.entityService.create(UID, { data });
+    if (!(await categoryExists(data.category))) return ctx.badRequest('Esa categoría no existe');
+
+    const created = await strapi.entityService.create(UID, {
+      data,
+      populate: { category: true },
+    });
     return { data: created };
   },
 
@@ -54,7 +74,14 @@ export default factories.createCoreController(UID, () => ({
       return ctx.badRequest('El precio debe ser mayor a cero');
     }
 
-    const updated = await strapi.entityService.update(UID, existing.id, { data });
+    if ('category' in data && !(await categoryExists(data.category))) {
+      return ctx.badRequest('Esa categoría no existe');
+    }
+
+    const updated = await strapi.entityService.update(UID, existing.id, {
+      data,
+      populate: { category: true },
+    });
     return { data: updated };
   },
 

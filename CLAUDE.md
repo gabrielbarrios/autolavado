@@ -89,7 +89,9 @@ The backend mirror of `EMPLOYEE_ROUTES` is `EMPLOYEE_PERMISSIONS` in [backend/sr
 
 ### Strapi backend layout
 
-Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appointment`, `vehicle`, `vehicle-type`, `package`, `product`, `snack`, `order`, `order-item`, `service`, `visit`, `promotion`, `loyalty-progress`, `site-setting`, `extra-service`, and a custom `qr` API.
+Standard Strapi 5 structure under [backend/src/api/](backend/src/api/): `appointment`, `vehicle`, `vehicle-type`, `package`, `product`, `snack`, `snack-category`, `order`, `order-item`, `service`, `visit`, `promotion`, `loyalty-progress`, `site-setting`, `extra-service`, and a custom `qr` API.
+
+Snack categories (`gusgueritas`, `postres`, …) are **data, not an enum** — same idea as vehicle types: the owner creates them from /snacks-admin. A snack's `category` is optional and deleting a category leaves its snacks uncategorised rather than deleting them, so both list views always render a trailing "Sin categoría" / "Otros" group.
 
 Write endpoints address entries by **numeric id, not `documentId`** — the Strapi 5 default. That is why `promotion`, `vehicle` and `snack` override `update`/`delete` instead of using the core controller: a new collection the frontend has to edit needs the same override (see [backend/src/api/snack/controllers/snack.ts](backend/src/api/snack/controllers/snack.ts)).
 

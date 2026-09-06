@@ -1,6 +1,6 @@
 import { strapiFetch } from "./client";
 import { strapiServerFetch } from "./server";
-import type { Snack } from "@/types/models";
+import type { Snack, SnackCategory } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
 
 /**
@@ -12,9 +12,16 @@ import type { StrapiCollectionResponse } from "@/types/strapi";
  * en pantalla mientras alguien espera en la caja.
  */
 const LIST_QUERY = {
+  "populate[category]": "true",
   "sort[0]": "order:asc",
   "sort[1]": "name:asc",
   "pagination[pageSize]": "200",
+};
+
+const CATEGORY_QUERY = {
+  "sort[0]": "order:asc",
+  "sort[1]": "name:asc",
+  "pagination[pageSize]": "100",
 };
 
 /** Todos los snacks, activos o no (vista de administración). */
@@ -39,9 +46,29 @@ export async function listActiveSnacks(): Promise<Snack[]> {
   return res.data ?? [];
 }
 
+/** Todas las categorías, activas o no (vista de administración). */
+export async function listAllSnackCategories(): Promise<SnackCategory[]> {
+  const res = await strapiServerFetch<StrapiCollectionResponse<SnackCategory>>(
+    "/api/snack-categories",
+    { query: CATEGORY_QUERY, cache: "no-store" },
+  );
+  return res.data ?? [];
+}
+
+/** Las categorías que se muestran en la página pública. */
+export async function listActiveSnackCategories(): Promise<SnackCategory[]> {
+  const res = await strapiFetch<StrapiCollectionResponse<SnackCategory>>("/api/snack-categories", {
+    query: { ...CATEGORY_QUERY, "filters[active][$eq]": "true" },
+    cache: "no-store",
+  });
+  return res.data ?? [];
+}
+
 export interface SnackPayload {
   name: string;
   price: number;
+  /** Id de la categoría, o `null` para dejarlo sin agrupar. */
+  category?: number | null;
   order?: number;
   active: boolean;
 }
@@ -56,4 +83,26 @@ export async function updateSnack(id: number, payload: Partial<SnackPayload>) {
 
 export async function deleteSnack(id: number) {
   return strapiServerFetch(`/api/snacks/${id}`, { method: "DELETE" });
+}
+
+export interface SnackCategoryPayload {
+  name: string;
+  order?: number;
+  active: boolean;
+}
+
+export async function createSnackCategory(payload: SnackCategoryPayload) {
+  return strapiServerFetch("/api/snack-categories", { method: "POST", body: { data: payload } });
+}
+
+export async function updateSnackCategory(id: number, payload: Partial<SnackCategoryPayload>) {
+  return strapiServerFetch(`/api/snack-categories/${id}`, {
+    method: "PUT",
+    body: { data: payload },
+  });
+}
+
+/** Borrar la categoría NO borra sus snacks: quedan "Sin categoría". */
+export async function deleteSnackCategory(id: number) {
+  return strapiServerFetch(`/api/snack-categories/${id}`, { method: "DELETE" });
 }

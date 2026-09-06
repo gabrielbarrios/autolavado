@@ -14,6 +14,7 @@ const PUBLIC_PERMISSIONS: Record<string, string[]> = {
   'api::extra-service.extra-service': ['find', 'findOne'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne'],
   'api::snack.snack': ['find', 'findOne'],
+  'api::snack-category.snack-category': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
 };
 
@@ -24,6 +25,7 @@ const AUTHENTICATED_PERMISSIONS: Record<string, string[]> = {
   'api::extra-service.extra-service': ['find', 'findOne'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne'],
   'api::snack.snack': ['find', 'findOne'],
+  'api::snack-category.snack-category': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'availableSlots'],
@@ -57,6 +59,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::extra-service.extra-service': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::snack.snack': ['find', 'findOne', 'create', 'update', 'delete'],
+  'api::snack-category.snack-category': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::site-setting.site-setting': ['find', 'update'],
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'delete', 'availableSlots'],
@@ -104,6 +107,7 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
   'api::extra-service.extra-service': ['find', 'findOne'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne'],
   'api::snack.snack': ['find', 'findOne'],
+  'api::snack-category.snack-category': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
 
   'api::vehicle.vehicle': ['find', 'findOne'],

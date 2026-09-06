@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "snack_categories",
+  "info": {
+    "singularName": "snack-category",
+    "pluralName": "snack-categories",
+    "displayName": "Categoría de snack",
+    "description": "Cómo se agrupan los snacks en la lista: gusgueritas, postres, comida…"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "snacks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::snack.snack",
+      "mappedBy": "category"
+    }
+  }
+}

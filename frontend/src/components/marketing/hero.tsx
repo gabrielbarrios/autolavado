@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Sparkles, ShieldCheck, Star } from "lucide-react";
+import { ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { strapiMediaUrl } from "@/lib/utils";
 import type { SiteSetting } from "@/types/models";
@@ -61,9 +61,6 @@ export function Hero({ setting }: { setting?: SiteSetting | null }) {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-400" /> Servicios garantizados
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Star className="h-4 w-4 text-amber-400" /> 4.9 / 5 calificación promedio
             </span>
           </div>
         </div>

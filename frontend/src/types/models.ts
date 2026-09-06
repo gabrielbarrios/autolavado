@@ -274,15 +274,31 @@ export interface Product {
 }
 
 /**
+ * Grupo de la lista de snacks: "Gusgueritas", "Postres", "Comida"… Las crea el
+ * dueño desde /snacks-admin; no hay lista fija.
+ */
+export interface SnackCategory {
+  id: number;
+  documentId?: string;
+  name: string;
+  order?: number;
+  active: boolean;
+}
+
+/**
  * Snack o bebida del mostrador. A diferencia de `Product` (tienda online, con
  * stock, fotos y carrito) esto es solo una lista de precios que el dueño
- * mantiene desde /snacks y el mostrador consulta al cobrar.
+ * mantiene desde /snacks-admin y el cliente consulta en /snacks.
+ *
+ * `category` puede venir vacía: un snack sin categoría se agrupa aparte en vez
+ * de desaparecer de la lista.
  */
 export interface Snack {
   id: number;
   documentId?: string;
   name: string;
   price: number;
+  category?: SnackCategory | null;
   order?: number;
   active: boolean;
 }

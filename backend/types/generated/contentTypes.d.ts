@@ -1011,6 +1011,39 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiSnackCategorySnackCategory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'snack_categories';
+  info: {
+    description: 'C\u00F3mo se agrupan los snacks en la lista: gusgueritas, postres, comida\u2026';
+    displayName: 'Categor\u00EDa de snack';
+    pluralName: 'snack-categories';
+    singularName: 'snack-category';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::snack-category.snack-category'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    snacks: Schema.Attribute.Relation<'oneToMany', 'api::snack.snack'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSnackSnack extends Struct.CollectionTypeSchema {
   collectionName: 'snacks';
   info: {
@@ -1024,6 +1057,10 @@ export interface ApiSnackSnack extends Struct.CollectionTypeSchema {
   };
   attributes: {
     active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    category: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::snack-category.snack-category'
+    >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1699,6 +1736,7 @@ declare module '@strapi/strapi' {
       'api::promotion.promotion': ApiPromotionPromotion;
       'api::service.service': ApiServiceService;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
+      'api::snack-category.snack-category': ApiSnackCategorySnackCategory;
       'api::snack.snack': ApiSnackSnack;
       'api::vehicle-type.vehicle-type': ApiVehicleTypeVehicleType;
       'api::vehicle.vehicle': ApiVehicleVehicle;

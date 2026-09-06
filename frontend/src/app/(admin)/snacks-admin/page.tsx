@@ -1,14 +1,17 @@
 import { requireAdmin } from "@/lib/auth/guards";
-import { listAllSnacks } from "@/lib/strapi/snacks";
+import { listAllSnacks, listAllSnackCategories } from "@/lib/strapi/snacks";
 import { SnackList } from "@/components/admin/snack-list";
 import { formatPrice } from "@/lib/utils";
 
 export const metadata = { title: "Snacks" };
 
-export default async function SnacksPage() {
+export default async function SnacksAdminPage() {
   // Pantalla de administración: el empleado se queda en su dashboard.
   await requireAdmin();
-  const snacks = await listAllSnacks().catch(() => []);
+  const [snacks, categories] = await Promise.all([
+    listAllSnacks().catch(() => []),
+    listAllSnackCategories().catch(() => []),
+  ]);
   const active = snacks.filter((s) => s.active !== false);
   const prices = active.map((s) => Number(s.price));
   const range =
@@ -25,7 +28,7 @@ export default async function SnacksPage() {
         </p>
       </div>
 
-      <SnackList snacks={snacks} />
+      <SnackList snacks={snacks} categories={categories} />
     </div>
   );
 }

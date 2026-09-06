@@ -187,10 +187,22 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
     labels: {
       name: 'Nombre',
       price: 'Precio',
+      category: 'Categoría',
       order: 'Orden',
       active: 'Activo',
     },
-    list: ['name', 'price', 'order', 'active'],
+    list: ['name', 'price', 'category', 'active'],
+    mainField: 'name',
+  },
+
+  'api::snack-category.snack-category': {
+    labels: {
+      name: 'Nombre',
+      order: 'Orden',
+      active: 'Activa',
+      snacks: 'Snacks',
+    },
+    list: ['name', 'order', 'active'],
     mainField: 'name',
   },
 

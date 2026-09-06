@@ -28,6 +28,12 @@
     "active": {
       "type": "boolean",
       "default": true
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::snack-category.snack-category",
+      "inversedBy": "snacks"
     }
   }
 }
