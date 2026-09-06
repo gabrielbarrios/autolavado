@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { MobileNav } from "@/components/marketing/mobile-nav";
-import { getSession } from "@/lib/auth/session";
+import { getSession, isStaffRole } from "@/lib/auth/session";
 import { STORE_ENABLED } from "@/lib/constants";
 import type { SiteSetting } from "@/types/models";
 
@@ -11,11 +11,13 @@ const NAV = [
   { href: "/paquetes", label: "Paquetes" },
   { href: "/promociones", label: "Promociones" },
   ...(STORE_ENABLED ? [{ href: "/tienda", label: "Tienda" }] : []),
+  { href: "/snacks", label: "Snacks" },
   { href: "/contacto", label: "Contacto" },
 ];
 
 export async function SiteHeader({ setting }: { setting?: SiteSetting | null }) {
   const session = await getSession();
+  const isStaff = isStaffRole(session?.role);
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/70 backdrop-blur-md">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -35,8 +37,8 @@ export async function SiteHeader({ setting }: { setting?: SiteSetting | null }) 
           <ThemeToggle />
           {session ? (
             <Button asChild size="sm">
-              <Link href={session.role === "admin" ? "/dashboard" : "/perfil"}>
-                {session.role === "admin" ? "Dashboard" : "Mi cuenta"}
+              <Link href={isStaff ? "/dashboard" : "/perfil"}>
+                {isStaff ? "Dashboard" : "Mi cuenta"}
               </Link>
             </Button>
           ) : (

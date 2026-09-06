@@ -53,10 +53,10 @@ Strapi is the source of truth for identity. The frontend never exposes the JWT t
 
 `frontend/src/app/` uses App Router route groups to gate sections by role:
 
-- `(marketing)` — public landing, paquetes, tienda, contacto.
+- `(marketing)` — public landing, paquetes, otros-servicios, promociones, snacks (price list, read-only), tienda, contacto.
 - `(auth)` — login, registro, recuperar (redirects logged-in users to `/perfil`).
 - `(cliente)` — perfil, autos, reservar, historial, promociones, qr, pedidos, carrito/checkout.
-- `(admin)` — dashboard, escanear, walk-in, en-progreso, clientes, paquetes-admin, productos-admin, snacks, promociones-admin, extras-admin, reservaciones, servicios, empleados.
+- `(admin)` — dashboard, escanear, walk-in, en-progreso, clientes, paquetes-admin, productos-admin, snacks-admin, promociones-admin, extras-admin, reservaciones, servicios, empleados.
 
 The protected-route lists live in [frontend/proxy.ts](frontend/proxy.ts); update them there when adding new gated routes.
 

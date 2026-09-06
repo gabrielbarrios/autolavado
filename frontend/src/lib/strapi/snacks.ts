@@ -1,3 +1,4 @@
+import { strapiFetch } from "./client";
 import { strapiServerFetch } from "./server";
 import type { Snack } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
@@ -25,9 +26,13 @@ export async function listAllSnacks(): Promise<Snack[]> {
   return res.data ?? [];
 }
 
-/** Solo los que están a la venta hoy. */
+/**
+ * Solo los que están a la venta hoy. Va por `strapiFetch` (anónimo) porque la
+ * página /snacks la ve cualquiera, con sesión o sin ella; el rol `public` tiene
+ * `find` sobre snacks (ver PUBLIC_PERMISSIONS en backend/src/index.ts).
+ */
 export async function listActiveSnacks(): Promise<Snack[]> {
-  const res = await strapiServerFetch<StrapiCollectionResponse<Snack>>("/api/snacks", {
+  const res = await strapiFetch<StrapiCollectionResponse<Snack>>("/api/snacks", {
     query: { ...LIST_QUERY, "filters[active][$eq]": "true" },
     cache: "no-store",
   });

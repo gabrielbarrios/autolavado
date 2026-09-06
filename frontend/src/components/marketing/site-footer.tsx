@@ -30,6 +30,7 @@ export function SiteFooter({ setting }: { setting?: SiteSetting | null }) {
               {STORE_ENABLED && (
                 <li><Link className="hover:text-foreground" href="/tienda">Tienda</Link></li>
               )}
+              <li><Link className="hover:text-foreground" href="/snacks">Snacks</Link></li>
               <li><Link className="hover:text-foreground" href="/contacto">Contacto</Link></li>
               <li><Link className="hover:text-foreground" href="/login">Iniciar sesión</Link></li>
             </ul>

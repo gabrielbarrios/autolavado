@@ -36,6 +36,7 @@ export async function createSnackAction(_prev: unknown, formData: FormData): Pro
   try {
     const payload: SnackPayload = { name, price, active: true };
     await createSnack(payload);
+    revalidatePath("/snacks-admin");
     revalidatePath("/snacks");
     return { ok: true };
   } catch (err) {
@@ -57,6 +58,7 @@ export async function updateSnackAction(
 
   try {
     await updateSnack(id, { name, price });
+    revalidatePath("/snacks-admin");
     revalidatePath("/snacks");
     return { ok: true };
   } catch (err) {
@@ -69,6 +71,7 @@ export async function toggleSnackAction(id: number, active: boolean): Promise<Ac
   await requireAdmin();
   try {
     await updateSnack(id, { active });
+    revalidatePath("/snacks-admin");
     revalidatePath("/snacks");
     return { ok: true };
   } catch (err) {
@@ -80,6 +83,7 @@ export async function deleteSnackAction(id: number): Promise<ActionResult> {
   await requireAdmin();
   try {
     await deleteSnack(id);
+    revalidatePath("/snacks-admin");
     revalidatePath("/snacks");
     return { ok: true };
   } catch (err) {

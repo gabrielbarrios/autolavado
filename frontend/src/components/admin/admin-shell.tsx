@@ -16,7 +16,7 @@ const NAV = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/paquetes-admin", label: "Paquetes", icon: Package },
   { href: "/extras-admin", label: "Otros servicios", icon: Sparkles },
-  { href: "/snacks", label: "Snacks", icon: Cookie },
+  { href: "/snacks-admin", label: "Snacks", icon: Cookie },
   ...(STORE_ENABLED ? [{ href: "/productos-admin", label: "Productos", icon: ShoppingBag }] : []),
   { href: "/promociones-admin", label: "Promociones", icon: Gift },
   { href: "/reservaciones", label: "Reservaciones", icon: Calendar },
