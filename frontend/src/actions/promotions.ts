@@ -75,6 +75,8 @@ function parseForm(formData: FormData): PromotionPayload | { error: string } {
     validUntil:
       availability === "always" || !validUntil ? null : new Date(`${validUntil}T23:59:59`).toISOString(),
     active: formData.get("active") !== "false",
+    // Checkbox: solo viaja ("on") cuando está marcado.
+    isPrivate: formData.get("isPrivate") === "on",
   };
 }
 

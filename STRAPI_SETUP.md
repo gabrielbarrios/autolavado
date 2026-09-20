@@ -79,6 +79,12 @@ Ve a **Content-Type Builder** y crea los siguientes:
 - `code` — UID
 - `title` — Text (short, required)
 - `description` — Text (long)
+- `kind` — Enumeration (`personal`, `campaign`) default `campaign`
+- `availability` — Enumeration (`always`, `weekdays`, `dateRange`)
+- `weekdays` — JSON (array 0-6, 0 = domingo; solo con `availability = weekdays`)
+- `appliesTo` — Enumeration (`all`, `package`, `extras`)
+- `active` — Boolean (default true)
+- `isPrivate` — Boolean (default false). Privada: solo la ve el cajero en `/api/qr/available-promotions`; nunca sale en `/api/promotions/campaigns` (web pública) ni en `/api/promotions/available` (cliente)
 - `discountType` — Enumeration (`percent`, `fixed`, `free`)
 - `discountValue` — Decimal
 - `validFrom` — DateTime

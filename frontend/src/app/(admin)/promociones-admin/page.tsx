@@ -21,7 +21,8 @@ export default async function PromocionesAdminPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Promociones</h1>
           <p className="text-muted-foreground">
-            Las campañas aparecen en la caja al cobrar y en la página del cliente.
+            Las campañas aparecen en la caja al cobrar y en la página del cliente. Las privadas
+            solo en la caja.
           </p>
         </div>
         <PromotionForm />

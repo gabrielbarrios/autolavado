@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2, Loader2, Tag } from "lucide-react";
+import { Trash2, Loader2, Lock, Tag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,11 @@ function CampaignCard({ promo }: { promo: Promotion }) {
         )}
 
         <div className="flex flex-wrap gap-2 text-xs">
+          {promo.isPrivate && (
+            <Badge variant="secondary" className="gap-1">
+              <Lock className="h-3 w-3" /> Privada · solo en caja
+            </Badge>
+          )}
           <Badge variant="outline">{availabilityLabel(promo)}</Badge>
           <Badge variant="outline">{appliesToLabel(promo.appliesTo)}</Badge>
           {packagesLabel(promo.packages) && (

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { DollarSign, Loader2, Tag, Gift } from "lucide-react";
+import { DollarSign, Loader2, Lock, Tag, Gift } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,9 @@ import type { Service } from "@/types/models";
 /**
  * Cobro con descuentos. Reglas (decididas con el negocio):
  *  - como máximo UNA promoción del catálogo,
- *  - encima, opcionalmente, un descuento manual que solo el super admin puede
- *    aplicar (el backend vuelve a verificarlo; acá solo se oculta el campo).
+ *  - encima, opcionalmente, un descuento manual que solo admin y super admin
+ *    pueden aplicar (el backend vuelve a verificarlo; acá solo se oculta el
+ *    campo para el empleado).
  *
  * Los montos que se muestran son los que calculó el backend para ESTE ticket:
  * el navegador no decide cuánto se descuenta.
@@ -169,7 +170,7 @@ export function ChargeDialog({ service }: { service: Service }) {
               </p>
             </section>
 
-            {/* Descuento manual: solo super admin */}
+            {/* Descuento manual: admin y super admin, nunca el empleado */}
             {data?.canApplyManualDiscount && (
               <section className="space-y-3 rounded-lg border border-border/50 p-3">
                 <div className="space-y-2">
@@ -273,8 +274,10 @@ function PromoOption({
           {title}
         </p>
         {promo && (
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+            {promo.isPrivate && <Lock className="h-3 w-3 shrink-0" />}
             {promo.discountLabel}
+            {promo.isPrivate && " · privada"}
             {promo.appliesTo === "package" && " · solo lavado"}
             {promo.appliesTo === "extras" && " · solo extras"}
             {promo.packages && promo.packages.length > 0 && ` · ${promo.packages.join(", ")}`}

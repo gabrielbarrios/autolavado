@@ -40,6 +40,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       weekdays: 'Días de la semana (0 = domingo)',
       appliesTo: 'Aplica a',
       active: 'Activa',
+      isPrivate: 'Privada (solo se ve en caja, nunca en el sitio)',
       discountType: 'Tipo de descuento',
       discountValue: 'Valor del descuento',
       validFrom: 'Válida desde',
@@ -56,7 +57,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
     // `kind` NO va como solo lectura: es obligatorio, y si se bloquea no se
     // puede crear una promoción desde el panel de Strapi.
     readOnly: [],
-    list: ['title', 'kind', 'discountType', 'discountValue', 'availability', 'active', 'used'],
+    list: ['title', 'kind', 'discountType', 'discountValue', 'availability', 'active', 'isPrivate', 'used'],
     mainField: 'title',
   },
 

@@ -74,6 +74,8 @@ export interface PromotionPayload {
   validFrom?: string | null;
   validUntil?: string | null;
   active: boolean;
+  /** Solo visible en caja; fuera del sitio y del catálogo del cliente. */
+  isPrivate?: boolean;
 }
 
 /** Todas las promociones, campañas y personales (vista de admin). */

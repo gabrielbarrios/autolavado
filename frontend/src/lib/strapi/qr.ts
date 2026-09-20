@@ -148,6 +148,8 @@ export interface ApplicablePromotion {
   discountType: "percent" | "fixed" | "free";
   discountValue: number;
   discountLabel: string;
+  /** Privada: el cliente no la conoce, la ofrece el cajero a criterio. */
+  isPrivate?: boolean;
   /** Nombres de los paquetes en los que aplica. Vacío = cualquiera. */
   packages?: string[];
   /** Pesos que descontaría en ESTE ticket. */
@@ -164,7 +166,7 @@ export interface AvailablePromotionsResult {
     quotedExtras?: string[];
   };
   promotions: ApplicablePromotion[];
-  /** El descuento manual es exclusivo del super admin. */
+  /** El descuento manual lo aplican admin y super admin; el empleado no. */
   canApplyManualDiscount: boolean;
 }
 

@@ -13,6 +13,10 @@
  * Las condiciones que no se pueden verificar solas (cumpleaños, nombre, etc.)
  * NO se automatizan: la promo aparece en la lista del cajero y él decide si
  * aplica. Por eso `availability` solo modela cuándo está *disponible*.
+ *
+ * Una campaña puede además ser `isPrivate`: existe solo para la caja. El
+ * cajero la ve al cobrar, pero nunca sale en el escaparate público ni en el
+ * catálogo del cliente (ver `isVisibleToCustomer`).
  */
 
 import { computeItemPrice } from './pricing';
@@ -85,6 +89,16 @@ export function isPromotionAvailable(promo, now = new Date()) {
     default:
       return withinRange(promo, now);
   }
+}
+
+/**
+ * ¿La promo se le puede mostrar al cliente (web pública, /mis-promociones)?
+ * Las privadas son de uso interno: solo aparecen en la lista del cajero.
+ * Esto NO afecta a `isPromotionAvailable`: una privada sigue siendo aplicable
+ * al cobrar, simplemente no se anuncia.
+ */
+export function isVisibleToCustomer(promo) {
+  return !!promo && promo.isPrivate !== true;
 }
 
 function withinRange(promo, now) {

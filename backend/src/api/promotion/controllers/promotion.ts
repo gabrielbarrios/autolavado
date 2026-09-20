@@ -12,6 +12,7 @@ import { factories } from '@strapi/strapi';
 import { isAdminLike, isCatalogAdmin, ownerScopedFindOne } from '../../../utils/owner-scope';
 import {
   isPromotionAvailable,
+  isVisibleToCustomer,
   describeDiscount,
   slugCode,
   generatePromotionCode,
@@ -33,8 +34,9 @@ export default factories.createCoreController('api::promotion.promotion', () => 
       }
     }
     if (!isAdmin) {
-      // Las suyas + las campañas (que son de todos).
-      where.$or = [{ user: { id: userId } }, { user: null }];
+      // Las suyas + las campañas (que son de todos), menos las privadas: esas
+      // son de uso interno de la caja y el cliente no debe enterarse.
+      where.$and = [{ $or: [{ user: { id: userId } }, { user: null }] }, NOT_PRIVATE];
     }
 
     const items = await strapi.db.query('api::promotion.promotion').findMany({
@@ -145,7 +147,8 @@ export default factories.createCoreController('api::promotion.promotion', () => 
 
     const now = new Date();
     const data = promos
-      .filter((p) => isPromotionAvailable(p, now))
+      // Las privadas sí se pueden cobrar, pero no se le anuncian al cliente.
+      .filter((p) => isVisibleToCustomer(p) && isPromotionAvailable(p, now))
       .map((p) => ({
         ...p,
         discountLabel: describeDiscount(p),
@@ -165,21 +168,22 @@ export default factories.createCoreController('api::promotion.promotion', () => 
    * cada tarjeta lleva su vigencia escrita para que el cliente sepa cuándo
    * volver. Apagar una campaña (`active: false`) es lo que la quita de aquí.
    *
-   * Nunca salen promociones personales, y se devuelve un objeto recortado a
+   * Nunca salen promociones personales ni campañas privadas (`isPrivate`:
+   * las que solo existen para la caja), y se devuelve un objeto recortado a
    * mano en vez de la entrada entera porque esto lo ve cualquiera: fuera
    * `code` (se menciona en caja, no hace falta publicarlo) y fuera cualquier
    * dato del dueño.
    */
   async campaigns(ctx) {
     const promos = await strapi.db.query('api::promotion.promotion').findMany({
-      where: { kind: 'campaign', user: null },
+      where: { kind: 'campaign', user: null, ...NOT_PRIVATE },
       populate: { packages: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 100,
     });
 
     const data = promos
-      .filter((p) => p.active !== false)
+      .filter((p) => p.active !== false && isVisibleToCustomer(p))
       .map((p) => ({
         id: p.id,
         title: p.title,
@@ -199,6 +203,13 @@ export default factories.createCoreController('api::promotion.promotion', () => 
     ctx.body = { data, meta: {} };
   },
 }));
+
+/**
+ * Filtro "no es privada" para las consultas del cliente. Se escribe con el
+ * `$null` explícito porque las promos anteriores a la columna quedan en NULL,
+ * y en SQL `is_private <> true` NO es cierto para NULL: las dejaría fuera.
+ */
+const NOT_PRIVATE = { $or: [{ isPrivate: false }, { isPrivate: { $null: true } }] };
 
 const AVAILABILITY = ['always', 'weekdays', 'dateRange'];
 const APPLIES_TO = ['all', 'package', 'extras'];
@@ -244,6 +255,10 @@ function sanitizeCampaign(data) {
     validFrom: availability === 'always' ? null : (data.validFrom || null),
     validUntil: availability === 'always' ? null : (data.validUntil || null),
     active: data.active !== false,
+    // Privada = solo la ve el cajero al cobrar; fuera del sitio y del
+    // catálogo del cliente. Llega como boolean desde la app y como string
+    // ('true') si alguien la manda a mano por la API.
+    isPrivate: data.isPrivate === true || data.isPrivate === 'true',
   };
 }
 

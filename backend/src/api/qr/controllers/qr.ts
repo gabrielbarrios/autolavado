@@ -42,6 +42,16 @@ function isSuperAdmin(user) {
   return t === 'superadmin';
 }
 
+/**
+ * ¿El user (con role poblado) puede aplicar un descuento manual al cobrar?
+ * Admin y super admin sí; el empleado cobra con promociones del catálogo pero
+ * no decide descuentos a criterio.
+ */
+function canApplyManualDiscount(user) {
+  const t = user?.role?.type;
+  return t === 'admin' || t === 'superadmin';
+}
+
 /** ¿El user (con role poblado) atiende el negocio? Empleado, admin o super admin. */
 function isAnyAdmin(user) {
   const t = user?.role?.type;
@@ -547,6 +557,8 @@ export default {
         discountType: p.discountType,
         discountValue: p.discountValue,
         discountLabel: describeDiscount(p),
+        /** Privada: el cliente no la conoce, la ofrece el cajero a criterio. */
+        isPrivate: p.isPrivate === true,
         /** Nombres de los paquetes a los que está limitada. Vacío = cualquiera. */
         packages: (p.packages ?? []).map((pkg) => pkg?.name).filter(Boolean),
         /** Lo que descontaría en pesos sobre este servicio en concreto. */
@@ -567,7 +579,7 @@ export default {
         quotedExtras: quotedExtraNames,
       },
       promotions: available,
-      canApplyManualDiscount: isSuperAdmin(
+      canApplyManualDiscount: canApplyManualDiscount(
         await strapi.db.query('plugin::users-permissions.user').findOne({
           where: { id: actingUserId },
           populate: { role: true },
@@ -582,7 +594,7 @@ export default {
    * se crea la Visit que dispara el lifecycle de fidelidad (loyalty + promoción).
    *
    * Acepta un descuento: como máximo UNA promoción del catálogo más, encima, un
-   * descuento manual (que solo puede aplicar el super admin). El desglose se
+   * descuento manual (que solo pueden aplicar admin y super admin). El desglose se
    * guarda en el service — subtotal, cuánto puso la promo y cuánto el manual —
    * para poder auditarlo después; `totalAmount` queda con lo realmente cobrado,
    * que es lo que suman las ganancias por empleado.
@@ -644,15 +656,15 @@ export default {
       promotionDiscount = computePromotionDiscount(promotion, breakdown);
     }
 
-    // --- Descuento manual (solo super admin) ---
+    // --- Descuento manual (admin o super admin, no empleado) ---
     let manual = round2(Math.max(0, Number(manualDiscount ?? 0)));
     if (manual > 0) {
       const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
         where: { id: actingUserId },
         populate: { role: true },
       });
-      if (!isSuperAdmin(acting)) {
-        return ctx.forbidden('Solo el super admin puede aplicar un descuento manual');
+      if (!canApplyManualDiscount(acting)) {
+        return ctx.forbidden('Solo un administrador puede aplicar un descuento manual');
       }
     }
 

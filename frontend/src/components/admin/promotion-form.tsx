@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Lock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -194,6 +194,24 @@ export function PromotionForm() {
             )}
 
             {availability === "dateRange" && <DateRange required />}
+          </fieldset>
+
+          {/* Visibilidad */}
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Visibilidad</legend>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/50 p-3 text-sm transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+              <input type="checkbox" name="isPrivate" className="mt-0.5 h-4 w-4 accent-primary" />
+              <span className="min-w-0">
+                <span className="flex items-center gap-2 font-medium">
+                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                  Promoción privada
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Solo aparece en la caja al momento de cobrar. No se publica en el sitio ni en las
+                  promociones del cliente.
+                </span>
+              </span>
+            </label>
           </fieldset>
 
           <div className="flex flex-wrap gap-2">

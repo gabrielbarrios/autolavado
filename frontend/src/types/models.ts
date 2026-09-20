@@ -197,6 +197,11 @@ export interface Promotion {
   weekdays?: number[] | null;
   appliesTo?: PromotionAppliesTo;
   active?: boolean;
+  /**
+   * Privada: solo la ve el cajero al cobrar. Nunca sale en la web pública ni
+   * en /mis-promociones. El backend la filtra; acá solo se etiqueta.
+   */
+  isPrivate?: boolean;
   discountType: DiscountType;
   discountValue: number;
   validFrom: string;
