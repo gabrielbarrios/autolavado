@@ -14,6 +14,8 @@ export interface QRScanResult {
   user: User;
   vehicles: Vehicle[];
   loyaltyProgress: LoyaltyProgress | null;
+  /** Visitas que necesita este cliente para su próxima promoción (Uber o normal). */
+  loyaltyTarget?: number;
   activePromotions: Promotion[];
   todayAppointments: Appointment[];
   /** Todas las reservaciones del cliente (últimas 50, más recientes primero). */

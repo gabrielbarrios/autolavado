@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listPublicCampaigns } from "@/lib/strapi/promotions";
 import { discountLabel, appliesToLabel, availabilityLabel, packagesLabel } from "@/lib/promotions";
-import { VISITS_FOR_REWARD } from "@/lib/constants";
+import { getSiteSetting } from "@/lib/strapi/site-setting";
+import { loyaltyThresholds } from "@/lib/loyalty";
 import { getSession } from "@/lib/auth/session";
 import type { PublicCampaign } from "@/types/models";
 
@@ -19,10 +20,12 @@ export const metadata = { title: "Promociones" };
  * cada cliente siguen viviendo en /mis-promociones, detrás del login.
  */
 export default async function PromocionesPage() {
-  const [campaigns, session] = await Promise.all([
+  const [campaigns, session, setting] = await Promise.all([
     listPublicCampaigns().catch(() => []),
     getSession().catch(() => null),
+    getSiteSetting(),
   ]);
+  const visits = loyaltyThresholds(setting);
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-16">
@@ -57,7 +60,8 @@ export default async function PromocionesPage() {
           <div className="flex-1">
             <h2 className="text-lg font-semibold">Además, cada visita cuenta</h2>
             <p className="text-sm text-muted-foreground">
-              Cada {VISITS_FOR_REWARD} lavados ganas una recompensa automática, solo para ti.
+              Cada {visits.normal} lavados ganas una recompensa automática, solo para ti.
+              {visits.uber !== visits.normal && ` Si tu auto es Uber o Taxi, cada ${visits.uber}.`}
               {session ? " La ves en tus promociones." : " Regístrate y empieza a acumular."}
             </p>
           </div>

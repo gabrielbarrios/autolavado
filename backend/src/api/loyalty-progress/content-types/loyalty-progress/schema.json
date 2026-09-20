@@ -17,6 +17,10 @@
       "default": 0,
       "min": 0
     },
+    "visitsRequired": {
+      "type": "integer",
+      "min": 1
+    },
     "cycleStartedAt": {
       "type": "datetime"
     },

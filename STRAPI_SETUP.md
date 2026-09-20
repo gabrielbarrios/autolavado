@@ -95,6 +95,7 @@ Ve a **Content-Type Builder** y crea los siguientes:
 
 #### `loyalty-progress`
 - `currentCount` — Integer (default 0)
+- `visitsRequired` — Integer. Umbral con el que se cierra el ciclo, fijado por el lifecycle en cada visita según el auto lavado (`visitsForRewardUber` si es Uber/Taxi, `visitsForReward` si no)
 - `cycleStartedAt` — DateTime
 - `user` — Relation: one to one → User
 
@@ -137,6 +138,8 @@ Ve a **Content-Type Builder** y crea los siguientes:
 - `businessHours` — JSON
 - `bookingSlotDuration` — Integer (minutos, default 60)
 - `maxBookingsPerSlot` — Integer (default 2)
+- `visitsForReward` — Integer (default 3). Visitas para ganar la promoción de fidelidad con un auto normal
+- `visitsForRewardUber` — Integer (opcional). Lo mismo para autos Uber/Taxi; vacío = igual que `visitsForReward`. La regla es por visita: cada lavado cuenta con el umbral del auto que se lavó (ver `backend/src/utils/loyalty.ts`)
 - `heroVideo` — Media (single)
 - `faqs` — Component (repeatable) → `shared.faq`
 - `testimonials` — Component (repeatable) → `shared.testimonial`

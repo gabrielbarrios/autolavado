@@ -12,6 +12,11 @@ export const ORDER_STATUSES = ["pending", "paid", "shipped", "delivered", "cance
 export const PRODUCT_CATEGORIES = ["limpieza", "interior", "exterior", "accesorios", "otros"] as const;
 export const DISCOUNT_TYPES = ["percent", "fixed", "free"] as const;
 
+/**
+ * Respaldo cuando no se pudo leer Configuración del sitio. El valor real es
+ * `siteSetting.visitsForReward` (y `visitsForRewardUber` para Uber/Taxi); ver
+ * `resolveVisitsRequired` en lib/loyalty.ts.
+ */
 export const VISITS_FOR_REWARD = 3;
 
 /**

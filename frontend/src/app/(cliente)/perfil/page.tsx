@@ -8,6 +8,8 @@ import { listMyVehicles } from "@/lib/strapi/vehicles";
 import { listMyAppointments } from "@/lib/strapi/appointments";
 import { listMyPromotions, getMyLoyaltyProgress } from "@/lib/strapi/promotions";
 import { loadMyActiveServices } from "@/lib/strapi/visits";
+import { getSiteSetting } from "@/lib/strapi/site-setting";
+import { resolveVisitsRequired } from "@/lib/loyalty";
 import { LoyaltyProgress } from "@/components/cliente/loyalty-progress";
 import { ServiceTracker } from "@/components/cliente/service-tracker";
 import { AutoRefresh } from "@/components/cliente/auto-refresh";
@@ -18,7 +20,7 @@ export const metadata = { title: "Perfil" };
 export default async function PerfilPage() {
   const { user } = await requireUser();
 
-  const [vehicles, appointments, promos, loyalty, activeServices] = await Promise.all([
+  const [vehicles, appointments, promos, loyalty, activeServices, setting] = await Promise.all([
     listMyVehicles(user.id).catch(() => []),
     listMyAppointments(user.id).catch(() => []),
     listMyPromotions().catch(() => []),
@@ -26,7 +28,10 @@ export default async function PerfilPage() {
     // No usa `.catch(() => [])`: un fallo aquí se muestra como tal en el tracker
     // en vez de verse igual que "no tienes nada en curso".
     loadMyActiveServices(),
+    getSiteSetting(),
   ]);
+  // Umbral de fidelidad de este cliente: Uber/Taxi o normal.
+  const visitsRequired = resolveVisitsRequired(loyalty, setting, vehicles);
 
   const upcoming = appointments.find((a) => a.status === "approved" || a.status === "pending");
 
@@ -53,7 +58,7 @@ export default async function PerfilPage() {
       <AutoRefresh intervalMs={30000} />
       <ServiceTracker services={activeServices.services} failed={!activeServices.ok} />
 
-      <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} />
+      <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} total={visitsRequired} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

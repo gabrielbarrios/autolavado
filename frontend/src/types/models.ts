@@ -243,6 +243,11 @@ export interface LoyaltyProgress {
   id: number;
   documentId?: string;
   currentCount: number;
+  /**
+   * Visitas con las que se cierra el ciclo, según el auto de la última visita
+   * (Uber/Taxi o normal). Lo fija el backend; null en progresos anteriores.
+   */
+  visitsRequired?: number | null;
   cycleStartedAt: string;
   user?: User;
 }
@@ -394,6 +399,8 @@ export interface SiteSetting {
   bookingSlotDuration?: number;
   maxBookingsPerSlot?: number;
   visitsForReward?: number;
+  /** Umbral para autos Uber/Taxi. Vacío = igual que `visitsForReward`. */
+  visitsForRewardUber?: number | null;
   loyaltyReward?: LoyaltyReward;
   businessHours?: BusinessHour[];
   closedDates?: ClosedDate[];

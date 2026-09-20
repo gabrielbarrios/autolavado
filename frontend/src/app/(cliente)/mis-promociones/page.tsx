@@ -3,6 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth/guards";
 import { listAvailablePromotions, getMyLoyaltyProgress } from "@/lib/strapi/promotions";
+import { listMyVehicles } from "@/lib/strapi/vehicles";
+import { getSiteSetting } from "@/lib/strapi/site-setting";
+import { resolveVisitsRequired } from "@/lib/loyalty";
 import { LoyaltyProgress } from "@/components/cliente/loyalty-progress";
 import { discountLabel, appliesToLabel, availabilityLabel, packagesLabel } from "@/lib/promotions";
 import type { Promotion } from "@/types/models";
@@ -11,10 +14,14 @@ export const metadata = { title: "Promociones" };
 
 export default async function PromocionesPage() {
   const { user } = await requireUser();
-  const [promos, loyalty] = await Promise.all([
+  const [promos, loyalty, vehicles, setting] = await Promise.all([
     listAvailablePromotions().catch(() => []),
     getMyLoyaltyProgress().catch(() => null),
+    listMyVehicles(user.id).catch(() => []),
+    getSiteSetting(),
   ]);
+  // Umbral de fidelidad de este cliente: Uber/Taxi o normal.
+  const visitsRequired = resolveVisitsRequired(loyalty, setting, vehicles);
 
   // Las de fidelidad son suyas y de un solo uso; las campañas son del negocio.
   const personal = promos.filter((p) => p.kind !== "campaign");
@@ -29,7 +36,7 @@ export default async function PromocionesPage() {
         </p>
       </div>
 
-      <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} />
+      <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} total={visitsRequired} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Tus recompensas</h2>

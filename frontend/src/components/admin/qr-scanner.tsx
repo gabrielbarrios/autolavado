@@ -17,6 +17,7 @@ import {
   completeAppointmentFromQRAction,
 } from "@/actions/qr";
 import { formatDate, formatPrice, cn } from "@/lib/utils";
+import { VISITS_FOR_REWARD } from "@/lib/constants";
 import {
   isVipUser,
   computePackagePrice,
@@ -284,7 +285,9 @@ export function QrScanner({
               <div className="rounded-lg bg-muted/40 p-3 text-xs">
                 <p className="mb-1 font-medium">Fidelidad</p>
                 <p className="text-muted-foreground">
-                  {result.loyaltyProgress?.currentCount ?? 0} / 3 visitas hacia la próxima promoción
+                  {result.loyaltyProgress?.currentCount ?? 0} /{" "}
+                  {result.loyaltyTarget ?? result.loyaltyProgress?.visitsRequired ?? VISITS_FOR_REWARD}{" "}
+                  visitas hacia la próxima promoción
                 </p>
               </div>
 

@@ -243,10 +243,14 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
   'api::loyalty-progress.loyalty-progress': {
     labels: {
       currentCount: 'Visitas acumuladas',
+      visitsRequired: 'Visitas necesarias (según el último auto lavado)',
       cycleStartedAt: 'Ciclo iniciado el',
       user: 'Cliente',
     },
-    list: ['user', 'currentCount', 'cycleStartedAt'],
+    // Lo fija el lifecycle en cada visita a partir de la configuración del
+    // sitio; editarlo a mano se pisa en el siguiente lavado.
+    readOnly: ['visitsRequired'],
+    list: ['user', 'currentCount', 'visitsRequired', 'cycleStartedAt'],
   },
 
   'api::site-setting.site-setting': {
@@ -261,6 +265,7 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       bookingSlotDuration: 'Duración de cada horario (minutos)',
       maxBookingsPerSlot: 'Máximo de citas por horario',
       visitsForReward: 'Visitas para ganar promoción',
+      visitsForRewardUber: 'Visitas para ganar promoción Uber (vacío = igual que autos normales)',
       loyaltyReward: 'Promoción de fidelidad',
       businessHours: 'Horarios de atención',
       closedDates: 'Días cerrados',

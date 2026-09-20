@@ -23,6 +23,7 @@ import {
   round2,
 } from '../../../utils/promotions';
 import { validateVehicleTypeSlug } from '../../../utils/vehicle-types';
+import { loadLoyaltyConfig, visitsRequiredForCustomer } from '../../../utils/loyalty';
 
 /** Populate necesario para recalcular precios de un service al cobrarlo. */
 const SERVICE_PRICING_POPULATE = {
@@ -98,7 +99,7 @@ export default {
     const dd = String(today.getDate()).padStart(2, '0');
     const todayISO = `${yyyy}-${mm}-${dd}`;
 
-    const [vehicles, loyaltyArr, activePromotions, todayAppointments, allAppointments] = await Promise.all([
+    const [vehicles, loyaltyArr, activePromotions, todayAppointments, allAppointments, loyaltyConfig] = await Promise.all([
       strapi.db.query('api::vehicle.vehicle').findMany({
         where: { user: user.id },
         populate: { photo: true },
@@ -127,12 +128,15 @@ export default {
         orderBy: [{ date: 'desc' }, { timeSlot: 'desc' }],
         limit: 50,
       }),
+      loadLoyaltyConfig(),
     ]);
 
     ctx.body = {
       user,
       vehicles,
       loyaltyProgress: loyaltyArr[0] ?? null,
+      /** Visitas que necesita este cliente para su próxima promoción (Uber o normal). */
+      loyaltyTarget: visitsRequiredForCustomer(loyaltyConfig, loyaltyArr[0], vehicles),
       activePromotions,
       todayAppointments,
       appointments: allAppointments,
