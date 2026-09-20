@@ -165,6 +165,22 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
+/**
+ * `extra-service.active` se agregó cuando ya había servicios creados, y esos
+ * quedaron con NULL. El frontend filtra "activos", y en SQL `active = true`
+ * no es cierto para NULL: esos servicios no salían en walk-in, escaneo ni
+ * reservaciones, aunque sí en el catálogo del admin. Se ponen en `true` una
+ * vez; idempotente (la segunda vez no hay filas que tocar).
+ */
+async function backfillExtraServiceActive() {
+  const res = await strapi.db.query('api::extra-service.extra-service').updateMany({
+    where: { active: { $null: true } },
+    data: { active: true },
+  });
+  const n = res?.count ?? 0;
+  if (n > 0) strapi.log.info(`[bootstrap] ${n} servicio(s) extra sin \`active\` pasaron a activos`);
+}
+
 /** Email del dueño que se promueve automáticamente a Super Admin en el arranque. */
 const OWNER_EMAIL = 'dark_finder@hotmail.com';
 
@@ -546,6 +562,7 @@ export default {
       await ensureRolePermissions('admin', ADMIN_PERMISSIONS);
       await ensureRolePermissions('superadmin', SUPERADMIN_PERMISSIONS);
       await promoteOwnerToSuperAdmin();
+      await backfillExtraServiceActive();
     } catch (err) {
       strapi.log.error('[bootstrap] Error setting permissions:', err);
     }

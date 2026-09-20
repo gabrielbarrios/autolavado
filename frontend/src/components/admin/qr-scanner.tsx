@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, Check, ChevronDown, Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -425,9 +426,17 @@ export function QrScanner({
                 </div>
               </div>
 
-              {extraServices.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Servicios extras (opcional)</Label>
+              <div className="space-y-2">
+                <Label>Servicios extras (opcional)</Label>
+                {extraServices.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No hay servicios extra activos en el catálogo. Agrégalos en{" "}
+                    <Link href="/extras-admin" className="text-primary underline-offset-4 hover:underline">
+                      Otros servicios
+                    </Link>
+                    .
+                  </p>
+                ) : (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                     {extraServices.map((s) => {
                       const sel = selectedExtras.has(s.id);
@@ -462,8 +471,8 @@ export function QrScanner({
                       );
                     })}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {(() => {
                 const selectedVehicle = result.vehicles.find((v) => v.id === vehicleId);

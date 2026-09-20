@@ -8,11 +8,22 @@ interface ListOpts {
   pageSize?: number;
 }
 
+/**
+ * Los extras que se pueden elegir al reservar, en walk-in y al escanear.
+ *
+ * "Activo" se filtra como `true` O `null`, no solo `true`: `active` se agregó
+ * después de que existieran servicios, y los anteriores quedaron con NULL. En
+ * SQL `active = true` NO es cierto para NULL, así que esos desaparecían de
+ * todos los formularios y solo se veían en el catálogo del admin. El
+ * bootstrap de Strapi además los pasa a `true` (ver backfillExtraServiceActive
+ * en backend/src/index.ts); el filtro se queda así por si vuelve a pasar.
+ */
 export async function listExtraServices(opts: ListOpts = {}): Promise<ExtraService[]> {
   const query: Record<string, string | number | undefined> = {
     "populate[image]": "true",
     "populate[pricing]": "true",
-    "filters[active][$eq]": "true",
+    "filters[$or][0][active][$eq]": "true",
+    "filters[$or][1][active][$null]": "true",
     "sort[0]": "order:asc",
     "pagination[pageSize]": opts.pageSize ?? 100,
   };

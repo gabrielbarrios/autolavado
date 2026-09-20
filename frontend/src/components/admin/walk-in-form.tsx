@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2, Sparkles, UserPlus } from "lucide-react";
@@ -210,15 +211,25 @@ export function WalkInForm({
         </CardContent>
       </Card>
 
-      {extraServices.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Servicios extras (opcional)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Servicios extras (opcional)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {extraServices.length === 0 ? (
+            // Sin esto la sección desaparecía en silencio y parecía que el
+            // formulario "solo dejaba elegir paquete".
+            <p className="text-sm text-muted-foreground">
+              No hay servicios extra activos en el catálogo.{" "}
+              <Link href="/extras-admin" className="text-primary underline-offset-4 hover:underline">
+                Agrégalos en Otros servicios
+              </Link>{" "}
+              y aparecerán aquí.
+            </p>
+          ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {extraServices.map((s) => {
                 const sel = selectedExtras.has(s.id);
@@ -252,9 +263,9 @@ export function WalkInForm({
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {(selectedPackage || extrasList.length > 0) && (
         <Card className="border-primary/30 bg-linear-to-br from-primary/5 to-card">
