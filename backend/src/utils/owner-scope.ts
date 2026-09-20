@@ -30,6 +30,13 @@ interface OwnerScopedFindOptions {
   sortable?: string[];
   defaultSort?: OrderByMap;
   limit?: number;
+  /**
+   * Todos, staff incluido, leen SOLO lo suyo. Para colecciones que son
+   * "lo mío" por definición (progreso de fidelidad): un admin también es
+   * cliente en /perfil, y sin esto veía el registro de otro como si fuera el
+   * suyo (el frontend toma el primero de la lista).
+   */
+  alwaysOwn?: boolean;
 }
 
 interface OwnerScopedFindOneOptions {
@@ -99,12 +106,13 @@ export function ownerScopedFind(
     sortable = ['createdAt'],
     defaultSort = { createdAt: 'desc' },
     limit = 300,
+    alwaysOwn = false,
   }: OwnerScopedFindOptions = {},
 ) {
   return async function find(ctx) {
     const userId = ctx.state.user?.id;
     if (!userId) return ctx.unauthorized('Sesión requerida');
-    const isAdmin = isAdminLike(ctx.state.user);
+    const isAdmin = !alwaysOwn && isAdminLike(ctx.state.user);
 
     const incoming = ctx.query?.filters;
     const where =

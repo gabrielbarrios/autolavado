@@ -166,6 +166,7 @@ Habilita:
 - `appointment`: find, findOne, create, update.
 - `order`, `order-item`: find, findOne, create.
 - `promotion`, `loyalty-progress`, `visit`, `service`: find, findOne.
+- `promotion`: además `available` y `mine`. La vista de cliente (/perfil, /mis-promociones) usa `/api/promotions/mine` y no `find`: `find` le devuelve todo el catálogo a un admin (lo usa el panel de promociones), mientras que `mine` siempre devuelve "las mías + campañas públicas" sin importar el rol. `loyalty-progress.find` filtra siempre por el JWT (`alwaysOwn`) por la misma razón.
 
 > **Importante**: para que cada cliente solo vea sus propios recursos, el frontend incluye filtros `filters[user][id][$eq]=<id>`. Para reforzarlo en backend, considera middlewares custom o policies en cada controller.
 

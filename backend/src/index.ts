@@ -34,7 +34,7 @@ const AUTHENTICATED_PERMISSIONS: Record<string, string[]> = {
   'api::order-item.order-item': ['find', 'findOne', 'create'],
   'api::visit.visit': ['find', 'findOne'],
   'api::service.service': ['find', 'findOne'],
-  'api::promotion.promotion': ['find', 'findOne', 'update', 'available'],
+  'api::promotion.promotion': ['find', 'findOne', 'update', 'available', 'mine'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne'],
 };
 
@@ -68,7 +68,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::order-item.order-item': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::visit.visit': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::service.service': ['find', 'findOne', 'create', 'update', 'delete'],
-  'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete', 'available'],
+  'api::promotion.promotion': ['find', 'findOne', 'create', 'update', 'delete', 'available', 'mine'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::qr.qr': [
     'scan',
@@ -116,7 +116,7 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
   'api::visit.visit': ['find', 'findOne'],
   'api::service.service': ['find', 'findOne'],
   // `update` es para marcar una promo como usada al cobrar; no puede crearlas.
-  'api::promotion.promotion': ['find', 'findOne', 'update', 'available'],
+  'api::promotion.promotion': ['find', 'findOne', 'update', 'available', 'mine'],
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne'],
 
   // El mostrador completo. Sin employeeStats/employeeTimes: eso es del dueño.

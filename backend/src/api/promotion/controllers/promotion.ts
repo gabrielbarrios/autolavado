@@ -5,6 +5,9 @@
  * - `find`/`findOne`: scope por dueño, pero con un matiz — las campañas no
  *   tienen dueño, así que un cliente debe ver SUS promos personales *y* las
  *   campañas. Por eso `find` no usa `ownerScopedFind` tal cual.
+ * - `mine`: lo mismo que ve un cliente en `find`, pero para CUALQUIER rol. Es
+ *   lo que usa la vista de cliente (/perfil): un admin también es cliente ahí,
+ *   y con `find` recibía las promos de todos como si fueran suyas.
  * - `available`: el catálogo de lo que el cliente puede usar hoy, ya filtrado
  *   por las reglas de disponibilidad.
  */
@@ -24,24 +27,31 @@ export default factories.createCoreController('api::promotion.promotion', () => 
     if (!userId) return ctx.unauthorized('Sesión requerida');
     const isAdmin = isAdminLike(ctx.state.user);
 
-    const where = {};
-    const incoming = ctx.query?.filters;
-    if (incoming && typeof incoming === 'object') {
-      // `used` llega como string y Postgres no compara boolean contra texto.
-      for (const [k, v] of Object.entries(incoming)) {
-        if (k === 'user') continue;
-        where[k] = normalize(v);
-      }
-    }
-    if (!isAdmin) {
-      // Las suyas + las campañas (que son de todos), menos las privadas: esas
-      // son de uso interno de la caja y el cliente no debe enterarse.
-      where.$and = [{ $or: [{ user: { id: userId } }, { user: null }] }, NOT_PRIVATE];
-    }
+    const where = incomingFilters(ctx);
+    if (!isAdmin) Object.assign(where, ownScope(userId));
 
     const items = await strapi.db.query('api::promotion.promotion').findMany({
       where,
       populate: isAdmin ? { user: true, packages: true } : { packages: true },
+      orderBy: [{ validUntil: 'asc' }],
+      limit: 300,
+    });
+    return { data: items, meta: {} };
+  },
+
+  /**
+   * GET /api/promotions/mine
+   * Las mías + las campañas públicas, sin importar el rol. Acepta los mismos
+   * filtros que `find` (ej. `filters[used][$eq]=false`).
+   */
+  async mine(ctx) {
+    const userId = ctx.state.user?.id;
+    if (!userId) return ctx.unauthorized('Sesión requerida');
+
+    const where = { ...incomingFilters(ctx), ...ownScope(userId) };
+    const items = await strapi.db.query('api::promotion.promotion').findMany({
+      where,
+      populate: { packages: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 300,
     });
@@ -210,6 +220,28 @@ export default factories.createCoreController('api::promotion.promotion', () => 
  * y en SQL `is_private <> true` NO es cierto para NULL: las dejaría fuera.
  */
 const NOT_PRIVATE = { $or: [{ isPrivate: false }, { isPrivate: { $null: true } }] };
+
+/**
+ * Lo que un cliente puede ver: las suyas + las campañas (que son de todos),
+ * menos las privadas, que son de uso interno de la caja.
+ */
+function ownScope(userId) {
+  return { $and: [{ $or: [{ user: { id: userId } }, { user: null }] }, NOT_PRIVATE] };
+}
+
+/** Filtros del query string, sin `user` (el scope lo decide el JWT). */
+function incomingFilters(ctx) {
+  const where = {};
+  const incoming = ctx.query?.filters;
+  if (incoming && typeof incoming === 'object') {
+    // `used` llega como string y Postgres no compara boolean contra texto.
+    for (const [k, v] of Object.entries(incoming)) {
+      if (k === 'user') continue;
+      where[k] = normalize(v);
+    }
+  }
+  return where;
+}
 
 const AVAILABILITY = ['always', 'weekdays', 'dateRange'];
 const APPLIES_TO = ['all', 'package', 'extras'];

@@ -5,10 +5,14 @@ import type { StrapiCollectionResponse } from "@/types/strapi";
 
 /**
  * Sin `filters[user]`: esa clave devolvía 400 "Invalid key user" para el rol
- * `authenticated`. El backend filtra por el JWT (backend/src/utils/owner-scope.ts).
+ * `authenticated`. El backend filtra por el JWT.
+ *
+ * Va a `/mine` y no a `/promotions`: ese `find` le devuelve TODAS las promos a
+ * un admin (es el que usa el panel), y aquí quien pregunta es el cliente,
+ * aunque tenga rol de staff.
  */
 export async function listMyPromotions(): Promise<Promotion[]> {
-  const res = await strapiServerFetch<StrapiCollectionResponse<Promotion>>("/api/promotions", {
+  const res = await strapiServerFetch<StrapiCollectionResponse<Promotion>>("/api/promotions/mine", {
     query: {
       "filters[used][$eq]": "false",
       "sort[0]": "validUntil:asc",
