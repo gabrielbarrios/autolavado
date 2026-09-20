@@ -8,6 +8,7 @@ import type {
   Service,
   ServiceStatus,
   VehicleType,
+  DiscountType,
 } from "@/types/models";
 
 export interface QRScanResult {
@@ -147,7 +148,7 @@ export interface ApplicablePromotion {
   description: string | null;
   kind: "personal" | "campaign";
   appliesTo: "all" | "package" | "extras";
-  discountType: "percent" | "fixed" | "free";
+  discountType: DiscountType;
   discountValue: number;
   discountLabel: string;
   /** Privada: el cliente no la conoce, la ofrece el cajero a criterio. */

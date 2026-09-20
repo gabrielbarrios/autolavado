@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPromotionAction } from "@/actions/promotions";
+import type { DiscountType, PromotionAppliesTo } from "@/types/models";
 
 const WEEKDAYS = [
   { value: 1, label: "Lun" },
@@ -32,7 +33,10 @@ export function PromotionForm() {
   const [availability, setAvailability] = React.useState<"always" | "weekdays" | "dateRange">(
     "always",
   );
-  const [discountType, setDiscountType] = React.useState<"percent" | "fixed" | "free">("percent");
+  const [discountType, setDiscountType] = React.useState<DiscountType>("percent");
+  // Controlado para poder pasarlo a "Solo lavado" al elegir precio fijo, que
+  // es el caso típico ("lavado a $99"); el admin puede cambiarlo después.
+  const [appliesTo, setAppliesTo] = React.useState<PromotionAppliesTo>("all");
   const [pending, setPending] = React.useState(false);
   const formRef = React.useRef<HTMLFormElement>(null);
 
@@ -47,6 +51,7 @@ export function PromotionForm() {
     formRef.current?.reset();
     setAvailability("always");
     setDiscountType("percent");
+    setAppliesTo("all");
     setOpen(false);
     router.refresh();
   }
@@ -104,6 +109,16 @@ export function PromotionForm() {
               />
               <RadioPill
                 name="discountType"
+                value="fixedPrice"
+                checked={discountType === "fixedPrice"}
+                onChange={() => {
+                  setDiscountType("fixedPrice");
+                  setAppliesTo("package");
+                }}
+                label="Precio fijo"
+              />
+              <RadioPill
+                name="discountType"
                 value="free"
                 checked={discountType === "free"}
                 onChange={() => setDiscountType("free")}
@@ -113,7 +128,11 @@ export function PromotionForm() {
             {discountType !== "free" && (
               <div className="max-w-[220px] space-y-2">
                 <Label htmlFor="discountValue">
-                  {discountType === "percent" ? "Porcentaje (%)" : "Pesos a descontar"}
+                  {discountType === "percent"
+                    ? "Porcentaje (%)"
+                    : discountType === "fixedPrice"
+                      ? "Precio final (pesos)"
+                      : "Pesos a descontar"}
                 </Label>
                 <Input
                   id="discountValue"
@@ -122,10 +141,16 @@ export function PromotionForm() {
                   min="1"
                   max={discountType === "percent" ? "100" : undefined}
                   step={discountType === "percent" ? "1" : "0.01"}
-                  defaultValue={discountType === "percent" ? "20" : "50"}
+                  defaultValue={discountType === "percent" ? "20" : discountType === "fixedPrice" ? "99" : "50"}
                   required
                 />
               </div>
+            )}
+            {discountType === "fixedPrice" && (
+              <p className="text-xs text-muted-foreground">
+                Se cobra ese precio en lugar del de catálogo, sin importar el tipo de auto. Si el
+                catálogo ya es más barato, no descuenta nada: una promoción nunca encarece.
+              </p>
             )}
           </fieldset>
 
@@ -133,10 +158,33 @@ export function PromotionForm() {
           <fieldset className="space-y-3">
             <legend className="text-sm font-medium">¿Sobre qué aplica?</legend>
             <div className="flex flex-wrap gap-2">
-              <RadioPill name="appliesTo" value="all" defaultChecked label="Lavado y extras" />
-              <RadioPill name="appliesTo" value="package" label="Solo lavado" />
-              <RadioPill name="appliesTo" value="extras" label="Solo servicios extra" />
+              <RadioPill
+                name="appliesTo"
+                value="all"
+                checked={appliesTo === "all"}
+                onChange={() => setAppliesTo("all")}
+                label="Lavado y extras"
+              />
+              <RadioPill
+                name="appliesTo"
+                value="package"
+                checked={appliesTo === "package"}
+                onChange={() => setAppliesTo("package")}
+                label="Solo lavado"
+              />
+              <RadioPill
+                name="appliesTo"
+                value="extras"
+                checked={appliesTo === "extras"}
+                onChange={() => setAppliesTo("extras")}
+                label="Solo servicios extra"
+              />
             </div>
+            {discountType === "fixedPrice" && appliesTo === "all" && (
+              <p className="text-xs text-amber-300">
+                Con «Lavado y extras», el precio fijo es por todo el ticket, extras incluidos.
+              </p>
+            )}
           </fieldset>
 
           {/* Disponibilidad */}

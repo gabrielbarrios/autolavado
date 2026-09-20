@@ -1,6 +1,6 @@
 import { strapiFetch } from "./client";
 import { strapiServerFetch } from "./server";
-import type { Promotion, LoyaltyProgress, PublicCampaign } from "@/types/models";
+import type { Promotion, LoyaltyProgress, PublicCampaign, DiscountType } from "@/types/models";
 import type { StrapiCollectionResponse } from "@/types/strapi";
 
 /**
@@ -73,7 +73,7 @@ export interface PromotionPayload {
   availability: "always" | "weekdays" | "dateRange";
   weekdays?: number[];
   appliesTo: "all" | "package" | "extras";
-  discountType: "percent" | "fixed" | "free";
+  discountType: DiscountType;
   discountValue: number;
   validFrom?: string | null;
   validUntil?: string | null;

@@ -10,7 +10,7 @@ export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 días
 export const APPOINTMENT_STATUSES = ["pending", "approved", "cancelled", "completed"] as const;
 export const ORDER_STATUSES = ["pending", "paid", "shipped", "delivered", "cancelled"] as const;
 export const PRODUCT_CATEGORIES = ["limpieza", "interior", "exterior", "accesorios", "otros"] as const;
-export const DISCOUNT_TYPES = ["percent", "fixed", "free"] as const;
+export const DISCOUNT_TYPES = ["percent", "fixed", "fixedPrice", "free"] as const;
 
 /**
  * Respaldo cuando no se pudo leer Configuración del sitio. El valor real es

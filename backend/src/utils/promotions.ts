@@ -162,6 +162,11 @@ export function discountBase(promo, breakdown) {
 /**
  * Cuánto descuenta una promo sobre un servicio. Nunca pasa de la base
  * aplicable: un "-$200" sobre extras de $150 descuenta $150, no regala $50.
+ *
+ * `fixedPrice` ("lavado a $99"): la base se cobra a `discountValue` en vez del
+ * precio de catálogo, así que el descuento es la diferencia. Si el catálogo ya
+ * era más barato que el precio fijo, no descuenta nada: una promoción nunca
+ * encarece el ticket.
  */
 export function computePromotionDiscount(promo, breakdown) {
   const base = discountBase(promo, breakdown);
@@ -172,6 +177,8 @@ export function computePromotionDiscount(promo, breakdown) {
     raw = (base * Number(promo.discountValue ?? 0)) / 100;
   } else if (promo.discountType === 'fixed') {
     raw = Number(promo.discountValue ?? 0);
+  } else if (promo.discountType === 'fixedPrice') {
+    raw = base - Number(promo.discountValue ?? 0);
   } else if (promo.discountType === 'free') {
     raw = base;
   }
@@ -209,5 +216,6 @@ export function generatePromotionCode(title) {
 export function describeDiscount(promo) {
   if (promo.discountType === 'percent') return `${Number(promo.discountValue ?? 0)}%`;
   if (promo.discountType === 'fixed') return `-$${Number(promo.discountValue ?? 0)}`;
+  if (promo.discountType === 'fixedPrice') return `Precio fijo $${Number(promo.discountValue ?? 0)}`;
   return 'Gratis';
 }

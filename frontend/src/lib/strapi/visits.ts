@@ -7,10 +7,17 @@ import type { StrapiCollectionResponse } from "@/types/strapi";
  * puede leer `plugin::users-permissions.user`, así que Strapi rechazaba esa
  * clave con 400 "Invalid key user". El backend filtra por el JWT — ver
  * backend/src/utils/owner-scope.ts.
+ *
+ * Todas mandan `scope=mine`: sin él, a un usuario con rol de staff el backend
+ * le devuelve los registros de TODOS los clientes (es lo que necesita el
+ * panel), y en /perfil aparecía el auto de otro como "Tu auto ahora".
  */
+const MINE = { scope: "mine" } as const;
+
 export async function listMyVisits(): Promise<Visit[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Visit>>("/api/visits", {
     query: {
+      ...MINE,
       "sort[0]": "date:desc",
     },
     cache: "no-store",
@@ -21,6 +28,7 @@ export async function listMyVisits(): Promise<Visit[]> {
 export async function listMyServices(): Promise<Service[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Service>>("/api/services", {
     query: {
+      ...MINE,
       "filters[status][$eq]": "completed",
       "sort[0]": "date:desc",
     },
@@ -36,6 +44,7 @@ export async function listMyServices(): Promise<Service[]> {
 export async function listMyActiveServices(): Promise<Service[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Service>>("/api/services", {
     query: {
+      ...MINE,
       "filters[status][$in][0]": "waiting",
       "filters[status][$in][1]": "in_progress",
       "filters[status][$in][2]": "to_pay",

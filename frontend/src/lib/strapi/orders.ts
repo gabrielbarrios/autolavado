@@ -43,6 +43,8 @@ export async function createOrder(payload: CreateOrderPayload) {
 export async function listMyOrders(): Promise<Order[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<Order>>("/api/orders", {
     query: {
+      // Solo los míos aunque tenga rol de staff (ver owner-scope.ts).
+      scope: "mine",
       "sort[0]": "createdAt:desc",
     },
     cache: "no-store",

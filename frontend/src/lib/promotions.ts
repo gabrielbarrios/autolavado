@@ -7,6 +7,7 @@ const DAY_NAMES = ["domingos", "lunes", "martes", "miércoles", "jueves", "viern
 export function discountLabel(promo: Pick<Promotion, "discountType" | "discountValue">): string {
   if (promo.discountType === "percent") return `${promo.discountValue}% off`;
   if (promo.discountType === "fixed") return `-$${promo.discountValue}`;
+  if (promo.discountType === "fixedPrice") return `Precio fijo $${promo.discountValue}`;
   return "Gratis";
 }
 

@@ -3,8 +3,10 @@ import type { Appointment, AppointmentStatus } from "@/types/models";
 import type { StrapiCollectionResponse, StrapiSingleResponse } from "@/types/strapi";
 
 export async function listMyAppointments(_userId?: number): Promise<Appointment[]> {
-  // El backend ya filtra por usuario autenticado
+  // El backend filtra por el usuario del JWT. `scope=mine` hace que también un
+  // admin reciba solo las suyas cuando entra como cliente (ver owner-scope.ts).
   const res = await strapiServerFetch<StrapiCollectionResponse<Appointment>>("/api/appointments", {
+    query: { scope: "mine" },
     cache: "no-store",
   });
   return res.data ?? [];

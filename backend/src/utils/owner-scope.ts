@@ -94,9 +94,23 @@ function parseSort(sort, sortable, fallback) {
 }
 
 /**
+ * ¿El frontend pidió explícitamente "solo lo mío" (`?scope=mine`)?
+ *
+ * El staff también usa la app como cliente (/perfil, /historial, /pedidos), y
+ * ahí su rol no debe darle los registros de los demás: sin esto, un admin veía
+ * el auto de otro cliente en "Tu auto ahora". Las vistas de cliente del
+ * frontend mandan siempre `scope=mine`; las del panel no mandan nada y siguen
+ * viendo todo. Un cliente que lo omita queda igual de acotado que antes: el
+ * flag solo puede RESTRINGIR, nunca ampliar.
+ */
+export function wantsOwnScope(ctx) {
+  return ctx.query?.scope === 'mine';
+}
+
+/**
  * Construye un `find` que exige sesión, fuerza `user = <id del JWT>` para los
- * clientes (el admin sigue viendo todo) y solo puebla la relación `user` cuando
- * quien pregunta es admin.
+ * clientes (el admin sigue viendo todo, salvo que pida `scope=mine`) y solo
+ * puebla la relación `user` cuando quien pregunta es admin.
  */
 export function ownerScopedFind(
   uid: string,
@@ -112,7 +126,7 @@ export function ownerScopedFind(
   return async function find(ctx) {
     const userId = ctx.state.user?.id;
     if (!userId) return ctx.unauthorized('Sesión requerida');
-    const isAdmin = !alwaysOwn && isAdminLike(ctx.state.user);
+    const isAdmin = !alwaysOwn && !wantsOwnScope(ctx) && isAdminLike(ctx.state.user);
 
     const incoming = ctx.query?.filters;
     const where =

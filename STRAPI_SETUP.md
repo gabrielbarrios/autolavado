@@ -85,7 +85,7 @@ Ve a **Content-Type Builder** y crea los siguientes:
 - `appliesTo` — Enumeration (`all`, `package`, `extras`)
 - `active` — Boolean (default true)
 - `isPrivate` — Boolean (default false). Privada: solo la ve el cajero en `/api/qr/available-promotions`; nunca sale en `/api/promotions/campaigns` (web pública) ni en `/api/promotions/available` (cliente)
-- `discountType` — Enumeration (`percent`, `fixed`, `free`)
+- `discountType` — Enumeration (`percent`, `fixed`, `fixedPrice`, `free`). `fixedPrice` = la parte del ticket a la que aplica (`appliesTo`) se cobra a `discountValue` en vez del precio de catálogo; el descuento es la diferencia y nunca es negativo (ver `computePromotionDiscount`)
 - `discountValue` — Decimal
 - `validFrom` — DateTime
 - `validUntil` — DateTime
@@ -167,6 +167,7 @@ Habilita:
 - `order`, `order-item`: find, findOne, create.
 - `promotion`, `loyalty-progress`, `visit`, `service`: find, findOne.
 - `promotion`: además `available` y `mine`. La vista de cliente (/perfil, /mis-promociones) usa `/api/promotions/mine` y no `find`: `find` le devuelve todo el catálogo a un admin (lo usa el panel de promociones), mientras que `mine` siempre devuelve "las mías + campañas públicas" sin importar el rol. `loyalty-progress.find` filtra siempre por el JWT (`alwaysOwn`) por la misma razón.
+- `?scope=mine` en `find` de `service`, `visit`, `order` y `appointment`: fuerza "solo lo mío" aunque el usuario sea staff. Lo mandan las funciones `listMy*` del frontend (vistas de cliente); las `listAll*` del panel no lo mandan y ven todo. Solo restringe, nunca amplía.
 
 > **Importante**: para que cada cliente solo vea sus propios recursos, el frontend incluye filtros `filters[user][id][$eq]=<id>`. Para reforzarlo en backend, considera middlewares custom o policies en cada controller.
 

@@ -245,7 +245,7 @@ function incomingFilters(ctx) {
 
 const AVAILABILITY = ['always', 'weekdays', 'dateRange'];
 const APPLIES_TO = ['all', 'package', 'extras'];
-const DISCOUNT_TYPES = ['percent', 'fixed', 'free'];
+const DISCOUNT_TYPES = ['percent', 'fixed', 'fixedPrice', 'free'];
 
 /**
  * Normaliza lo que manda el formulario del admin. Se limpia acá y no en el
@@ -253,7 +253,7 @@ const DISCOUNT_TYPES = ['percent', 'fixed', 'free'];
  */
 function sanitizeCampaign(data) {
   const availability = AVAILABILITY.includes(data.availability) ? data.availability : 'always';
-  const discountType = DISCOUNT_TYPES.includes(data.discountType) ? data.discountType : 'percent';
+  let discountType = DISCOUNT_TYPES.includes(data.discountType) ? data.discountType : 'percent';
 
   let discountValue = Number(data.discountValue ?? 0);
   if (!isFinite(discountValue) || discountValue < 0) discountValue = 0;
@@ -261,6 +261,8 @@ function sanitizeCampaign(data) {
   // guardarlo así solo confunde al que lea el catálogo.
   if (discountType === 'percent') discountValue = Math.min(discountValue, 100);
   if (discountType === 'free') discountValue = 0;
+  // Un precio fijo de $0 es "gratis" disfrazado y confunde al leer el catálogo.
+  if (discountType === 'fixedPrice' && discountValue <= 0) discountType = 'free';
 
   const weekdays =
     availability === 'weekdays'

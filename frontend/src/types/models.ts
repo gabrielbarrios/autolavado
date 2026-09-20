@@ -174,7 +174,11 @@ export interface Visit {
   extraServices?: ExtraService[];
 }
 
-export type DiscountType = "percent" | "fixed" | "free";
+/**
+ * `fixedPrice`: la parte del ticket a la que aplica se cobra a `discountValue`
+ * en vez del precio de catálogo ("lavado a $99"). Nunca encarece.
+ */
+export type DiscountType = "percent" | "fixed" | "fixedPrice" | "free";
 
 /** `personal` = recompensa de fidelidad de un cliente. `campaign` = oferta del negocio. */
 export type PromotionKind = "personal" | "campaign";

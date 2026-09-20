@@ -10,6 +10,7 @@
  * - `find/findOne`: el cliente sólo ve SUS reservaciones, el admin las ve todas.
  */
 import { factories } from '@strapi/strapi';
+import { wantsOwnScope } from '../../../utils/owner-scope';
 import {
   computeAppointmentTotal,
   APPOINTMENT_PRICING_POPULATE,
@@ -397,7 +398,10 @@ export default factories.createCoreController('api::appointment.appointment', ({
     if (!userId) return ctx.unauthorized('Sesión requerida');
 
     const role = ctx.state.user?.role?.type ?? ctx.state.user?.role?.name?.toLowerCase();
-    const isAdmin = role === 'admin' || (role?.includes && role.includes('admin'));
+    // `scope=mine`: la vista de cliente de un admin quiere SUS reservaciones,
+    // no las de todos (ver wantsOwnScope en utils/owner-scope.ts).
+    const isAdmin =
+      !wantsOwnScope(ctx) && (role === 'admin' || (role?.includes && role.includes('admin')));
 
     const filters = isAdmin ? {} : { user: { id: userId } };
     if (ctx.query.filters && typeof ctx.query.filters === 'object') {

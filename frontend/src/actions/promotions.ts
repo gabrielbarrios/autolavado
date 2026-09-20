@@ -40,6 +40,9 @@ function parseForm(formData: FormData): PromotionPayload | { error: string } {
   if (discountType === "percent" && discountValue > 100) {
     return { error: "Un porcentaje no puede pasar de 100" };
   }
+  if (discountType === "fixedPrice" && discountValue <= 0) {
+    return { error: "El precio fijo debe ser mayor a cero (para regalarlo usa Gratis)" };
+  }
 
   const weekdays = formData
     .getAll("weekdays")
