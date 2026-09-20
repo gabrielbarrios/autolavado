@@ -60,16 +60,19 @@ function isAnyAdmin(user) {
 }
 
 /**
- * Resuelve a qué admin se le acredita un servicio completado.
- * - Por defecto: el admin que ejecuta la acción (JWT).
- * - Si es super admin y manda performedByAdminId (que sea admin/superadmin): ese.
+ * Resuelve a quién se le acredita un servicio (performedBy).
+ * - Por defecto: quien ejecuta la acción (JWT).
+ * - Si manda performedByAdminId y quien actúa es del mostrador (empleado,
+ *   admin o super admin): ese, siempre que también sea del mostrador. Un
+ *   empleado puede iniciar el lavado desde su sesión y acreditárselo al
+ *   compañero que realmente lo lava.
  */
 async function resolvePerformedBy(actingUserId, performedByAdminId) {
   const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
     where: { id: actingUserId },
     populate: { role: true },
   });
-  if (performedByAdminId && isSuperAdmin(acting)) {
+  if (performedByAdminId && isAnyAdmin(acting)) {
     const target = await strapi.db.query('plugin::users-permissions.user').findOne({
       where: { id: Number(performedByAdminId) },
       populate: { role: true },
@@ -886,6 +889,41 @@ export default {
         totalSeconds,
         avgSeconds: rows.length > 0 ? Math.round(totalSeconds / rows.length) : 0,
       },
+    };
+  },
+
+  /**
+   * GET /api/qr/staff
+   * Quién atiende el negocio (empleados, admins, super admin), recortado a lo
+   * que necesita el selector "Acreditar a" del tablero. Lo puede pedir
+   * cualquier miembro del mostrador; a diferencia de /api/users, no expone
+   * el padrón de clientes.
+   */
+  async staff(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+    const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: actingUserId },
+      populate: { role: true },
+    });
+    if (!isAnyAdmin(acting)) return ctx.forbidden('Solo el personal');
+
+    const staffRoles = await strapi.db.query('plugin::users-permissions.role').findMany({
+      where: { type: { $in: ['admin', 'superadmin', 'employee'] } },
+    });
+    const users = await strapi.db.query('plugin::users-permissions.user').findMany({
+      where: { role: { id: { $in: staffRoles.map((r) => r.id) } }, blocked: { $ne: true } },
+      populate: { role: true },
+      orderBy: { name: 'asc' },
+    });
+
+    ctx.body = {
+      staff: users.map((u) => ({
+        id: u.id,
+        name: u.name ?? u.username ?? u.email,
+        email: u.email,
+        role: u.role?.type ?? null,
+      })),
     };
   },
 

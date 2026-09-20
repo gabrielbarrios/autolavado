@@ -125,7 +125,7 @@ export function WalkInForm({
               placeholder="Solo para tu registro (opcional)"
             />
             <p className="text-xs text-muted-foreground">
-              Este servicio NO acumula fidelidad. Sirve para registrar walk-ins sin cuenta.
+              Este servicio NO acumula fidelidad. Sirve para registrar visitantes sin cuenta.
             </p>
           </div>
         </CardContent>
@@ -323,7 +323,7 @@ export function WalkInForm({
             disabled={submitting || (!packageId && selectedExtras.size === 0)}
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Registrar servicio walk-in
+            Registrar servicio de visitante
           </Button>
         </CardContent>
       </Card>

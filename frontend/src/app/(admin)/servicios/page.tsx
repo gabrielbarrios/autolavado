@@ -35,7 +35,7 @@ export default async function ServiciosPage() {
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Walk-ins</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Visitantes</p>
             <p className="mt-1 text-2xl font-bold">{walkInCount}</p>
           </CardContent>
         </Card>
@@ -77,7 +77,7 @@ export default async function ServiciosPage() {
                       <td className="px-4 py-3">
                         {s.isWalkIn ? (
                           <div>
-                            <Badge variant="info" className="text-[10px]">Walk-in</Badge>
+                            <Badge variant="info" className="text-[10px]">Visitante</Badge>
                             <p className="mt-0.5">{s.customerName || "Sin nombre"}</p>
                           </div>
                         ) : (
@@ -136,7 +136,7 @@ export default async function ServiciosPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {s.isWalkIn && (
-                            <Badge variant="info" className="text-[10px]">Walk-in</Badge>
+                            <Badge variant="info" className="text-[10px]">Visitante</Badge>
                           )}
                           <p className="truncate font-medium">{cliente}</p>
                         </div>

@@ -11,7 +11,7 @@ import type { UserRole } from "@/types/models";
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/escanear", label: "Escanear QR", icon: QrCode },
-  { href: "/walk-in", label: "Walk-in", icon: UserPlus },
+  { href: "/walk-in", label: "Visitante", icon: UserPlus },
   { href: "/en-progreso", label: "Tablero", icon: Clock },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/paquetes-admin", label: "Paquetes", icon: Package },

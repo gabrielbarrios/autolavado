@@ -167,6 +167,7 @@ Habilita:
 - `order`, `order-item`: find, findOne, create.
 - `promotion`, `loyalty-progress`, `visit`, `service`: find, findOne.
 - `promotion`: además `available` y `mine`. La vista de cliente (/perfil, /mis-promociones) usa `/api/promotions/mine` y no `find`: `find` le devuelve todo el catálogo a un admin (lo usa el panel de promociones), mientras que `mine` siempre devuelve "las mías + campañas públicas" sin importar el rol. `loyalty-progress.find` filtra siempre por el JWT (`alwaysOwn`) por la misma razón.
+- Rol `employee`: puede crear servicios extra (`extra-service.create`, pantalla /extras-admin), no editarlos ni borrarlos. Ve y aprueba/reprograma/cancela TODAS las reservaciones (`appointment.find/update` usan `isAdminLike`), y puede acreditar un lavado a otro compañero al iniciarlo (`/api/qr/start-service` con `performedByAdminId`, lista de personal en `GET /api/qr/staff`).
 - `?scope=mine` en `find` de `service`, `visit`, `order` y `appointment`: fuerza "solo lo mío" aunque el usuario sea staff. Lo mandan las funciones `listMy*` del frontend (vistas de cliente); las `listAll*` del panel no lo mandan y ven todo. Solo restringe, nunca amplía.
 
 > **Importante**: para que cada cliente solo vea sus propios recursos, el frontend incluye filtros `filters[user][id][$eq]=<id>`. Para reforzarlo en backend, considera middlewares custom o policies en cada controller.

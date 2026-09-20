@@ -29,7 +29,8 @@ interface ServiceBoardProps {
   waiting: Service[];
   inProgress: Service[];
   toPay: Service[];
-  isSuperAdmin?: boolean;
+  /** Mostrar el selector "Acreditar a" (todo el mostrador, si cargó el personal). */
+  canCredit?: boolean;
   admins?: AdminOption[];
   currentUserId?: number | null;
 }
@@ -63,7 +64,7 @@ export function ServiceBoard({
   waiting,
   inProgress,
   toPay,
-  isSuperAdmin = false,
+  canCredit = false,
   admins = [],
   currentUserId = null,
 }: ServiceBoardProps) {
@@ -74,7 +75,7 @@ export function ServiceBoard({
           <WaitingCard
             key={s.id}
             service={s}
-            isSuperAdmin={isSuperAdmin}
+            canCredit={canCredit}
             admins={admins}
             currentUserId={currentUserId}
           />
@@ -139,7 +140,7 @@ function ServiceSummary({ service: s }: { service: Service }) {
       <div className="flex items-start justify-between gap-2">
         {/* div y no p: Badge renderiza un <div>, que no es válido dentro de <p>. */}
         <div className="flex flex-wrap items-center gap-1 font-medium">
-          {s.isWalkIn && <Badge variant="info" className="text-[10px]">Walk-in</Badge>}
+          {s.isWalkIn && <Badge variant="info" className="text-[10px]">Visitante</Badge>}
           {s.appointment && (
             <Badge variant="warning" className="text-[10px]">
               Cita {formatTime(s.appointment.timeSlot)}
@@ -251,12 +252,12 @@ function CreditSelect({
 
 function WaitingCard({
   service: s,
-  isSuperAdmin,
+  canCredit,
   admins,
   currentUserId,
 }: {
   service: Service;
-  isSuperAdmin: boolean;
+  canCredit: boolean;
   admins: AdminOption[];
   currentUserId: number | null;
 }) {
@@ -266,7 +267,7 @@ function WaitingCard({
 
   async function onStart() {
     setLoading(true);
-    const res = await startServiceAction(s.id, isSuperAdmin ? creditId ?? undefined : undefined);
+    const res = await startServiceAction(s.id, canCredit ? creditId ?? undefined : undefined);
     setLoading(false);
     if (!res.ok) return toast.error(res.error);
     toast.success("Lavado iniciado");
@@ -277,7 +278,7 @@ function WaitingCard({
     <Card>
       <CardContent className="space-y-3 p-4">
         <ServiceSummary service={s} />
-        {isSuperAdmin && (
+        {canCredit && (
           <div>
             <p className="mb-1 text-[10px] uppercase text-muted-foreground">Acreditar a</p>
             <CreditSelect admins={admins} value={creditId} onChange={setCreditId} />

@@ -15,16 +15,24 @@ export async function listAllUsers(): Promise<User[]> {
   return res.data ?? [];
 }
 
-/** Todo el que atiende el negocio: empleados, admins y super admins. */
-export async function listAdmins(): Promise<User[]> {
-  const users = await listAllUsers();
-  return users.filter((u) => {
-    const r =
-      typeof u.role === "string"
-        ? u.role
-        : (u.role?.type ?? u.role?.name ?? "").toLowerCase();
-    return r.includes("admin") || r === "employee" || r.includes("emplead");
+export interface StaffMember {
+  id: number;
+  name: string;
+  email: string;
+  role: string | null;
+}
+
+/**
+ * Todo el que atiende el negocio: empleados, admins y super admins. Va por
+ * `/api/qr/staff` y no por `/api/users`: el empleado no tiene permiso para
+ * listar usuarios (es el padrón de clientes) y aquí solo hace falta el
+ * personal, para el selector "Acreditar a" del tablero.
+ */
+export async function listStaff(): Promise<StaffMember[]> {
+  const res = await strapiServerFetch<{ staff: StaffMember[] }>("/api/qr/staff", {
+    cache: "no-store",
   });
+  return res.staff ?? [];
 }
 
 export interface EmployeeStatRow {

@@ -68,6 +68,12 @@ export default {
     },
     {
       method: 'GET',
+      path: '/qr/staff',
+      handler: 'qr.staff',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'GET',
       path: '/qr/employee-stats',
       handler: 'qr.employeeStats',
       config: { policies: [], middlewares: [] },

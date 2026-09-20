@@ -28,8 +28,10 @@ export const SNACK_NO_PRICE_LABEL = "Consultar";
 
 /**
  * Las únicas pantallas del panel a las que entra un empleado: la operación del
- * día. Todo lo demás (catálogo, promociones, clientes, snacks) es de admin y lo
- * bloquea `requireAdmin()` en cada página.
+ * día más el alta de "Otros servicios" (para registrar un extra que aún no
+ * está en el catálogo cuando llega el auto). Todo lo demás (paquetes,
+ * promociones, clientes, snacks) es de admin y lo bloquea `requireAdmin()` en
+ * cada página.
  *
  * Esta lista la usan el menú lateral (AdminShell) y `isEmployeeRoute()`. Su
  * espejo en el backend son los `EMPLOYEE_PERMISSIONS` de backend/src/index.ts:
@@ -41,6 +43,7 @@ export const EMPLOYEE_ROUTES = [
   "/walk-in",
   "/en-progreso",
   "/reservaciones",
+  "/extras-admin",
 ] as const;
 
 /**

@@ -83,6 +83,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
     'chargeService',
     'cancelService',
     'availablePromotions',
+    'staff',
   ],
 };
 
@@ -90,9 +91,9 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
  * Permisos del rol Empleado (el que atiende el mostrador).
  *
  * Es un admin recortado: opera el día a día — escanea QR, levanta walk-ins,
- * mueve el tablero y atiende reservaciones — pero NO toca el catálogo
- * (paquetes, otros servicios, snacks, productos), ni las promociones, ni el
- * padrón de clientes. Las pantallas que ve están listadas en
+ * mueve el tablero, atiende reservaciones y da de alta "otros servicios" —
+ * pero NO toca el resto del catálogo (paquetes, snacks, productos), ni las
+ * promociones, ni el padrón de clientes. Las pantallas que ve están listadas en
  * `EMPLOYEE_ROUTES` (frontend/src/lib/auth/guards.ts): las dos listas tienen
  * que moverse juntas.
  */
@@ -103,9 +104,12 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
   // la sesión del frontend lo degrada a "cliente" (ver resolveRole).
   'plugin::users-permissions.role': ['find', 'findOne'],
 
-  // Catálogo: solo lectura, es lo que se elige al cobrar un servicio.
+  // Catálogo: solo lectura, es lo que se elige al cobrar un servicio. La
+  // excepción es `extra-service.create`: el empleado puede dar de alta un
+  // servicio extra que no exista cuando llega el auto (pantalla /extras-admin).
+  // No lo edita ni lo borra.
   'api::package.package': ['find', 'findOne'],
-  'api::extra-service.extra-service': ['find', 'findOne'],
+  'api::extra-service.extra-service': ['find', 'findOne', 'create'],
   'api::vehicle-type.vehicle-type': ['find', 'findOne'],
   'api::snack.snack': ['find', 'findOne'],
   'api::snack-category.snack-category': ['find', 'findOne'],
@@ -133,6 +137,7 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
     'chargeService',
     'cancelService',
     'availablePromotions',
+    'staff',
   ],
 };
 

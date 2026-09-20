@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,10 @@ import { ExtraServiceForm } from "@/components/admin/extra-service-form";
 export const metadata = { title: "Otros servicios" };
 
 export default async function ExtrasAdminPage() {
-  // Pantalla de administración: el empleado se queda en su dashboard.
-  await requireAdmin();
+  // También la usa el empleado: puede dar de alta un servicio extra que no
+  // está en el catálogo al momento de registrar un auto. Es la única pantalla
+  // de catálogo que ve (ver EMPLOYEE_ROUTES).
+  await requireStaff();
   const items = await listAllExtraServicesAdmin().catch(() => []);
 
   return (

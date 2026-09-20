@@ -586,6 +586,13 @@ export interface ApiLoyaltyProgressLoyaltyProgress
       'oneToOne',
       'plugin::users-permissions.user'
     >;
+    visitsRequired: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
   };
 }
 
@@ -812,10 +819,13 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Text;
-    discountType: Schema.Attribute.Enumeration<['percent', 'fixed', 'free']> &
+    discountType: Schema.Attribute.Enumeration<
+      ['percent', 'fixed', 'fixedPrice', 'free']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'percent'>;
     discountValue: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    isPrivate: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     kind: Schema.Attribute.Enumeration<['personal', 'campaign']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'campaign'>;
@@ -1008,6 +1018,13 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
         number
       > &
       Schema.Attribute.DefaultTo<3>;
+    visitsForRewardUber: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
   };
 }
 

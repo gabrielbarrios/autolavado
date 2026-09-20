@@ -94,7 +94,7 @@ export function ChargeDialog({ service }: { service: Service }) {
     } else if (saved > 0) {
       toast.success(`Cobrado ${formatPrice(charged?.totalAmount ?? 0)} (${formatPrice(saved)} de descuento)`);
     } else if (service.isWalkIn) {
-      toast.success("Servicio walk-in cobrado");
+      toast.success("Servicio de visitante cobrado");
     } else {
       toast.success("Cobrado y visita registrada");
     }

@@ -66,11 +66,11 @@ Five roles, all of them users-permissions roles created idempotently by `bootstr
 
 The `(admin)` layout is gated by **`requireStaff()`** — employees, admins and super admins all get in. Which page each one sees is decided **inside the page**:
 
-- Employee-visible pages (dashboard, escanear, walk-in, en-progreso, reservaciones) need no extra guard. The list is `EMPLOYEE_ROUTES` in [frontend/src/lib/constants.ts](frontend/src/lib/constants.ts), and it also drives the sidebar in `AdminShell`.
+- Employee-visible pages (dashboard, escanear, walk-in, en-progreso, reservaciones, extras-admin) need no extra guard beyond `requireStaff()`. `extras-admin` is the one catalog screen an employee gets: they can create an extra service, not edit or delete it. The list is `EMPLOYEE_ROUTES` in [frontend/src/lib/constants.ts](frontend/src/lib/constants.ts), and it also drives the sidebar in `AdminShell`.
 - Every other `(admin)` page **must call `await requireAdmin()` first** — hiding the nav item is not access control. A new admin page without that call is reachable by an employee who types the URL.
 - `requireSuperAdmin()` for the owner-only pages (empleados).
 
-The backend mirror of `EMPLOYEE_ROUTES` is `EMPLOYEE_PERMISSIONS` in [backend/src/index.ts](backend/src/index.ts): the employee gets the whole `qr` counter API plus read-only catalog, but no create/delete on anything the owner administers. Adding an employee screen means touching both lists.
+The backend mirror of `EMPLOYEE_ROUTES` is `EMPLOYEE_PERMISSIONS` in [backend/src/index.ts](backend/src/index.ts): the employee gets the whole `qr` counter API plus read-only catalog (plus `extra-service.create`), but no update/delete on anything the owner administers. Adding an employee screen means touching both lists.
 
 `isAdminLike()` ([backend/src/utils/owner-scope.ts](backend/src/utils/owner-scope.ts)) means "works the counter" and **includes employees** — it is what lets them see other customers' appointments and services. For "may administer the catalog", use `isCatalogAdmin()` instead.
 

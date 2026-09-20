@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth/guards";
+import { requireAdmin, requireStaff } from "@/lib/auth/guards";
 import { StrapiError } from "@/lib/strapi/client";
 import {
   createPackage,
@@ -142,7 +142,8 @@ export async function createExtraServiceAction(
   _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  // Empleados incluidos: pueden dar de alta un extra al registrar un auto.
+  await requireStaff();
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { ok: false, error: "Ponle un nombre al servicio" };

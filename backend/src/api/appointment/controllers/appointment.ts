@@ -7,10 +7,11 @@
  *   de durationMinutes) + maxBookingsPerSlot del site-setting + horarios + días cerrados.
  * - `availableSlots`: GET /appointments/available-slots?date=YYYY-MM-DD&packageId=N
  *   Devuelve los slots disponibles para esa fecha y paquete.
- * - `find/findOne`: el cliente sólo ve SUS reservaciones, el admin las ve todas.
+ * - `find/findOne`: el cliente sólo ve SUS reservaciones; el staff (empleado,
+ *   admin, super admin) las ve todas y puede aprobarlas.
  */
 import { factories } from '@strapi/strapi';
-import { wantsOwnScope } from '../../../utils/owner-scope';
+import { isAdminLike, wantsOwnScope } from '../../../utils/owner-scope';
 import {
   computeAppointmentTotal,
   APPOINTMENT_PRICING_POPULATE,
@@ -312,8 +313,9 @@ export default factories.createCoreController('api::appointment.appointment', ({
     if (!userId) return ctx.unauthorized('Sesión requerida');
 
     const { id } = ctx.params;
-    const role = ctx.state.user?.role?.type ?? ctx.state.user?.role?.name?.toLowerCase();
-    const isAdmin = role === 'admin' || (role?.includes && role.includes('admin'));
+    // Todo el mostrador (empleado incluido) aprueba, reprograma y cancela
+    // reservaciones; el cliente solo toca las suyas y sin cambiar el estado.
+    const isAdmin = isAdminLike(ctx.state.user);
 
     const current = await strapi.db.query('api::appointment.appointment').findOne({
       where: { id },
@@ -397,11 +399,11 @@ export default factories.createCoreController('api::appointment.appointment', ({
     const userId = ctx.state.user?.id;
     if (!userId) return ctx.unauthorized('Sesión requerida');
 
-    const role = ctx.state.user?.role?.type ?? ctx.state.user?.role?.name?.toLowerCase();
-    // `scope=mine`: la vista de cliente de un admin quiere SUS reservaciones,
-    // no las de todos (ver wantsOwnScope en utils/owner-scope.ts).
-    const isAdmin =
-      !wantsOwnScope(ctx) && (role === 'admin' || (role?.includes && role.includes('admin')));
+    // El mostrador completo (empleado, admin, super admin) ve todas las
+    // reservaciones: /reservaciones es pantalla de empleado. `scope=mine` es la
+    // vista de cliente de alguien del staff: quiere SUS reservaciones, no las
+    // de todos (ver wantsOwnScope en utils/owner-scope.ts).
+    const isAdmin = !wantsOwnScope(ctx) && isAdminLike(ctx.state.user);
 
     const filters = isAdmin ? {} : { user: { id: userId } };
     if (ctx.query.filters && typeof ctx.query.filters === 'object') {
@@ -427,9 +429,9 @@ export default factories.createCoreController('api::appointment.appointment', ({
       populate: { package: true, vehicle: true, user: true, extraServices: true },
     });
     if (!item) return ctx.notFound('Reservación no encontrada');
-    const role = ctx.state.user?.role?.type ?? ctx.state.user?.role?.name?.toLowerCase();
-    const isAdmin = role === 'admin' || (role?.includes && role.includes('admin'));
-    if (!isAdmin && item.user?.id !== userId) return ctx.forbidden('No es tu reservación');
+    if (!isAdminLike(ctx.state.user) && item.user?.id !== userId) {
+      return ctx.forbidden('No es tu reservación');
+    }
     return { data: item };
   },
 }));
