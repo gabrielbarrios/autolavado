@@ -29,10 +29,8 @@ interface ServiceBoardProps {
   waiting: Service[];
   inProgress: Service[];
   toPay: Service[];
-  /** Mostrar el selector "Acreditar a" (todo el mostrador, si cargó el personal). */
-  canCredit?: boolean;
+  /** Personal del mostrador para el selector "¿Quién lo lava?". */
   admins?: AdminOption[];
-  currentUserId?: number | null;
 }
 
 function describeAuto(s: Service, types?: VehicleTypeDef[]): string {
@@ -64,21 +62,13 @@ export function ServiceBoard({
   waiting,
   inProgress,
   toPay,
-  canCredit = false,
   admins = [],
-  currentUserId = null,
 }: ServiceBoardProps) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Column title="En espera" tone="neutral" count={waiting.length} empty="Sin autos en espera.">
         {waiting.map((s) => (
-          <WaitingCard
-            key={s.id}
-            service={s}
-            canCredit={canCredit}
-            admins={admins}
-            currentUserId={currentUserId}
-          />
+          <WaitingCard key={s.id} service={s} admins={admins} />
         ))}
       </Column>
 
@@ -235,14 +225,15 @@ function CreditSelect({
 }: {
   admins: AdminOption[];
   value: number | null;
-  onChange: (id: number) => void;
+  onChange: (id: number | null) => void;
 }) {
   return (
     <select
       value={value ?? ""}
-      onChange={(e) => onChange(Number(e.target.value))}
+      onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
       className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
     >
+      <option value="">Selecciona quién lo lava…</option>
       {admins.map((a) => (
         <option key={a.id} value={a.id}>{a.name}</option>
       ))}
@@ -250,24 +241,24 @@ function CreditSelect({
   );
 }
 
-function WaitingCard({
-  service: s,
-  canCredit,
-  admins,
-  currentUserId,
-}: {
-  service: Service;
-  canCredit: boolean;
-  admins: AdminOption[];
-  currentUserId: number | null;
-}) {
+/**
+ * Un auto pasa a "Trabajando" solo con el nombre de quien lo lava: el selector
+ * arranca vacío y "Iniciar lavado" se habilita al elegir a alguien. Ese nombre
+ * es el que acumula lavados y ganancias en el panel de empleados.
+ *
+ * Si la lista de personal no cargó (permiso sin sembrar, Strapi caído), no se
+ * bloquea la operación: se avisa y el lavado se acredita a quien lo inicia.
+ */
+function WaitingCard({ service: s, admins }: { service: Service; admins: AdminOption[] }) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
-  const [creditId, setCreditId] = React.useState<number | null>(currentUserId);
+  const [creditId, setCreditId] = React.useState<number | null>(null);
+  const staffLoaded = admins.length > 0;
+  const canStart = !loading && (!staffLoaded || creditId !== null);
 
   async function onStart() {
     setLoading(true);
-    const res = await startServiceAction(s.id, canCredit ? creditId ?? undefined : undefined);
+    const res = await startServiceAction(s.id, creditId ?? undefined);
     setLoading(false);
     if (!res.ok) return toast.error(res.error);
     toast.success("Lavado iniciado");
@@ -278,13 +269,17 @@ function WaitingCard({
     <Card>
       <CardContent className="space-y-3 p-4">
         <ServiceSummary service={s} />
-        {canCredit && (
-          <div>
-            <p className="mb-1 text-[10px] uppercase text-muted-foreground">Acreditar a</p>
+        <div>
+          <p className="mb-1 text-[10px] uppercase text-muted-foreground">¿Quién lo lava?</p>
+          {staffLoaded ? (
             <CreditSelect admins={admins} value={creditId} onChange={setCreditId} />
-          </div>
-        )}
-        <Button size="sm" className="w-full" onClick={onStart} disabled={loading}>
+          ) : (
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-300">
+              No se pudo cargar la lista de empleados. El lavado se acreditará a tu usuario.
+            </p>
+          )}
+        </div>
+        <Button size="sm" className="w-full" onClick={onStart} disabled={!canStart}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           Iniciar lavado
         </Button>

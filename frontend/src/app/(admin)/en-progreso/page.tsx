@@ -1,22 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { listBoardServices } from "@/lib/strapi/qr";
 import { listStaff } from "@/lib/strapi/admin";
-import { getSession } from "@/lib/auth/session";
 import { ServiceBoard } from "@/components/admin/service-board";
 import { formatPrice } from "@/lib/utils";
 
 export const metadata = { title: "Tablero de servicios" };
 
 export default async function EnProgresoPage() {
-  const session = await getSession();
-  // El selector "Acreditar a" lo ve todo el mostrador: quien inicia el lavado
-  // desde su sesión puede acreditárselo al compañero que lo lava.
+  // El selector "¿Quién lo lava?" lo ve todo el mostrador: quien manda el auto
+  // a Trabajando elige al compañero que lo lava, y ese es quien lo acredita.
   const [board, staff] = await Promise.all([
     listBoardServices().catch(() => ({ waiting: [], in_progress: [], to_pay: [] })),
     listStaff().catch(() => []),
   ]);
   const admins = staff.map((u) => ({ id: u.id, name: u.name }));
-  const currentUserId = session?.user.id ?? null;
 
   const toPayTotal = board.to_pay.reduce((acc, s) => acc + Number(s.totalAmount ?? 0), 0);
 
@@ -42,9 +39,7 @@ export default async function EnProgresoPage() {
         waiting={board.waiting}
         inProgress={board.in_progress}
         toPay={board.to_pay}
-        canCredit={admins.length > 0}
         admins={admins}
-        currentUserId={currentUserId}
       />
     </div>
   );
