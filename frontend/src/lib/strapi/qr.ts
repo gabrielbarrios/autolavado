@@ -111,6 +111,28 @@ export async function finishService(
   });
 }
 
+export interface SetServiceExtrasResult {
+  service: {
+    id: number;
+    totalAmount: number;
+    extraServices: { id: number; name: string }[];
+  };
+}
+
+/**
+ * Reemplaza los servicios extra de un auto que sigue en el tablero. El backend
+ * recalcula el total; es lo que después cobra la caja.
+ */
+export async function setServiceExtras(
+  serviceId: number,
+  extraServiceIds: number[],
+): Promise<SetServiceExtrasResult> {
+  return strapiServerFetch<SetServiceExtrasResult>("/api/qr/set-extras", {
+    method: "POST",
+    body: { serviceId, extraServiceIds },
+  });
+}
+
 /**
  * in_progress → waiting: se asignó al empleado equivocado o el lavado se
  * detuvo. Vuelve a la fila sin dueño ni hora de inicio.

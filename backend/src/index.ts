@@ -84,6 +84,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
     'cancelService',
     'availablePromotions',
     'staff',
+    'setExtras',
   ],
 };
 
@@ -138,6 +139,7 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
     'cancelService',
     'availablePromotions',
     'staff',
+    'setExtras',
   ],
 };
 

@@ -14,10 +14,11 @@ import {
   revertServiceToWaitingAction,
 } from "@/actions/qr";
 import { ChargeDialog } from "@/components/admin/charge-dialog";
+import { ServiceExtrasDialog } from "@/components/admin/service-extras-dialog";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { formatTime } from "@/lib/business-hours";
 import { vehicleTypeLabel } from "@/lib/pricing";
-import type { Service, VehicleTypeDef } from "@/types/models";
+import type { ExtraService, Service, VehicleTypeDef } from "@/types/models";
 import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 export interface AdminOption {
@@ -31,6 +32,8 @@ interface ServiceBoardProps {
   toPay: Service[];
   /** Personal del mostrador para el selector "¿Quién lo lava?". */
   admins?: AdminOption[];
+  /** Catálogo de servicios extra activos, para el botón "Extras" de cada auto. */
+  extraServices?: ExtraService[];
 }
 
 function describeAuto(s: Service, types?: VehicleTypeDef[]): string {
@@ -63,18 +66,19 @@ export function ServiceBoard({
   inProgress,
   toPay,
   admins = [],
+  extraServices = [],
 }: ServiceBoardProps) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Column title="En espera" tone="neutral" count={waiting.length} empty="Sin autos en espera.">
         {waiting.map((s) => (
-          <WaitingCard key={s.id} service={s} admins={admins} />
+          <WaitingCard key={s.id} service={s} admins={admins} catalog={extraServices} />
         ))}
       </Column>
 
       <Column title="Trabajando" tone="info" count={inProgress.length} empty="Nadie lavando ahora.">
         {inProgress.map((s) => (
-          <InProgressCard key={s.id} service={s} />
+          <InProgressCard key={s.id} service={s} catalog={extraServices} />
         ))}
       </Column>
 
@@ -249,7 +253,15 @@ function CreditSelect({
  * Si la lista de personal no cargó (permiso sin sembrar, Strapi caído), no se
  * bloquea la operación: se avisa y el lavado se acredita a quien lo inicia.
  */
-function WaitingCard({ service: s, admins }: { service: Service; admins: AdminOption[] }) {
+function WaitingCard({
+  service: s,
+  admins,
+  catalog,
+}: {
+  service: Service;
+  admins: AdminOption[];
+  catalog: ExtraService[];
+}) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [creditId, setCreditId] = React.useState<number | null>(null);
@@ -283,13 +295,14 @@ function WaitingCard({ service: s, admins }: { service: Service; admins: AdminOp
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           Iniciar lavado
         </Button>
+        <ServiceExtrasDialog service={s} catalog={catalog} />
         <CancelButton serviceId={s.id} />
       </CardContent>
     </Card>
   );
 }
 
-function InProgressCard({ service: s }: { service: Service }) {
+function InProgressCard({ service: s, catalog }: { service: Service; catalog: ExtraService[] }) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
@@ -316,6 +329,7 @@ function InProgressCard({ service: s }: { service: Service }) {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           Terminar lavado
         </Button>
+        <ServiceExtrasDialog service={s} catalog={catalog} />
         <BackToWaitingButton serviceId={s.id} disabled={loading} />
         <CancelButton serviceId={s.id} />
       </CardContent>

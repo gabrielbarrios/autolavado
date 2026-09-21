@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { listBoardServices } from "@/lib/strapi/qr";
 import { listStaff } from "@/lib/strapi/admin";
+import { listExtraServices } from "@/lib/strapi/extra-services";
 import { ServiceBoard } from "@/components/admin/service-board";
 import { formatPrice } from "@/lib/utils";
 
@@ -9,9 +10,11 @@ export const metadata = { title: "Tablero de servicios" };
 export default async function EnProgresoPage() {
   // El selector "¿Quién lo lava?" lo ve todo el mostrador: quien manda el auto
   // a Trabajando elige al compañero que lo lava, y ese es quien lo acredita.
-  const [board, staff] = await Promise.all([
+  const [board, staff, extras] = await Promise.all([
     listBoardServices().catch(() => ({ waiting: [], in_progress: [], to_pay: [] })),
     listStaff().catch(() => []),
+    // Para el botón "Extras" de cada auto en espera o trabajando.
+    listExtraServices().catch(() => []),
   ]);
   const admins = staff.map((u) => ({ id: u.id, name: u.name }));
 
@@ -40,6 +43,7 @@ export default async function EnProgresoPage() {
         inProgress={board.in_progress}
         toPay={board.to_pay}
         admins={admins}
+        extraServices={extras}
       />
     </div>
   );

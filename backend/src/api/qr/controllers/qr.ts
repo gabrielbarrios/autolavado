@@ -420,6 +420,71 @@ export default {
   },
 
   /**
+   * POST /api/qr/set-extras
+   * Cambia los servicios extra de un auto que sigue en el tablero (waiting,
+   * in_progress o to_pay) y recalcula `totalAmount`, que es el subtotal que
+   * después usa chargeService. Reemplaza la lista completa: lo que no venga
+   * en `extraServiceIds` se quita. Los extras "a cotizar" entran en la lista
+   * pero suman $0: su monto lo captura la caja al cobrar, como siempre.
+   */
+  async setExtras(ctx) {
+    const { serviceId, extraServiceIds } = ctx.request.body ?? {};
+    if (!serviceId) return ctx.badRequest('serviceId requerido');
+    if (!Array.isArray(extraServiceIds)) {
+      return ctx.badRequest('extraServiceIds debe ser una lista');
+    }
+    if (!ctx.state.user?.id) return ctx.unauthorized('Sesión requerida');
+
+    const service = await strapi.db.query('api::service.service').findOne({
+      where: { id: serviceId },
+      populate: SERVICE_PRICING_POPULATE,
+    });
+    if (!service) return ctx.notFound('Servicio no encontrado');
+    if (!ACTIVE_STATUSES.includes(service.status)) {
+      return ctx.badRequest('Solo se pueden cambiar los extras de un servicio que sigue en el tablero');
+    }
+
+    const ids = [
+      ...new Set(extraServiceIds.map(Number).filter((n) => Number.isInteger(n) && n > 0)),
+    ];
+    const extras =
+      ids.length > 0
+        ? await strapi.db.query('api::extra-service.extra-service').findMany({
+            // Solo publicados: con draftAndPublish hay una fila borrador por
+            // cada documento y no se debe poder colar por id.
+            where: { id: { $in: ids }, publishedAt: { $notNull: true } },
+            populate: { pricing: true },
+          })
+        : [];
+    if (extras.length !== ids.length) return ctx.badRequest('Algún servicio extra no existe');
+    if (!service.package && extras.length === 0) {
+      return ctx.badRequest('Un servicio sin paquete necesita al menos un extra');
+    }
+
+    // Mismo cálculo que al registrar el servicio: precio por tipo de auto,
+    // Uber/Taxi y tarifa VIP del dueño (un visitante nunca es VIP).
+    const vehicleLike = service.vehicle ?? {
+      vehicleType: service.vehicleType,
+      isUberTaxi: service.isUberTaxi,
+    };
+    const isVip = service.user ? await isVipUserId(service.user.id) : false;
+    const totalAmount = computeTotal({ pkg: service.package, extras, vehicleLike, isVip });
+
+    const updated = await strapi.entityService.update('api::service.service', service.id, {
+      data: { extraServices: extras.map((e) => e.id), totalAmount },
+      populate: { extraServices: true },
+    });
+
+    ctx.body = {
+      service: {
+        id: updated.id,
+        totalAmount,
+        extraServices: (updated.extraServices ?? []).map((e) => ({ id: e.id, name: e.name })),
+      },
+    };
+  },
+
+  /**
    * POST /api/qr/revert-to-waiting
    * in_progress → waiting. Se equivocaron de empleado al asignarlo, o el lavado
    * se detuvo (se acabó un material). Se limpia `startedAt` y `performedBy`

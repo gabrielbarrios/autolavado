@@ -21,6 +21,8 @@ import {
   type WalkInServiceResult,
   type AppointmentToBoardResult,
   type ChargeServiceResult,
+  setServiceExtras,
+  type SetServiceExtrasResult,
 } from "@/lib/strapi/qr";
 import { redeemPromotion } from "@/lib/strapi/promotions";
 import { updateAppointmentStatus } from "@/lib/strapi/appointments";
@@ -167,6 +169,24 @@ export async function revertServiceToWaitingAction(
     return {
       ok: false,
       error: err instanceof StrapiError ? err.message : "No se pudo regresar el servicio a espera",
+    };
+  }
+}
+
+/** Cambia los extras de un auto en el tablero; el total se recalcula en el backend. */
+export async function setServiceExtrasAction(
+  serviceId: number,
+  extraServiceIds: number[],
+): Promise<ActionResult<SetServiceExtrasResult>> {
+  await requireStaff();
+  try {
+    const data = await setServiceExtras(serviceId, extraServiceIds);
+    revalidatePath("/en-progreso");
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudieron guardar los extras",
     };
   }
 }
