@@ -184,9 +184,15 @@ export async function setServiceExtrasAction(
     revalidatePath("/en-progreso");
     return { ok: true, data };
   } catch (err) {
+    // Un error que no es de Strapi (conexión rechazada, respuesta que no es
+    // JSON) casi siempre es "Strapi apagado o reiniciando": se dice tal cual y
+    // se deja rastro en el servidor para no adivinar.
+    console.error("[qr] set-extras failed", err);
+    if (err instanceof StrapiError) return { ok: false, error: err.message };
+    const detail = err instanceof Error ? err.message : String(err);
     return {
       ok: false,
-      error: err instanceof StrapiError ? err.message : "No se pudieron guardar los extras",
+      error: `No se pudieron guardar los extras: no hubo respuesta de Strapi (${detail})`,
     };
   }
 }
