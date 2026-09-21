@@ -88,11 +88,16 @@ export function ChargeDialog({ service }: { service: Service }) {
     if (!res.ok) return toast.error(res.error);
 
     const charged = res.data?.service;
+    // Puede ser negativo con una promo de precio fijo que subió el ticket.
     const saved = (charged?.promotionDiscount ?? 0) + (charged?.manualDiscount ?? 0);
     if (res.data?.promotionGenerated) {
       toast.success("🎉 ¡Cobrado y promoción generada para el cliente!", { duration: 6000 });
-    } else if (saved > 0) {
-      toast.success(`Cobrado ${formatPrice(charged?.totalAmount ?? 0)} (${formatPrice(saved)} de descuento)`);
+    } else if (saved !== 0) {
+      toast.success(
+        saved > 0
+          ? `Cobrado ${formatPrice(charged?.totalAmount ?? 0)} (${formatPrice(saved)} de descuento)`
+          : `Cobrado ${formatPrice(charged?.totalAmount ?? 0)} (precio fijo de la promoción)`,
+      );
     } else if (service.isWalkIn) {
       toast.success("Servicio de visitante cobrado");
     } else {
@@ -213,8 +218,9 @@ export function ChargeDialog({ service }: { service: Service }) {
               {promo && (
                 <Line
                   label={`${promo.title} (${promo.discountLabel})`}
-                  value={`− ${formatPrice(promoDiscount)}`}
-                  tone="discount"
+                  // Negativo = la promo de precio fijo sube el lavado a ese precio.
+                  value={promoDiscount >= 0 ? `− ${formatPrice(promoDiscount)}` : `+ ${formatPrice(-promoDiscount)}`}
+                  tone={promoDiscount >= 0 ? "discount" : undefined}
                 />
               )}
               {manualDiscount > 0 && (
@@ -286,7 +292,9 @@ function PromoOption({
       </div>
       {promo && (
         <Badge variant={selected ? "default" : "outline"} className="shrink-0 font-mono">
-          − {formatPrice(promo.discountAmount)}
+          {promo.discountAmount >= 0
+            ? `− ${formatPrice(promo.discountAmount)}`
+            : `+ ${formatPrice(-promo.discountAmount)}`}
         </Badge>
       )}
     </button>

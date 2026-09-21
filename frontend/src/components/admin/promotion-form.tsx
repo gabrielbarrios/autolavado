@@ -148,8 +148,9 @@ export function PromotionForm() {
             )}
             {discountType === "fixedPrice" && (
               <p className="text-xs text-muted-foreground">
-                Se cobra ese precio en lugar del de catálogo, sin importar el tipo de auto. Si el
-                catálogo ya es más barato, no descuenta nada: una promoción nunca encarece.
+                Se cobra exactamente ese precio en lugar del de catálogo, sin importar el paquete ni
+                el tipo de auto, aunque el catálogo sea más barato. Con «Solo lavado», los extras se
+                suman aparte.
               </p>
             )}
           </fieldset>

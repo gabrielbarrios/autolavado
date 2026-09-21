@@ -85,7 +85,7 @@ Ve a **Content-Type Builder** y crea los siguientes:
 - `appliesTo` — Enumeration (`all`, `package`, `extras`)
 - `active` — Boolean (default true)
 - `isPrivate` — Boolean (default false). Privada: solo la ve el cajero en `/api/qr/available-promotions`; nunca sale en `/api/promotions/campaigns` (web pública) ni en `/api/promotions/available` (cliente)
-- `discountType` — Enumeration (`percent`, `fixed`, `fixedPrice`, `free`). `fixedPrice` = la parte del ticket a la que aplica (`appliesTo`) se cobra a `discountValue` en vez del precio de catálogo; el descuento es la diferencia y nunca es negativo (ver `computePromotionDiscount`)
+- `discountType` — Enumeration (`percent`, `fixed`, `fixedPrice`, `free`). `fixedPrice` = la parte del ticket a la que aplica (`appliesTo`) se cobra a `discountValue` en vez del precio de catálogo, sin importar paquete ni tipo de auto; el descuento es la diferencia y PUEDE ser negativo (el paquete era más barato), por eso `service.promotionDiscount` no tiene `min` (ver `computePromotionDiscount`). Con `appliesTo = package` los extras se suman aparte
 - `discountValue` — Decimal
 - `validFrom` — DateTime
 - `validUntil` — DateTime

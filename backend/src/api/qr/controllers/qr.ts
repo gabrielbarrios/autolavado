@@ -637,8 +637,10 @@ export default {
         discountAmount: computePromotionDiscount(p, breakdown),
       }))
       // Una promo que no descuenta nada en este ticket (ej. solo-extras y el
-      // auto no lleva extras) solo estorbaría en la lista del cajero.
-      .filter((p) => p.discountAmount > 0)
+      // auto no lleva extras) solo estorbaría en la lista del cajero. La de
+      // precio fijo se queda siempre que tenga base: fija el precio aunque
+      // el ajuste sea 0 o negativo (el paquete era más barato).
+      .filter((p) => p.discountAmount > 0 || (p.discountType === 'fixedPrice' && p.discountAmount !== 0))
       .sort((a, b) => b.discountAmount - a.discountAmount);
 
     ctx.body = {
