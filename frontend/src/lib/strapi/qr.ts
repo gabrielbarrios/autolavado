@@ -4,6 +4,7 @@ import type {
   Vehicle,
   Promotion,
   LoyaltyProgress,
+  LoyaltyRow,
   Appointment,
   Service,
   ServiceStatus,
@@ -14,9 +15,10 @@ import type {
 export interface QRScanResult {
   user: User;
   vehicles: Vehicle[];
-  loyaltyProgress: LoyaltyProgress | null;
-  /** Visitas que necesita este cliente para su próxima promoción (Uber o normal). */
-  loyaltyTarget?: number;
+  /** Fidelidad por auto: cuántas visitas lleva cada uno y cuántas necesita. */
+  loyalty: LoyaltyRow[];
+  /** Visitas de antes del cambio a "por auto", aún sin asignar a ninguno. */
+  legacyLoyaltyCount?: number;
   activePromotions: Promotion[];
   todayAppointments: Appointment[];
   /** Todas las reservaciones del cliente (últimas 50, más recientes primero). */
@@ -159,6 +161,7 @@ export interface ChargeServiceResult {
     promotionTitle: string | null;
   };
   promotionGenerated: Promotion | null;
+  /** Contador del auto que se acaba de cobrar (ya actualizado por el lifecycle). */
   loyaltyProgress: LoyaltyProgress | null;
 }
 
@@ -177,6 +180,10 @@ export interface ApplicablePromotion {
   isPrivate?: boolean;
   /** Nombres de los paquetes en los que aplica. Vacío = cualquiera. */
   packages?: string[];
+  /** Recompensa de fidelidad: auto que la ganó ("Chevrolet Aveo · ABC-123"). */
+  vehicleLabel?: string | null;
+  /** La ganó un auto distinto al que se cobra. Informativo: la caja decide. */
+  otherVehicle?: boolean;
   /** Pesos que descontaría en ESTE ticket. */
   discountAmount: number;
 }

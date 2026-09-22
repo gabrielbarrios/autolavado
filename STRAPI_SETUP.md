@@ -92,12 +92,15 @@ Ve a **Content-Type Builder** y crea los siguientes:
 - `used` — Boolean (default false)
 - `usedAt` — DateTime
 - `user` — Relation: many to one → User
+- `vehicle` — Relation: many to one → Vehicle. Solo en recompensas de fidelidad: el auto que acumuló las visitas (informativo; el cajero decide si la aplica a otro auto)
 
 #### `loyalty-progress`
+Un registro **por auto** de cada cliente (desde 2026-09-21): cada auto acumula sus propias visitas y cierra el ciclo con su umbral. Un cliente con un auto normal y un Uber tiene dos contadores independientes.
 - `currentCount` — Integer (default 0)
-- `visitsRequired` — Integer. Umbral con el que se cierra el ciclo, fijado por el lifecycle en cada visita según el auto lavado (`visitsForRewardUber` si es Uber/Taxi, `visitsForReward` si no)
+- `visitsRequired` — Integer. Umbral con el que se cierra el ciclo de ese auto, fijado por el lifecycle en cada visita (`visitsForRewardUber` si es Uber/Taxi, `visitsForReward` si no)
 - `cycleStartedAt` — DateTime
-- `user` — Relation: one to one → User
+- `user` — Relation: many to one → User
+- `vehicle` — Relation: many to one → Vehicle. Los registros anteriores al cambio quedan con `vehicle` vacío; el lifecycle se los asigna (con sus visitas) al primer auto del cliente que se lave.
 
 #### `appointment`
 - `date` — Date (required)

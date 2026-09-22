@@ -47,11 +47,15 @@ export async function listPublicCampaigns(): Promise<PublicCampaign[]> {
   return res.data ?? [];
 }
 
-export async function getMyLoyaltyProgress(): Promise<LoyaltyProgress | null> {
+/**
+ * Contadores de fidelidad del cliente, uno por auto (el backend ya puebla
+ * `vehicle`). Se pintan con `buildLoyaltyRows` en lib/loyalty.ts.
+ */
+export async function listMyLoyaltyProgress(): Promise<LoyaltyProgress[]> {
   const res = await strapiServerFetch<StrapiCollectionResponse<LoyaltyProgress>>("/api/loyalty-progresses", {
     cache: "no-store",
   });
-  return res.data?.[0] ?? null;
+  return res.data ?? [];
 }
 
 export async function redeemPromotion(id: number) {

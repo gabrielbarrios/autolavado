@@ -1,5 +1,5 @@
 import { VISITS_FOR_REWARD } from "@/lib/constants";
-import type { LoyaltyProgress, SiteSetting, Vehicle } from "@/types/models";
+import type { LoyaltyProgress, LoyaltyRow, SiteSetting, Vehicle } from "@/types/models";
 
 /**
  * Umbrales del programa de fidelidad tal como los dejó el dueño en
@@ -18,19 +18,49 @@ export function loyaltyThresholds(setting: SiteSetting | null | undefined) {
   return { normal, uber };
 }
 
+/** "Chevrolet Aveo · ABC-123". Espejo de `describeVehicle` en el backend. */
+export function vehicleLabel(vehicle: Pick<Vehicle, "brand" | "model" | "plate">): string {
+  const name = [vehicle.brand, vehicle.model].filter(Boolean).join(" ").trim() || "Tu auto";
+  return vehicle.plate ? `${name} · ${vehicle.plate}` : name;
+}
+
 /**
- * Cuántas visitas necesita ESTE cliente para cerrar su ciclo. Manda lo que el
- * backend fijó en su última visita (`visitsRequired`, según el auto lavado);
- * si aún no tiene visitas se deduce de sus autos: todos Uber → umbral Uber.
- * Misma regla que `visitsRequiredForCustomer` en el backend.
+ * Cuántas visitas necesita ESTE auto para cerrar su ciclo. Manda lo que el
+ * backend fijó en su última visita (`visitsRequired`); si aún no tiene
+ * visitas, el umbral de la configuración según sea Uber/Taxi o normal.
  */
 export function resolveVisitsRequired(
-  loyalty: LoyaltyProgress | null | undefined,
+  progress: LoyaltyProgress | null | undefined,
   setting: SiteSetting | null | undefined,
-  vehicles: Vehicle[] = [],
+  vehicle: Pick<Vehicle, "isUberTaxi"> | null | undefined,
 ): number {
-  if (loyalty?.visitsRequired && loyalty.visitsRequired > 0) return loyalty.visitsRequired;
+  if (progress?.visitsRequired && progress.visitsRequired > 0) return progress.visitsRequired;
   const { normal, uber } = loyaltyThresholds(setting);
-  const allUber = vehicles.length > 0 && vehicles.every((v) => v.isUberTaxi);
-  return allUber ? uber : normal;
+  return vehicle?.isUberTaxi ? uber : normal;
+}
+
+/**
+ * Una fila por auto del cliente con su contador (0 si aún no tiene). Misma
+ * regla que `loyaltyByVehicle` en el backend, que es lo que ve el escáner.
+ *
+ * `legacyCount`: visitas de un contador de antes del cambio a "por auto" (sin
+ * `vehicle`). No se pierden: el backend se las suma al primer auto que se lave.
+ */
+export function buildLoyaltyRows(
+  vehicles: Vehicle[],
+  progresses: LoyaltyProgress[],
+  setting: SiteSetting | null | undefined,
+): { rows: LoyaltyRow[]; legacyCount: number } {
+  const rows = vehicles.map((vehicle) => {
+    const progress = progresses.find((p) => p.vehicle?.id === vehicle.id) ?? null;
+    return {
+      vehicleId: vehicle.id,
+      vehicleLabel: vehicleLabel(vehicle),
+      isUberTaxi: vehicle.isUberTaxi === true,
+      currentCount: progress?.currentCount ?? 0,
+      visitsRequired: resolveVisitsRequired(progress, setting, vehicle),
+    };
+  });
+  const legacy = progresses.find((p) => !p.vehicle);
+  return { rows, legacyCount: legacy?.currentCount ?? 0 };
 }

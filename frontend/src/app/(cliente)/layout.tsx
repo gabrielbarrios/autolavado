@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/guards";
+import { isStaffRole } from "@/lib/auth/session";
 import { loadMyActiveServices } from "@/lib/strapi/visits";
 import { ClienteShell } from "@/components/cliente/cliente-shell";
 import { listVehicleTypes } from "@/lib/strapi/vehicle-types";
@@ -6,7 +7,7 @@ import { getSiteSetting } from "@/lib/strapi/site-setting";
 import { VehicleTypesProvider } from "@/components/shared/vehicle-types-provider";
 
 export default async function ClienteLayout({ children }: { children: React.ReactNode }) {
-  const { user } = await requireUser();
+  const { user, role } = await requireUser();
   // El contador del nav vive en el layout para que se vea desde cualquier página
   // del cliente, no solo en /perfil. Se refresca con cada router.refresh().
   const [active, vehicleTypes, setting] = await Promise.all([
@@ -20,6 +21,8 @@ export default async function ClienteLayout({ children }: { children: React.Reac
       <ClienteShell
         user={{ name: user.name ?? user.username, email: user.email }}
         brand={{ name: setting?.businessName, logo: setting?.logo }}
+        role={role}
+        isStaff={isStaffRole(role)}
         activeServices={active.services.length}
       >
         {children}

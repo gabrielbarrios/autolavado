@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import type { Core } from '@strapi/strapi';
 import { applyAdminLabels } from './utils/admin-labels';
 import { generatePromotionCode, describeDiscount } from './utils/promotions';
-import { loadLoyaltyConfig, visitsRequiredFor } from './utils/loyalty';
+import { loadLoyaltyConfig, visitsRequiredFor, describeVehicle } from './utils/loyalty';
 
 /**
  * Permisos que se aplican automáticamente al arrancar Strapi.
@@ -473,9 +473,10 @@ export default {
         });
         const userId = visit?.user?.id;
         if (!userId) return;
+        const vehicleId = visit.vehicle?.id ?? null;
 
         const reward = await loadLoyaltyConfig();
-        // Umbral de ESTA visita: un Uber/Taxi cierra el ciclo con
+        // Umbral de ESTE auto: un Uber/Taxi cierra el ciclo con
         // `visitsForRewardUber`; cualquier otro auto con `visitsForReward`.
         const visitsRequired = visitsRequiredFor(reward, visit.vehicle);
         const now = new Date();
@@ -490,24 +491,47 @@ export default {
           data: { visitCount: (userRecord?.visitCount ?? 0) + 1 },
         });
 
-        // Progreso del ciclo de fidelidad (se resetea al llegar al umbral).
-        // `visitsRequired` se guarda para que la barra del cliente y el
-        // escáner muestren el "/ N" correcto sin repetir esta lógica.
-        const existing = await strapi.entityService.findMany(
-          'api::loyalty-progress.loyalty-progress',
-          { filters: { user: userId }, limit: 1 },
-        );
-        let progress = existing[0];
-        if (!progress) {
+        // Progreso del ciclo de fidelidad DE ESTE AUTO (se resetea al llegar
+        // al umbral). Cada auto del cliente lleva su propio contador: el Uber
+        // no le suma visitas al auto normal ni al revés. `visitsRequired` se
+        // guarda para que la barra del cliente y el escáner muestren el "/ N"
+        // correcto sin repetir esta lógica.
+        const progresses = await strapi.db
+          .query('api::loyalty-progress.loyalty-progress')
+          .findMany({ where: { user: { id: userId } }, populate: { vehicle: true } });
+        const own = progresses.find((p) => (p.vehicle?.id ?? null) === vehicleId) ?? null;
+        // Migración suave: los contadores de antes de que la fidelidad fuera
+        // por auto no tienen `vehicle`. El primer auto que se lave después del
+        // cambio hereda esas visitas, para no quitárselas al cliente.
+        const legacy = !own && vehicleId ? progresses.find((p) => !p.vehicle) ?? null : null;
+        const current = own ?? legacy;
+
+        let progress;
+        if (!current) {
           progress = await strapi.entityService.create(
             'api::loyalty-progress.loyalty-progress',
-            { data: { user: userId, currentCount: 1, visitsRequired, cycleStartedAt: now } },
+            {
+              data: {
+                user: userId,
+                vehicle: vehicleId,
+                currentCount: 1,
+                visitsRequired,
+                cycleStartedAt: now,
+              },
+            },
           );
         } else {
           progress = await strapi.entityService.update(
             'api::loyalty-progress.loyalty-progress',
-            progress.id,
-            { data: { currentCount: (progress.currentCount ?? 0) + 1, visitsRequired } },
+            current.id,
+            {
+              data: {
+                currentCount: (current.currentCount ?? 0) + 1,
+                visitsRequired,
+                // Solo cambia cuando se adopta un contador viejo sin auto.
+                ...(legacy ? { vehicle: vehicleId } : {}),
+              },
+            },
           );
         }
 
@@ -521,7 +545,7 @@ export default {
               data: {
                 code: `PROMO-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
                 title: `${describeDiscount(reward)} por fidelidad`,
-                description: `Acumulaste ${visitsRequired} visitas. ¡Disfruta este descuento en tu próximo servicio!`,
+                description: `Acumulaste ${visitsRequired} visitas con ${describeVehicle(visit.vehicle)}. ¡Disfruta este descuento en su próximo lavado!`,
                 // Recompensa de un cliente concreto: de un solo uso y con caducidad,
                 // a diferencia de las campañas del negocio (ver utils/promotions.ts).
                 kind: 'personal',
@@ -537,6 +561,9 @@ export default {
                 validUntil,
                 used: false,
                 user: userId,
+                // El auto que juntó las visitas: la recompensa es suya. La caja
+                // lo ve en la lista de promos; quien decide si aplica es el cajero.
+                vehicle: vehicleId,
                 publishedAt: now,
               },
             });

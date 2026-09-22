@@ -5,6 +5,14 @@ import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { logoutAction } from "@/actions/auth";
 import { STORE_ENABLED } from "@/lib/constants";
 import type { DashboardShellProps } from "@/components/shared/dashboard-shell";
+import type { UserRole } from "@/types/models";
+
+const ROLE_LABELS: Partial<Record<UserRole, string>> = {
+  superadmin: "Super Admin",
+  admin: "Admin",
+  employee: "Empleado",
+  vip: "VIP",
+};
 
 const NAV = [
   { href: "/perfil", label: "Perfil", icon: User },
@@ -25,11 +33,16 @@ const NAV = [
 export function ClienteShell({
   user,
   brand,
+  role = "cliente",
+  isStaff = false,
   activeServices = 0,
   children,
 }: {
   user: { name?: string; email: string };
   brand?: DashboardShellProps["brand"];
+  role?: UserRole;
+  /** Empleado, admin o super admin: se le pone el botón directo al panel. */
+  isStaff?: boolean;
   /** Lavados en curso: alimenta el contador junto a "Estado de mi auto". */
   activeServices?: number;
   children: React.ReactNode;
@@ -42,7 +55,8 @@ export function ClienteShell({
     <DashboardShell
       nav={nav}
       brand={brand}
-      user={{ name: user.name, email: user.email, role: "cliente" }}
+      user={{ name: user.name, email: user.email, role: ROLE_LABELS[role] ?? "cliente" }}
+      dashboardHref={isStaff ? "/dashboard" : undefined}
       onLogout={() => logoutAction()}
     >
       {children}

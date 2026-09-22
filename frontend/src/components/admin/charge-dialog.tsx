@@ -289,6 +289,12 @@ function PromoOption({
             {promo.packages && promo.packages.length > 0 && ` · ${promo.packages.join(", ")}`}
           </p>
         )}
+        {promo?.vehicleLabel && (
+          <p className={`truncate text-xs ${promo.otherVehicle ? "text-amber-500" : "text-muted-foreground"}`}>
+            {promo.otherVehicle ? "La ganó otro auto: " : "Ganada con "}
+            {promo.vehicleLabel}
+          </p>
+        )}
       </div>
       {promo && (
         <Badge variant={selected ? "default" : "outline"} className="shrink-0 font-mono">

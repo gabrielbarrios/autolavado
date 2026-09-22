@@ -284,12 +284,34 @@ export function QrScanner({
               </div>
 
               <div className="rounded-lg bg-muted/40 p-3 text-xs">
-                <p className="mb-1 font-medium">Fidelidad</p>
-                <p className="text-muted-foreground">
-                  {result.loyaltyProgress?.currentCount ?? 0} /{" "}
-                  {result.loyaltyTarget ?? result.loyaltyProgress?.visitsRequired ?? VISITS_FOR_REWARD}{" "}
-                  visitas hacia la próxima promoción
-                </p>
+                <p className="mb-1 font-medium">Fidelidad (por auto)</p>
+                {result.loyalty && result.loyalty.length > 0 ? (
+                  <ul className="space-y-1">
+                    {result.loyalty.map((row) => (
+                      <li key={row.vehicleId} className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-muted-foreground">
+                          {row.vehicleLabel}
+                          {row.isUberTaxi && (
+                            <span className="ml-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+                              Uber/Taxi
+                            </span>
+                          )}
+                        </span>
+                        <span className="shrink-0 font-mono">
+                          {row.currentCount} / {row.visitsRequired || VISITS_FOR_REWARD}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">Sin autos registrados.</p>
+                )}
+                {!!result.legacyLoyaltyCount && (
+                  <p className="mt-1 text-muted-foreground">
+                    + {result.legacyLoyaltyCount} visita{result.legacyLoyaltyCount > 1 ? "s" : ""} de antes,
+                    se suman al primer auto que se lave.
+                  </p>
+                )}
               </div>
 
               {result.todayAppointments && result.todayAppointments.length > 0 && (

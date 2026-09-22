@@ -48,12 +48,13 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
       used: 'Ya se usó',
       usedAt: 'Fecha de uso',
       user: 'Cliente',
+      vehicle: 'Auto que la ganó',
       packages: 'Solo en estos paquetes (vacío = todos)',
     },
     // Estos los llena la app sola: `code` lo genera un lifecycle a partir del
-    // título (ver index.ts), y used/usedAt/user solo aplican a las de fidelidad,
-    // que crea el programa de visitas. En una campaña siempre están vacíos.
-    hidden: ['code', 'used', 'usedAt', 'user'],
+    // título (ver index.ts), y used/usedAt/user/vehicle solo aplican a las de
+    // fidelidad, que crea el programa de visitas. En una campaña siempre están vacíos.
+    hidden: ['code', 'used', 'usedAt', 'user', 'vehicle'],
     // `kind` NO va como solo lectura: es obligatorio, y si se bloquea no se
     // puede crear una promoción desde el panel de Strapi.
     readOnly: [],
@@ -243,14 +244,15 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
   'api::loyalty-progress.loyalty-progress': {
     labels: {
       currentCount: 'Visitas acumuladas',
-      visitsRequired: 'Visitas necesarias (según el último auto lavado)',
+      visitsRequired: 'Visitas necesarias (Uber/Taxi o normal, según el auto)',
       cycleStartedAt: 'Ciclo iniciado el',
       user: 'Cliente',
+      vehicle: 'Auto',
     },
     // Lo fija el lifecycle en cada visita a partir de la configuración del
     // sitio; editarlo a mano se pisa en el siguiente lavado.
     readOnly: ['visitsRequired'],
-    list: ['user', 'currentCount', 'visitsRequired', 'cycleStartedAt'],
+    list: ['user', 'vehicle', 'currentCount', 'visitsRequired', 'cycleStartedAt'],
   },
 
   'api::site-setting.site-setting': {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -36,8 +37,10 @@ export async function SiteHeader({ setting }: { setting?: SiteSetting | null }) 
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {session ? (
-            <Button asChild size="sm">
+            // Visible también en móvil: el personal entra al panel desde aquí.
+            <Button asChild size="sm" variant={isStaff ? "premium" : "default"}>
               <Link href={isStaff ? "/dashboard" : "/perfil"}>
+                {isStaff && <LayoutDashboard className="h-4 w-4" />}
                 {isStaff ? "Dashboard" : "Mi cuenta"}
               </Link>
             </Button>

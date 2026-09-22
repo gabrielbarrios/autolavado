@@ -243,17 +243,32 @@ export interface PublicCampaign {
   packages?: string[];
 }
 
+/**
+ * Contador de fidelidad de UN auto del cliente. Cada auto acumula sus propias
+ * visitas y cierra el ciclo con su umbral (Uber/Taxi o normal).
+ */
 export interface LoyaltyProgress {
   id: number;
   documentId?: string;
   currentCount: number;
   /**
-   * Visitas con las que se cierra el ciclo, según el auto de la última visita
-   * (Uber/Taxi o normal). Lo fija el backend; null en progresos anteriores.
+   * Visitas con las que se cierra el ciclo de este auto (Uber/Taxi o normal).
+   * Lo fija el backend en cada visita; null en progresos anteriores.
    */
   visitsRequired?: number | null;
   cycleStartedAt: string;
   user?: User;
+  /** Auto dueño del contador. null solo en registros de antes del cambio a "por auto". */
+  vehicle?: Vehicle | null;
+}
+
+/** Fidelidad de un auto lista para pintar: lo que lleva y lo que necesita. */
+export interface LoyaltyRow {
+  vehicleId: number;
+  vehicleLabel: string;
+  isUberTaxi: boolean;
+  currentCount: number;
+  visitsRequired: number;
 }
 
 export type AppointmentStatus = "pending" | "approved" | "cancelled" | "completed";

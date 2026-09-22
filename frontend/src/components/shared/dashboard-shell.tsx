@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Menu, X } from "lucide-react";
+import { LayoutDashboard, Menu, X } from "lucide-react";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,24 @@ export interface DashboardShellProps {
   user: { name?: string; email: string; role: string };
   /** Marca del negocio (site-setting). Sin ella el logo cae al genérico. */
   brand?: { name?: string; logo?: StrapiMedia | null };
+  /**
+   * Acceso directo al panel para el personal que está usando la app como
+   * cliente (/perfil, /autos…). Se pinta en la barra superior, también en
+   * móvil. Sin él no se muestra nada.
+   */
+  dashboardHref?: string;
   children: React.ReactNode;
   onLogout: () => void;
 }
 
-export function DashboardShell({ nav, user, brand, children, onLogout }: DashboardShellProps) {
+export function DashboardShell({
+  nav,
+  user,
+  brand,
+  dashboardHref,
+  children,
+  onLogout,
+}: DashboardShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -44,6 +57,14 @@ export function DashboardShell({ nav, user, brand, children, onLogout }: Dashboa
             <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
           </div>
           <ThemeToggle />
+          {dashboardHref && (
+            <Button asChild size="sm" variant="premium">
+              <Link href={dashboardHref} aria-label="Ir al dashboard">
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Dashboard</span>
+              </Link>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

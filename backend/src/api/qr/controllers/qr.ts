@@ -23,7 +23,7 @@ import {
   round2,
 } from '../../../utils/promotions';
 import { validateVehicleTypeSlug } from '../../../utils/vehicle-types';
-import { loadLoyaltyConfig, visitsRequiredForCustomer } from '../../../utils/loyalty';
+import { loadLoyaltyConfig, loyaltyByVehicle, describeVehicle } from '../../../utils/loyalty';
 
 /** Populate necesario para recalcular precios de un service al cobrarlo. */
 const SERVICE_PRICING_POPULATE = {
@@ -107,13 +107,14 @@ export default {
         where: { user: user.id },
         populate: { photo: true },
       }),
-      strapi.entityService.findMany('api::loyalty-progress.loyalty-progress', {
-        filters: { user: user.id },
-        limit: 1,
+      // Un contador por auto (ver utils/loyalty.ts): se traen todos.
+      strapi.db.query('api::loyalty-progress.loyalty-progress').findMany({
+        where: { user: { id: user.id } },
+        populate: { vehicle: true },
       }),
       strapi.entityService.findMany('api::promotion.promotion', {
         filters: { user: user.id, used: false },
-        populate: { packages: true },
+        populate: { packages: true, vehicle: true },
       }),
       strapi.db.query('api::appointment.appointment').findMany({
         where: {
@@ -134,12 +135,14 @@ export default {
       loadLoyaltyConfig(),
     ]);
 
+    const loyalty = loyaltyByVehicle(loyaltyConfig, vehicles, loyaltyArr);
     ctx.body = {
       user,
       vehicles,
-      loyaltyProgress: loyaltyArr[0] ?? null,
-      /** Visitas que necesita este cliente para su próxima promoción (Uber o normal). */
-      loyaltyTarget: visitsRequiredForCustomer(loyaltyConfig, loyaltyArr[0], vehicles),
+      /** Fidelidad por auto: cuántas visitas lleva cada uno y cuántas necesita. */
+      loyalty: loyalty.rows,
+      /** Visitas de antes del cambio a "por auto", aún sin asignar a ninguno. */
+      legacyLoyaltyCount: loyalty.legacyCount,
       activePromotions,
       todayAppointments,
       appointments: allAppointments,
@@ -610,8 +613,9 @@ export default {
     const promos = await strapi.db.query('api::promotion.promotion').findMany({
       where: { $or: owners },
       // `packages` limita la promo a ciertos paquetes: sin poblarlo, una promo
-      // restringida se ofrecería para cualquier servicio.
-      populate: { packages: true },
+      // restringida se ofrecería para cualquier servicio. `vehicle` es el auto
+      // que ganó una recompensa de fidelidad, para que la caja lo vea.
+      populate: { packages: true, vehicle: true },
       orderBy: [{ validUntil: 'asc' }],
       limit: 300,
     });
@@ -633,6 +637,10 @@ export default {
         isPrivate: p.isPrivate === true,
         /** Nombres de los paquetes a los que está limitada. Vacío = cualquiera. */
         packages: (p.packages ?? []).map((pkg) => pkg?.name).filter(Boolean),
+        /** Recompensa de fidelidad: auto que la ganó. La caja decide si aplica a otro. */
+        vehicleLabel: p.vehicle ? describeVehicle(p.vehicle) : null,
+        /** ¿La ganó otro auto distinto al que se está cobrando? Solo informativo. */
+        otherVehicle: Boolean(p.vehicle && service.vehicle && p.vehicle.id !== service.vehicle.id),
         /** Lo que descontaría en pesos sobre este servicio en concreto. */
         discountAmount: computePromotionDiscount(p, breakdown),
       }))
@@ -798,10 +806,11 @@ export default {
           publishedAt: now,
         },
       });
-      // Releer loyalty y la última promo creadas por el lifecycle
+      // Releer el contador DE ESTE AUTO y la última promo creadas por el lifecycle
       const [loyaltyArr, latestPromos] = await Promise.all([
-        strapi.entityService.findMany('api::loyalty-progress.loyalty-progress', {
-          filters: { user: userId },
+        strapi.db.query('api::loyalty-progress.loyalty-progress').findMany({
+          where: { user: { id: userId }, vehicle: { id: service.vehicle.id } },
+          populate: { vehicle: true },
           limit: 1,
         }),
         strapi.entityService.findMany('api::promotion.promotion', {

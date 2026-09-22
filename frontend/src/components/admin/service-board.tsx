@@ -30,8 +30,13 @@ interface ServiceBoardProps {
   waiting: Service[];
   inProgress: Service[];
   toPay: Service[];
-  /** Personal del mostrador para el selector "¿Quién lo lava?". */
+  /** Empleados (rol employee) para el selector "¿Quién lo lava?". */
   admins?: AdminOption[];
+  /**
+   * ¿La lista de personal sí cargó? Separa "no hay empleados dados de alta"
+   * (se acredita a quien inicia) de "no se pudo cargar" (se avisa del fallo).
+   */
+  staffLoaded?: boolean;
   /** Catálogo de servicios extra activos, para el botón "Extras" de cada auto. */
   extraServices?: ExtraService[];
 }
@@ -66,13 +71,20 @@ export function ServiceBoard({
   inProgress,
   toPay,
   admins = [],
+  staffLoaded = admins.length > 0,
   extraServices = [],
 }: ServiceBoardProps) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Column title="En espera" tone="neutral" count={waiting.length} empty="Sin autos en espera.">
         {waiting.map((s) => (
-          <WaitingCard key={s.id} service={s} admins={admins} catalog={extraServices} />
+          <WaitingCard
+            key={s.id}
+            service={s}
+            admins={admins}
+            staffLoaded={staffLoaded}
+            catalog={extraServices}
+          />
         ))}
       </Column>
 
@@ -256,17 +268,19 @@ function CreditSelect({
 function WaitingCard({
   service: s,
   admins,
+  staffLoaded,
   catalog,
 }: {
   service: Service;
   admins: AdminOption[];
+  staffLoaded: boolean;
   catalog: ExtraService[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [creditId, setCreditId] = React.useState<number | null>(null);
-  const staffLoaded = admins.length > 0;
-  const canStart = !loading && (!staffLoaded || creditId !== null);
+  const hasEmployees = admins.length > 0;
+  const canStart = !loading && (!hasEmployees || creditId !== null);
 
   async function onStart() {
     setLoading(true);
@@ -283,8 +297,12 @@ function WaitingCard({
         <ServiceSummary service={s} />
         <div>
           <p className="mb-1 text-[10px] uppercase text-muted-foreground">¿Quién lo lava?</p>
-          {staffLoaded ? (
+          {hasEmployees ? (
             <CreditSelect admins={admins} value={creditId} onChange={setCreditId} />
+          ) : staffLoaded ? (
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-300">
+              No hay empleados dados de alta. El lavado se acreditará a tu usuario.
+            </p>
           ) : (
             <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-300">
               No se pudo cargar la lista de empleados. El lavado se acreditará a tu usuario.

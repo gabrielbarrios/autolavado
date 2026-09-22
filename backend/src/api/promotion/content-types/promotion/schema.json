@@ -96,6 +96,12 @@
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
     },
+    "vehicle": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::vehicle.vehicle",
+      "description": "Solo en recompensas de fidelidad: el auto que acumuló las visitas."
+    },
     "packages": {
       "type": "relation",
       "relation": "oneToMany",

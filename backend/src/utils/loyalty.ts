@@ -6,14 +6,15 @@
  *  - `visitsForReward`: autos normales.
  *  - `visitsForRewardUber`: autos marcados como Uber/Taxi. Vacío = el normal.
  *
- * La regla es POR VISITA: cada lavado cuenta según el auto que se lavó. Un
- * cliente con un auto normal y un Uber cierra el ciclo con el umbral del auto
- * de su última visita. Se eligió así (y no un contador aparte por tipo) para
- * que el cliente siga viendo una sola barra de progreso.
+ * La regla es POR AUTO: cada auto del cliente lleva su propio contador
+ * (`loyalty-progress` con `user` + `vehicle`) y cierra el ciclo con el umbral
+ * que le toca. Un cliente con un Chevy normal y un Versa Uber tiene dos barras:
+ * el Chevy gana a las N visitas normales y el Versa a las N visitas Uber, sin
+ * mezclarse. La recompensa queda ligada al auto que la ganó (`promotion.vehicle`).
  *
  * Vive aparte porque lo consultan el lifecycle de visitas (index.ts), que es
  * quien regala la promoción, y el endpoint de escaneo del cajero, que solo
- * quiere saber cuánto le falta al cliente.
+ * quiere saber cuánto le falta a cada auto.
  */
 
 export const LOYALTY_DEFAULTS = {
@@ -75,19 +76,43 @@ export async function loadLoyaltyConfig() {
   }
 }
 
-/** Umbral que aplica a un lavado según el auto: Uber/Taxi o normal. */
+/** Umbral que aplica a un auto: Uber/Taxi o normal. */
 export function visitsRequiredFor(config, vehicleLike) {
   return vehicleLike?.isUberTaxi ? config.visitsForRewardUber : config.visitsForReward;
 }
 
+/** "Chevrolet Aveo · ABC-123" para textos de promociones y del escáner. */
+export function describeVehicle(vehicle) {
+  if (!vehicle) return 'tu auto';
+  const name = [vehicle.brand, vehicle.model].filter(Boolean).join(' ').trim() || 'tu auto';
+  return vehicle.plate ? `${name} · ${vehicle.plate}` : name;
+}
+
 /**
- * Cuántas visitas necesita ESTE cliente para cerrar su ciclo, para mostrarlo
- * (barra del cliente, ficha del escáner). Manda lo que fijó su última visita;
- * si aún no tiene ninguna, se deduce de sus autos: todos Uber → umbral Uber,
- * cualquier otro caso → normal.
+ * Progreso de fidelidad de un cliente, un renglón por auto, para mostrarlo
+ * (barra del cliente, ficha del escáner). Un auto sin contador todavía sale
+ * en 0 con el umbral que le toca. Los contadores viejos sin auto (de antes de
+ * que la fidelidad fuera por auto) se devuelven aparte en `legacy`: el
+ * lifecycle se los suma al primer auto que se lave.
  */
-export function visitsRequiredForCustomer(config, progress, vehicles = []) {
-  if (Number(progress?.visitsRequired) > 0) return Number(progress.visitsRequired);
-  const allUber = vehicles.length > 0 && vehicles.every((v) => v?.isUberTaxi);
-  return allUber ? config.visitsForRewardUber : config.visitsForReward;
+export function loyaltyByVehicle(config, vehicles = [], progresses = []) {
+  const rows = vehicles.map((vehicle) => {
+    const progress = progresses.find((p) => p?.vehicle?.id === vehicle.id) ?? null;
+    return {
+      vehicleId: vehicle.id,
+      vehicleLabel: describeVehicle(vehicle),
+      isUberTaxi: vehicle.isUberTaxi === true,
+      currentCount: progress?.currentCount ?? 0,
+      // Manda lo que fijó la última visita de ese auto; sin visitas, la config.
+      visitsRequired:
+        Number(progress?.visitsRequired) > 0
+          ? Number(progress.visitsRequired)
+          : visitsRequiredFor(config, vehicle),
+    };
+  });
+  const legacy = progresses.find((p) => p && !p.vehicle) ?? null;
+  return {
+    rows,
+    legacyCount: legacy ? Number(legacy.currentCount ?? 0) : 0,
+  };
 }

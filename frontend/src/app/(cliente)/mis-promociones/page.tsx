@@ -2,10 +2,10 @@ import { Gift, Calendar, Megaphone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth/guards";
-import { listAvailablePromotions, getMyLoyaltyProgress } from "@/lib/strapi/promotions";
+import { listAvailablePromotions, listMyLoyaltyProgress } from "@/lib/strapi/promotions";
 import { listMyVehicles } from "@/lib/strapi/vehicles";
 import { getSiteSetting } from "@/lib/strapi/site-setting";
-import { resolveVisitsRequired } from "@/lib/loyalty";
+import { buildLoyaltyRows, loyaltyThresholds } from "@/lib/loyalty";
 import { LoyaltyProgress } from "@/components/cliente/loyalty-progress";
 import { discountLabel, appliesToLabel, availabilityLabel, packagesLabel } from "@/lib/promotions";
 import type { Promotion } from "@/types/models";
@@ -16,12 +16,13 @@ export default async function PromocionesPage() {
   const { user } = await requireUser();
   const [promos, loyalty, vehicles, setting] = await Promise.all([
     listAvailablePromotions().catch(() => []),
-    getMyLoyaltyProgress().catch(() => null),
+    listMyLoyaltyProgress().catch(() => []),
     listMyVehicles(user.id).catch(() => []),
     getSiteSetting(),
   ]);
-  // Umbral de fidelidad de este cliente: Uber/Taxi o normal.
-  const visitsRequired = resolveVisitsRequired(loyalty, setting, vehicles);
+  // Fidelidad por auto: una barra por cada uno, con su umbral (Uber/Taxi o normal).
+  const loyaltyRows = buildLoyaltyRows(vehicles, loyalty, setting);
+  const thresholds = loyaltyThresholds(setting);
 
   // Las de fidelidad son suyas y de un solo uso; las campañas son del negocio.
   const personal = promos.filter((p) => p.kind !== "campaign");
@@ -36,14 +37,15 @@ export default async function PromocionesPage() {
         </p>
       </div>
 
-      <LoyaltyProgress current={loyalty?.currentCount ?? user.visitCount ?? 0} total={visitsRequired} />
+      <LoyaltyProgress rows={loyaltyRows.rows} legacyCount={loyaltyRows.legacyCount} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Tus recompensas</h2>
         {personal.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              Aún no tienes recompensas. Cada 3 visitas ganas una.
+              Aún no tienes recompensas. Cada auto gana una a las {thresholds.normal} visitas
+              {thresholds.uber !== thresholds.normal && ` (${thresholds.uber} si es Uber/Taxi)`}.
             </CardContent>
           </Card>
         ) : (

@@ -16,7 +16,11 @@ export default async function EnProgresoPage() {
     // Para el botón "Extras" de cada auto en espera o trabajando.
     listExtraServices().catch(() => []),
   ]);
-  const admins = staff.map((u) => ({ id: u.id, name: u.name }));
+  // Solo los usuarios con rol empleado: son quienes lavan. Los admin y super
+  // admin salen de la lista aunque también atiendan el mostrador.
+  const admins = staff
+    .filter((u) => u.role === "employee")
+    .map((u) => ({ id: u.id, name: u.name }));
 
   const toPayTotal = board.to_pay.reduce((acc, s) => acc + Number(s.totalAmount ?? 0), 0);
 
@@ -43,6 +47,7 @@ export default async function EnProgresoPage() {
         inProgress={board.in_progress}
         toPay={board.to_pay}
         admins={admins}
+        staffLoaded={staff.length > 0}
         extraServices={extras}
       />
     </div>

@@ -5,7 +5,7 @@
     "singularName": "loyalty-progress",
     "pluralName": "loyalty-progresses",
     "displayName": "Progreso de fidelidad",
-    "description": "Visitas acumuladas del ciclo actual de cada cliente"
+    "description": "Visitas acumuladas del ciclo actual de cada auto de cada cliente"
   },
   "options": {
     "draftAndPublish": false
@@ -26,8 +26,14 @@
     },
     "user": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
+    },
+    "vehicle": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::vehicle.vehicle",
+      "description": "Auto al que pertenece este contador. Cada auto acumula sus propias visitas."
     }
   }
 }
