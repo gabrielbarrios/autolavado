@@ -111,7 +111,7 @@ export default async function ContactoPage() {
         <Card>
           <CardContent className="p-6">
             <div className="mb-4 flex items-center gap-2">
-              <CalendarX className="h-5 w-5 text-amber-400" />
+              <CalendarX className="h-5 w-5 text-amber-700 dark:text-amber-400" />
               <h2 className="text-lg font-semibold">Próximos días cerrados</h2>
             </div>
             {closedDates.length === 0 ? (

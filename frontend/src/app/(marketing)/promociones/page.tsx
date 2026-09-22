@@ -81,7 +81,7 @@ function CampaignCard({ campaign }: { campaign: PublicCampaign }) {
     <Card className="border-sky-500/25 bg-gradient-to-br from-sky-500/10 to-card">
       <CardContent className="space-y-3 p-6">
         <div className="flex items-start justify-between gap-3">
-          <Megaphone className="h-6 w-6 shrink-0 text-sky-400" />
+          <Megaphone className="h-6 w-6 shrink-0 text-sky-600 dark:text-sky-400" />
           <Badge variant="info">{campaign.discountLabel ?? discountLabel(campaign)}</Badge>
         </div>
         <div>

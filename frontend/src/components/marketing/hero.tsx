@@ -60,7 +60,7 @@ export function Hero({ setting }: { setting?: SiteSetting | null }) {
           </div>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Servicios garantizados
+              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Servicios garantizados
             </span>
           </div>
         </div>

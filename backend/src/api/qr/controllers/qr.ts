@@ -813,16 +813,22 @@ export default {
           populate: { vehicle: true },
           limit: 1,
         }),
+        // Solo una promo ganada por ESTE auto en este cobro: sin el filtro por
+        // auto, la recompensa del coche anterior del mismo cliente (cobrado
+        // segundos antes) se reportaba otra vez como recién generada.
         strapi.entityService.findMany('api::promotion.promotion', {
-          filters: { user: userId },
+          filters: {
+            user: userId,
+            vehicle: service.vehicle.id,
+            kind: 'personal',
+            createdAt: { $gte: now.toISOString() },
+          },
           sort: { createdAt: 'desc' },
           limit: 1,
         }),
       ]);
       loyaltyProgress = loyaltyArr[0] ?? null;
-      const newest = latestPromos[0];
-      promotionGenerated =
-        newest && new Date(newest.createdAt).getTime() > now.getTime() - 5000 ? newest : null;
+      promotionGenerated = latestPromos[0] ?? null;
     }
 
     ctx.body = {

@@ -182,7 +182,7 @@ export function ServicesShowcase({
                 <ul className="space-y-2 text-sm">
                   {(pkg.benefits ?? []).slice(0, 5).map((b) => (
                     <li key={b} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                       <span>{b}</span>
                     </li>
                   ))}

@@ -300,11 +300,11 @@ function WaitingCard({
           {hasEmployees ? (
             <CreditSelect admins={admins} value={creditId} onChange={setCreditId} />
           ) : staffLoaded ? (
-            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-300">
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
               No hay empleados dados de alta. El lavado se acreditará a tu usuario.
             </p>
           ) : (
-            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-300">
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
               No se pudo cargar la lista de empleados. El lavado se acreditará a tu usuario.
             </p>
           )}

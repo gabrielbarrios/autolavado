@@ -45,7 +45,7 @@ export default async function PaquetesAdminPage() {
               {(() => {
                 const { min, max } = packagePriceRange(p);
                 if (min === 0) {
-                  return <p className="text-sm text-amber-400">Sin precios configurados</p>;
+                  return <p className="text-sm text-amber-700 dark:text-amber-400">Sin precios configurados</p>;
                 }
                 return (
                   <p className="text-2xl font-bold">

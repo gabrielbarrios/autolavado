@@ -232,7 +232,7 @@ export function RescheduleDialog({
                 <Loader2 className="h-4 w-4 animate-spin" /> Consultando…
               </div>
             ) : availability?.closed ? (
-              <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-300">
+              <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-300">
                 <CalendarX className="h-4 w-4 shrink-0" />
                 <span>Cerrado{availability.reason ? ` — ${availability.reason}` : ""}.</span>
               </div>
@@ -282,7 +282,7 @@ export function RescheduleDialog({
                   })}
                 </div>
                 {availability.slots.some((s) => s.overflow) && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-300">
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-300">
                     <CalendarX className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
                       Algunos horarios están bloqueados porque el servicio dura{" "}

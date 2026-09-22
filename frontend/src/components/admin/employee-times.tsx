@@ -207,10 +207,10 @@ function EmployeeSummary({ groups }: { groups: EmployeeTimesData["byEmployee"] }
                 <td className="px-4 py-3 text-right font-mono">{g.cars}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatDuration(g.totalSeconds)}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatDuration(g.avgSeconds)}</td>
-                <td className="px-4 py-3 text-right font-mono text-emerald-400">
+                <td className="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400">
                   {g.fastestSeconds === null ? "—" : formatDuration(g.fastestSeconds)}
                 </td>
-                <td className="px-4 py-3 text-right font-mono text-amber-300">
+                <td className="px-4 py-3 text-right font-mono text-amber-700 dark:text-amber-300">
                   {g.slowestSeconds === null ? "—" : formatDuration(g.slowestSeconds)}
                 </td>
               </tr>

@@ -25,6 +25,7 @@ docker compose down
 cd backend && npm install && npm run develop      # dev w/ autoReload
 cd backend && npm run build && npm start          # production
 cd backend && npm run upgrade:dry                 # check for Strapi upgrades
+cd backend && node scripts/seed-loyalty-demo.mjs  # local only: demo clients/cars/visits for the loyalty program (--reset wipes and re-seeds)
 
 # Frontend (Next.js) — http://localhost:3000
 cd frontend && npm install && npm run dev

@@ -97,7 +97,7 @@ export function ExtraServicesShowcase({
                     ) : null}
                   </div>
                   {s.quoteOnRequest ? (
-                    <p className="text-xs font-medium text-amber-400">{QUOTE_ON_REQUEST_LABEL}</p>
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{QUOTE_ON_REQUEST_LABEL}</p>
                   ) : (
                     <div className="flex items-baseline gap-1">
                       {hasRange && <span className="text-xs text-muted-foreground">desde</span>}

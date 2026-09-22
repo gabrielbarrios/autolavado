@@ -465,7 +465,7 @@ function SnackRow({ snack, categories }: { snack: Snack; categories: SnackCatego
         {!active && <p className="text-xs text-muted-foreground">Fuera de la lista</p>}
       </div>
       {snack.price == null ? (
-        <span className="shrink-0 text-sm font-medium text-amber-500">{SNACK_NO_PRICE_LABEL}</span>
+        <span className="shrink-0 text-sm font-medium text-amber-700 dark:text-amber-500">{SNACK_NO_PRICE_LABEL}</span>
       ) : (
         <span className="shrink-0 font-mono text-lg font-semibold">{formatPrice(snack.price)}</span>
       )}

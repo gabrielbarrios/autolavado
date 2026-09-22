@@ -67,14 +67,14 @@ export default async function ExtrasAdminPage() {
                   {(() => {
                     if (s.quoteOnRequest) {
                       return (
-                        <span className="text-xs font-medium text-amber-400">
+                        <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
                           {QUOTE_ON_REQUEST_SHORT}
                         </span>
                       );
                     }
                     const { min, max } = extraServicePriceRange(s);
                     if (min === 0 && max === 0) {
-                      return <span className="text-xs text-amber-400">Sin precio</span>;
+                      return <span className="text-xs text-amber-700 dark:text-amber-400">Sin precio</span>;
                     }
                     return (
                       <span className="text-2xl font-bold">

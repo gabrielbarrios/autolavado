@@ -203,7 +203,7 @@ export function ChargeDialog({ service }: { service: Service }) {
                   </div>
                 )}
                 {manualRaw > manualDiscount && (
-                  <p className="text-xs text-amber-300">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
                     El descuento se ajustó a {formatPrice(manualDiscount)}: no puede pasar del
                     total.
                   </p>
@@ -275,7 +275,7 @@ function PromoOption({
           {promo?.kind === "personal" ? (
             <Gift className="h-3.5 w-3.5 shrink-0 text-primary" />
           ) : promo ? (
-            <Tag className="h-3.5 w-3.5 shrink-0 text-sky-400" />
+            <Tag className="h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
           ) : null}
           {title}
         </p>
@@ -290,7 +290,7 @@ function PromoOption({
           </p>
         )}
         {promo?.vehicleLabel && (
-          <p className={`truncate text-xs ${promo.otherVehicle ? "text-amber-500" : "text-muted-foreground"}`}>
+          <p className={`truncate text-xs ${promo.otherVehicle ? "text-amber-700 dark:text-amber-500" : "text-muted-foreground"}`}>
             {promo.otherVehicle ? "La ganó otro auto: " : "Ganada con "}
             {promo.vehicleLabel}
           </p>
@@ -318,10 +318,10 @@ function Line({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <span className={tone === "discount" ? "text-emerald-400" : "text-muted-foreground"}>
+      <span className={tone === "discount" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
         {label}
       </span>
-      <span className={`shrink-0 font-mono ${tone === "discount" ? "text-emerald-400" : ""}`}>
+      <span className={`shrink-0 font-mono ${tone === "discount" ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
         {value}
       </span>
     </div>

@@ -89,7 +89,7 @@ function PromoCard({ promo, personal = false }: { promo: Promotion; personal?: b
     >
       <CardContent className="space-y-3 p-6">
         <div className="flex items-start justify-between gap-3">
-          <Icon className={`h-6 w-6 shrink-0 ${personal ? "text-primary" : "text-sky-400"}`} />
+          <Icon className={`h-6 w-6 shrink-0 ${personal ? "text-primary" : "text-sky-600 dark:text-sky-400"}`} />
           <Badge variant={personal ? "default" : "info"}>{discountLabel(promo)}</Badge>
         </div>
         <div>

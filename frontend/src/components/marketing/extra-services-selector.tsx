@@ -170,7 +170,7 @@ export function ExtraServicesSelector({
                     </div>
                     <div className="flex flex-col items-end">
                       {s.quoteOnRequest ? (
-                        <span className="max-w-[13rem] text-right text-[11px] font-medium text-amber-400">
+                        <span className="max-w-[13rem] text-right text-[11px] font-medium text-amber-700 dark:text-amber-400">
                           {QUOTE_ON_REQUEST_LABEL}
                         </span>
                       ) : hasSelection ? (

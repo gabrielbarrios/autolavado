@@ -182,7 +182,7 @@ export function PromotionForm() {
               />
             </div>
             {discountType === "fixedPrice" && appliesTo === "all" && (
-              <p className="text-xs text-amber-300">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
                 Con «Lavado y extras», el precio fijo es por todo el ticket, extras incluidos.
               </p>
             )}

@@ -551,7 +551,7 @@ export interface ApiLoyaltyProgressLoyaltyProgress
   extends Struct.CollectionTypeSchema {
   collectionName: 'loyalty_progresses';
   info: {
-    description: 'Visitas acumuladas del ciclo actual de cada cliente';
+    description: 'Visitas acumuladas del ciclo actual de cada auto de cada cliente';
     displayName: 'Progreso de fidelidad';
     pluralName: 'loyalty-progresses';
     singularName: 'loyalty-progress';
@@ -583,9 +583,10 @@ export interface ApiLoyaltyProgressLoyaltyProgress
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     user: Schema.Attribute.Relation<
-      'oneToOne',
+      'manyToOne',
       'plugin::users-permissions.user'
     >;
+    vehicle: Schema.Attribute.Relation<'manyToOne', 'api::vehicle.vehicle'>;
     visitsRequired: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -849,6 +850,7 @@ export interface ApiPromotionPromotion extends Struct.CollectionTypeSchema {
     >;
     validFrom: Schema.Attribute.DateTime;
     validUntil: Schema.Attribute.DateTime;
+    vehicle: Schema.Attribute.Relation<'manyToOne', 'api::vehicle.vehicle'>;
     weekdays: Schema.Attribute.JSON;
   };
 }
@@ -914,14 +916,7 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::promotion.promotion'
     >;
-    promotionDiscount: Schema.Attribute.Decimal &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      > &
-      Schema.Attribute.DefaultTo<0>;
+    promotionDiscount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
     startedAt: Schema.Attribute.DateTime;
     status: Schema.Attribute.Enumeration<

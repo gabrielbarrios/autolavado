@@ -167,7 +167,7 @@ export function ServiceExtrasDialog({
         )}
 
         {wouldBeEmpty && (
-          <p className="text-xs text-amber-300">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
             Este servicio no tiene paquete: necesita al menos un extra.
           </p>
         )}

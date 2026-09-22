@@ -19,7 +19,7 @@ export function Clauses({
     <ol className="space-y-3">
       {CLAUSES.map((text, i) => (
         <li key={text} className="flex gap-3">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-xs font-semibold text-amber-500">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-xs font-semibold text-amber-700 dark:text-amber-500">
             {i + 1}
           </span>
           <span className="text-sm leading-relaxed text-foreground/90">{text}</span>
@@ -33,7 +33,7 @@ export function Clauses({
   return (
     <section className="container mx-auto max-w-3xl px-4 py-20">
       <div className="mb-8 text-center">
-        <ShieldAlert className="mx-auto mb-3 h-7 w-7 text-amber-500" />
+        <ShieldAlert className="mx-auto mb-3 h-7 w-7 text-amber-700 dark:text-amber-500" />
         <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
           {clausesTitle(businessName)}
         </h2>

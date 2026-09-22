@@ -159,7 +159,7 @@ export function PackagesGrid({
                 <ul className="space-y-2 text-sm">
                   {(pkg.benefits ?? []).map((b) => (
                     <li key={b} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                       <span>{b}</span>
                     </li>
                   ))}
@@ -272,7 +272,7 @@ export function PackagesGrid({
                         </div>
                         <div className="flex flex-col items-end">
                           {s.quoteOnRequest ? (
-                            <span className="max-w-[13rem] text-right text-[11px] font-medium text-amber-400">
+                            <span className="max-w-[13rem] text-right text-[11px] font-medium text-amber-700 dark:text-amber-400">
                               {QUOTE_ON_REQUEST_LABEL}
                             </span>
                           ) : hasSelection ? (

@@ -171,7 +171,7 @@ export function EmployeesDashboard({ stats }: { stats: EmployeeStats }) {
                 {unassigned.washes > 0 && (
                   <tr className="bg-amber-500/5">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-amber-200">Sin acreditar</p>
+                      <p className="font-medium text-amber-800 dark:text-amber-200">Sin acreditar</p>
                       <p className="text-xs text-muted-foreground">Servicios sin admin asignado</p>
                     </td>
                     <td className="px-4 py-3" />
@@ -213,7 +213,7 @@ export function EmployeesDashboard({ stats }: { stats: EmployeeStats }) {
             {unassigned.washes > 0 && (
               <div className="space-y-3 bg-amber-500/5 p-4">
                 <div>
-                  <p className="font-medium text-amber-200">Sin acreditar</p>
+                  <p className="font-medium text-amber-800 dark:text-amber-200">Sin acreditar</p>
                   <p className="text-xs text-muted-foreground">Servicios sin admin asignado</p>
                 </div>
                 <dl className="grid grid-cols-3 gap-3 text-sm">

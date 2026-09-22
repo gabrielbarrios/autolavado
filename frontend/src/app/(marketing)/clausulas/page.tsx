@@ -12,7 +12,7 @@ export default async function ClausulasPage() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-16">
       <div className="mb-10 text-center">
-        <ShieldAlert className="mx-auto mb-4 h-8 w-8 text-amber-500" />
+        <ShieldAlert className="mx-auto mb-4 h-8 w-8 text-amber-700 dark:text-amber-500" />
         <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl">
           {clausesTitle(setting?.businessName)}
         </h1>

@@ -52,7 +52,7 @@ export default async function DashboardPage() {
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm font-semibold text-amber-200">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
                 {pending.length} reservación{pending.length !== 1 ? "es" : ""} esperando aprobación
               </p>
               <p className="text-xs text-muted-foreground">Revísalas y apruébalas o cancélalas.</p>

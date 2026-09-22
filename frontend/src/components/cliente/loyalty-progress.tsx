@@ -66,7 +66,7 @@ function VehicleBar({ row }: { row: LoyaltyRow }) {
           <Car className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="truncate">{row.vehicleLabel}</span>
           {row.isUberTaxi && (
-            <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+            <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-500">
               Uber/Taxi
             </span>
           )}

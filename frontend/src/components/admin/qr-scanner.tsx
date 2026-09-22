@@ -292,7 +292,7 @@ export function QrScanner({
                         <span className="min-w-0 truncate text-muted-foreground">
                           {row.vehicleLabel}
                           {row.isUberTaxi && (
-                            <span className="ml-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+                            <span className="ml-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-500">
                               Uber/Taxi
                             </span>
                           )}

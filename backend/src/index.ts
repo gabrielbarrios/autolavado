@@ -149,22 +149,11 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
  */
 const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
   ...ADMIN_PERMISSIONS,
-  'api::qr.qr': [
-    'scan',
-    'registerVisit',
-    'walkInService',
-    'inProgressServices',
-    'board',
-    'appointmentToBoard',
-    'startService',
-    'revertToWaiting',
-    'finishService',
-    'chargeService',
-    'cancelService',
-    'availablePromotions',
-    'employeeStats',
-    'employeeTimes',
-  ],
+  // Todo lo del admin en el mostrador + la supervisión de empleados. Se
+  // extiende la lista del admin en vez de copiarla: cuando estaba copiada a
+  // mano se quedó sin `staff` y `setExtras`, y al super admin el tablero le
+  // decía "no se pudo cargar la lista de empleados".
+  'api::qr.qr': [...ADMIN_PERMISSIONS['api::qr.qr'], 'employeeStats', 'employeeTimes'],
 };
 
 /**
