@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Clock } from "lucide-react";
+import { Check } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -174,9 +174,7 @@ export function ServicesShowcase({
                   </p>
                 )}
                 <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{pkg.description}</p>
-                <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" /> {pkg.durationMinutes} min
-                </div>
+                {/* La duración no se muestra al cliente: solo sirve para calcular horarios al reservar. */}
               </CardHeader>
               <CardContent className="flex-1">
                 <ul className="space-y-2 text-sm">

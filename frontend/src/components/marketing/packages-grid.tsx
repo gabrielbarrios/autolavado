@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Clock, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -182,10 +182,6 @@ export function PackagesGrid({
           (acc, s) => acc + computeExtraServicePrice(s, fakeVehicle, priceCtx),
           0,
         );
-        const totalMinutes = selectedExtrasList.reduce(
-          (acc, s) => acc + Number(s.estimatedDuration ?? 0),
-          0,
-        );
         const ids = selectedExtrasList.map((e) => e.id).join(",");
         const reserveHref = ids ? `/reservar?extraServiceIds=${ids}` : "#";
 
@@ -260,14 +256,9 @@ export function PackagesGrid({
                       {s.description && (
                         <p className="line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
                       )}
+                      {/* La duración estimada no se muestra al cliente; el espacio vacío mantiene el precio a la derecha. */}
                       <div className="mt-auto flex items-end justify-between pt-3">
-                        <div>
-                          {s.estimatedDuration ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" /> {s.estimatedDuration} min
-                            </span>
-                          ) : null}
-                        </div>
+                        <div />
                         <div className="flex flex-col items-end">
                           {s.quoteOnRequest ? (
                             <span className="max-w-[13rem] text-right text-[11px] font-medium text-amber-700 dark:text-amber-400">
@@ -320,7 +311,6 @@ export function PackagesGrid({
                       {hasSelection
                         ? `Precio para ${selection.isUberTaxi ? "Uber/Taxi" : vehicleTypeLabel(selection.vehicleType, vehicleTypes)}`
                         : "Precio base — varía según tipo de auto"}
-                      {totalMinutes > 0 && ` · ~${totalMinutes} min`}
                     </p>
                   </div>
                   <Button asChild size="lg" variant="premium" disabled={selectedExtrasList.length === 0}>

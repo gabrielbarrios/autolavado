@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, Clock } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,14 +88,9 @@ export function ExtraServicesShowcase({
                 {s.description && (
                   <p className="line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
                 )}
+                {/* La duración estimada no se muestra al cliente; el espacio vacío mantiene el precio a la derecha. */}
                 <div className="mt-auto flex items-end justify-between pt-3">
-                  <div>
-                    {s.estimatedDuration ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" /> {s.estimatedDuration} min
-                      </span>
-                    ) : null}
-                  </div>
+                  <div />
                   {s.quoteOnRequest ? (
                     <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{QUOTE_ON_REQUEST_LABEL}</p>
                   ) : (
