@@ -145,7 +145,7 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
 
 /**
  * Permisos del Super Admin: todo lo del Admin + el panel de empleados
- * (employeeStats) para supervisar a los administradores.
+ * (employeeStats, employeeTimes, employeeEarnings) para supervisar a los administradores.
  */
 const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
   ...ADMIN_PERMISSIONS,
@@ -153,7 +153,7 @@ const SUPERADMIN_PERMISSIONS: Record<string, string[]> = {
   // extiende la lista del admin en vez de copiarla: cuando estaba copiada a
   // mano se quedó sin `staff` y `setExtras`, y al super admin el tablero le
   // decía "no se pudo cargar la lista de empleados".
-  'api::qr.qr': [...ADMIN_PERMISSIONS['api::qr.qr'], 'employeeStats', 'employeeTimes'],
+  'api::qr.qr': [...ADMIN_PERMISSIONS['api::qr.qr'], 'employeeStats', 'employeeTimes', 'employeeEarnings'],
 };
 
 /**

@@ -31,6 +31,8 @@ export interface DashboardShellProps {
    * móvil. Sin él no se muestra nada.
    */
   dashboardHref?: string;
+  /** A dónde lleva el logo de la barra superior. Por defecto la portada (/). */
+  logoHref?: string;
   children: React.ReactNode;
   onLogout: () => void;
 }
@@ -40,6 +42,7 @@ export function DashboardShell({
   user,
   brand,
   dashboardHref,
+  logoHref = "/",
   children,
   onLogout,
 }: DashboardShellProps) {
@@ -50,7 +53,7 @@ export function DashboardShell({
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/40 bg-background/70 px-4 backdrop-blur md:px-6">
-        <SiteLogo name={brand?.name} logo={brand?.logo ?? null} />
+        <SiteLogo href={logoHref} name={brand?.name} logo={brand?.logo ?? null} />
         <div className="flex items-center gap-2">
           <div className="hidden text-right md:block">
             <p className="text-sm font-medium">{user.name ?? user.email}</p>

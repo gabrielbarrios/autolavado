@@ -151,9 +151,7 @@ export function PackagesGrid({
                   </p>
                 )}
                 <p className="line-clamp-2 text-sm text-muted-foreground">{pkg.description}</p>
-                <div className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" /> {pkg.durationMinutes} min
-                </div>
+                {/* La duración no se muestra al cliente: sigue usándose para calcular horarios al reservar. */}
               </CardHeader>
               <CardContent className="flex-1">
                 <ul className="space-y-2 text-sm">

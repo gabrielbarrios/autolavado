@@ -92,6 +92,12 @@ export default {
     },
     {
       method: 'GET',
+      path: '/qr/employee-earnings',
+      handler: 'qr.employeeEarnings',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'GET',
       path: '/qr/available-promotions',
       handler: 'qr.availablePromotions',
       config: { policies: [], middlewares: [] },

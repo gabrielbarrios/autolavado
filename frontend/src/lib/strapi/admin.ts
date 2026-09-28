@@ -107,6 +107,64 @@ export async function employeeTimes(fromISO: string, toISO: string): Promise<Emp
   });
 }
 
+export type EarningsGranularity = "day" | "week" | "month";
+
+export interface EmployeeEarningsBucket {
+  /** YYYY-MM-DD del inicio del periodo en la zona horaria del navegador. */
+  key: string;
+  start: string;
+  end: string;
+  washes: number;
+  earnings: number;
+  /** Ganancias del periodo por empleado; la clave es el id o "unassigned". */
+  byEmployee: Record<string, number>;
+}
+
+export interface EmployeeEarningsRow {
+  id: number | null;
+  name: string;
+  role: string | null;
+  washes: number;
+  earnings: number;
+  subtotal: number;
+  promotionDiscount: number;
+  manualDiscount: number;
+  avgTicket: number;
+}
+
+export interface EmployeeEarnings {
+  from: string;
+  to: string;
+  granularity: EarningsGranularity;
+  series: EmployeeEarningsBucket[];
+  byEmployee: EmployeeEarningsRow[];
+  totals: {
+    washes: number;
+    earnings: number;
+    subtotal: number;
+    promotionDiscount: number;
+    manualDiscount: number;
+    avgTicket: number;
+  };
+}
+
+/**
+ * Ganancias de una ventana agrupadas por día / semana / mes. Igual que los
+ * tiempos: la ventana y el offset de zona horaria vienen del navegador para
+ * que los cortes de día sean los de quien mira y no los del servidor (UTC).
+ */
+export async function employeeEarnings(
+  fromISO: string,
+  toISO: string,
+  granularity: EarningsGranularity,
+  tzOffset: number,
+): Promise<EmployeeEarnings> {
+  return strapiServerFetch<EmployeeEarnings>("/api/qr/employee-earnings", {
+    query: { from: fromISO, to: toISO, granularity, tzOffset },
+    cache: "no-store",
+  });
+}
+
 export async function adminStats() {
   // Estadísticas calculadas con queries paralelas; usa `pagination[pageSize]=1` con `pagination[withCount]=true` para obtener total.
   const safe = async <T>(p: Promise<T>) => p.catch(() => null);

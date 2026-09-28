@@ -975,6 +975,181 @@ export default {
   },
 
   /**
+   * GET /api/qr/employee-earnings  (solo super admin)
+   * Ganancias de los servicios cobrados en una ventana, agrupadas por día,
+   * semana o mes y desglosadas por empleado.
+   *
+   * Query:
+   *  - from, to      instantes ISO (calculados en el navegador)
+   *  - granularity   'day' | 'week' | 'month'
+   *  - tzOffset      minutos de `Date.prototype.getTimezoneOffset()` del navegador.
+   *                  El servidor corre en UTC; con el offset los cortes de día,
+   *                  semana (lunes) y mes son los de quien mira el reporte.
+   */
+  async employeeEarnings(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+    const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: actingUserId },
+      populate: { role: true },
+    });
+    if (!isSuperAdmin(acting)) return ctx.forbidden('Solo el super admin');
+
+    const { from, to, granularity: rawGranularity, tzOffset: rawTz } = ctx.query ?? {};
+    const fromDate = new Date(String(from ?? ''));
+    const toDate = new Date(String(to ?? ''));
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      return ctx.badRequest('from y to deben ser fechas ISO válidas');
+    }
+    if (toDate <= fromDate) return ctx.badRequest('to debe ser posterior a from');
+
+    // Hasta dos años por consulta: suficiente para comparar meses sin traer toda la historia.
+    const MAX_SPAN_MS = 2 * 366 * 24 * 60 * 60 * 1000;
+    if (toDate.getTime() - fromDate.getTime() > MAX_SPAN_MS) {
+      return ctx.badRequest('La ventana no puede pasar de dos años');
+    }
+
+    const granularity = ['day', 'week', 'month'].includes(String(rawGranularity))
+      ? String(rawGranularity)
+      : 'day';
+
+    // getTimezoneOffset() es positivo al oeste de UTC (México: 360). Restarlo
+    // convierte un instante UTC en la "hora de pared" del navegador.
+    let tzOffset = Number(rawTz ?? 0);
+    if (!Number.isFinite(tzOffset) || Math.abs(tzOffset) > 14 * 60) tzOffset = 0;
+    const toLocal = (d) => new Date(d.getTime() - tzOffset * 60 * 1000);
+    const toUtc = (local) => new Date(local.getTime() + tzOffset * 60 * 1000);
+
+    /** Inicio del bucket (en hora local, representada como UTC) que contiene `local`. */
+    const bucketStart = (local) => {
+      const y = local.getUTCFullYear();
+      const m = local.getUTCMonth();
+      const d = local.getUTCDate();
+      if (granularity === 'month') return new Date(Date.UTC(y, m, 1));
+      if (granularity === 'week') {
+        // Semana de lunes a domingo.
+        const dow = (local.getUTCDay() + 6) % 7;
+        return new Date(Date.UTC(y, m, d - dow));
+      }
+      return new Date(Date.UTC(y, m, d));
+    };
+    const nextBucket = (start) => {
+      const y = start.getUTCFullYear();
+      const m = start.getUTCMonth();
+      const d = start.getUTCDate();
+      if (granularity === 'month') return new Date(Date.UTC(y, m + 1, 1));
+      if (granularity === 'week') return new Date(Date.UTC(y, m, d + 7));
+      return new Date(Date.UTC(y, m, d + 1));
+    };
+
+    // Serie completa de buckets de la ventana, aunque estén en cero.
+    const series = [];
+    const byKey = new Map();
+    const localFrom = toLocal(fromDate);
+    const localTo = toLocal(toDate);
+    for (let start = bucketStart(localFrom); start < localTo; start = nextBucket(start)) {
+      const end = nextBucket(start);
+      const key = start.toISOString().slice(0, 10);
+      const row = {
+        key,
+        start: toUtc(start).toISOString(),
+        end: toUtc(end).toISOString(),
+        washes: 0,
+        earnings: 0,
+        byEmployee: {},
+      };
+      series.push(row);
+      byKey.set(key, row);
+    }
+
+    const services = await strapi.db.query('api::service.service').findMany({
+      where: { status: 'completed', date: { $gte: fromDate, $lt: toDate } },
+      select: ['id', 'date', 'totalAmount', 'subtotalAmount', 'promotionDiscount', 'manualDiscount'],
+      populate: { performedBy: { select: ['id', 'name', 'username', 'email'], populate: { role: true } } },
+      orderBy: [{ date: 'asc' }],
+      limit: 20000,
+    });
+
+    const employees = new Map();
+    const totals = { washes: 0, earnings: 0, subtotal: 0, promotionDiscount: 0, manualDiscount: 0 };
+
+    for (const s of services) {
+      const amount = Number(s.totalAmount ?? 0);
+      const promo = Number(s.promotionDiscount ?? 0);
+      const manual = Number(s.manualDiscount ?? 0);
+      // Servicios anteriores al desglose no traen subtotal: se reconstruye.
+      const subtotal = s.subtotalAmount != null ? Number(s.subtotalAmount) : amount + promo + manual;
+
+      const empId = s.performedBy?.id ?? null;
+      const empKey = empId ?? 'unassigned';
+      if (!employees.has(empKey)) {
+        employees.set(empKey, {
+          id: empId,
+          name: s.performedBy ? s.performedBy.name ?? s.performedBy.username ?? s.performedBy.email : 'Sin acreditar',
+          role: s.performedBy?.role?.type ?? null,
+          washes: 0,
+          earnings: 0,
+          subtotal: 0,
+          promotionDiscount: 0,
+          manualDiscount: 0,
+        });
+      }
+      const e = employees.get(empKey);
+      e.washes += 1;
+      e.earnings += amount;
+      e.subtotal += subtotal;
+      e.promotionDiscount += promo;
+      e.manualDiscount += manual;
+
+      totals.washes += 1;
+      totals.earnings += amount;
+      totals.subtotal += subtotal;
+      totals.promotionDiscount += promo;
+      totals.manualDiscount += manual;
+
+      const row = byKey.get(bucketStart(toLocal(new Date(s.date))).toISOString().slice(0, 10));
+      if (row) {
+        row.washes += 1;
+        row.earnings += amount;
+        row.byEmployee[empKey] = (row.byEmployee[empKey] ?? 0) + amount;
+      }
+    }
+
+    const r2 = (n) => Math.round(n * 100) / 100;
+    const byEmployee = [...employees.values()]
+      .map((e) => ({
+        ...e,
+        earnings: r2(e.earnings),
+        subtotal: r2(e.subtotal),
+        promotionDiscount: r2(e.promotionDiscount),
+        manualDiscount: r2(e.manualDiscount),
+        avgTicket: e.washes > 0 ? r2(e.earnings / e.washes) : 0,
+      }))
+      // El grupo "Sin acreditar" siempre al final.
+      .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings);
+
+    ctx.body = {
+      from: fromDate.toISOString(),
+      to: toDate.toISOString(),
+      granularity,
+      series: series.map((row) => ({
+        ...row,
+        earnings: r2(row.earnings),
+        byEmployee: Object.fromEntries(Object.entries(row.byEmployee).map(([k, v]) => [k, r2(v)])),
+      })),
+      byEmployee,
+      totals: {
+        ...totals,
+        earnings: r2(totals.earnings),
+        subtotal: r2(totals.subtotal),
+        promotionDiscount: r2(totals.promotionDiscount),
+        manualDiscount: r2(totals.manualDiscount),
+        avgTicket: totals.washes > 0 ? r2(totals.earnings / totals.washes) : 0,
+      },
+    };
+  },
+
+  /**
    * GET /api/qr/staff
    * Quién atiende el negocio (empleados, admins, super admin), recortado a lo
    * que necesita el selector "Acreditar a" del tablero. Lo puede pedir

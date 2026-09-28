@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Calendar, Receipt, Sparkles, ArrowRight } from "lucide-react";
+import { Users, Calendar, Receipt, Sparkles, ArrowRight, QrCode, UserPlus, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { adminStats } from "@/lib/strapi/admin";
@@ -9,6 +9,28 @@ import { RecentAppointments } from "@/components/admin/recent-appointments";
 import { STORE_ENABLED } from "@/lib/constants";
 
 export const metadata = { title: "Dashboard" };
+
+/** Accesos directos a la operación del día: lo primero que se toca al abrir el panel. */
+const QUICK_ACTIONS = [
+  {
+    href: "/escanear",
+    label: "Escanear QR",
+    description: "Identifica al cliente y registra su visita",
+    icon: QrCode,
+  },
+  {
+    href: "/walk-in",
+    label: "Visitante",
+    description: "Alta rápida de un auto sin cuenta",
+    icon: UserPlus,
+  },
+  {
+    href: "/en-progreso",
+    label: "Tablero",
+    description: "Autos en espera, en proceso y por cobrar",
+    icon: Clock,
+  },
+];
 
 export default async function DashboardPage() {
   const [stats, appointments] = await Promise.all([
@@ -30,6 +52,24 @@ export default async function DashboardPage() {
             <Calendar className="h-4 w-4" /> Ver pendientes
           </Link>
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {QUICK_ACTIONS.map((a) => (
+          <Link
+            key={a.href}
+            href={a.href}
+            className="group flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-col sm:items-center sm:gap-3 sm:p-7 sm:text-center"
+          >
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 sm:h-20 sm:w-20">
+              <a.icon className="h-8 w-8 sm:h-10 sm:w-10" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-lg font-bold tracking-tight sm:text-xl">{a.label}</span>
+              <span className="block text-xs text-muted-foreground sm:text-sm">{a.description}</span>
+            </span>
+          </Link>
+        ))}
       </div>
 
       <div

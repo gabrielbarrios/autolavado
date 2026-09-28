@@ -1,6 +1,7 @@
-import { Mail, MapPin, Phone, Clock, CalendarX, MessageCircle } from "lucide-react";
+import { Mail, MapPin, Phone, Clock, CalendarX, MessageCircle, Share2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSiteSetting } from "@/lib/strapi/site-setting";
+import { SocialLinks } from "@/components/marketing/social-links";
 import { dayLabel, hoursByDay, WEEK_DAYS, formatTime } from "@/lib/business-hours";
 import { formatDate, parseDate } from "@/lib/utils";
 
@@ -129,6 +130,18 @@ export default async function ContactoPage() {
           </CardContent>
         </Card>
       </div>
+
+      {(c?.facebook || c?.instagram || c?.tiktok || c?.whatsapp) && (
+        <section className="mt-10" aria-labelledby="social-heading">
+          <div className="mb-6 flex items-center justify-center gap-2">
+            <Share2 className="h-5 w-5 text-primary" />
+            <h2 id="social-heading" className="text-2xl font-bold tracking-tight">
+              Síguenos
+            </h2>
+          </div>
+          <SocialLinks contact={c} />
+        </section>
+      )}
 
       {embedMapUrl && (
         <div className="mt-10 overflow-hidden rounded-2xl border border-border/60">
