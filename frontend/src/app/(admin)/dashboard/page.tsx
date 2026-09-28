@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         </div>
         <Button asChild variant="premium">
           <Link href="/reservaciones?status=pending">
-            <Calendar className="h-4 w-4" /> Ver pendientes
+            <Calendar className="h-4 w-4" /> Ver reservaciones
           </Link>
         </Button>
       </div>
