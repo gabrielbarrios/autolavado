@@ -908,6 +908,7 @@ export interface ApiServiceService extends Struct.CollectionTypeSchema {
       Schema.Attribute.DefaultTo<0>;
     notes: Schema.Attribute.Text;
     package: Schema.Attribute.Relation<'manyToOne', 'api::package.package'>;
+    paymentMethod: Schema.Attribute.Enumeration<['cash', 'card']>;
     performedBy: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'

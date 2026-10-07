@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { DollarSign, Loader2, Lock, Tag, Gift } from "lucide-react";
+import { Banknote, CreditCard, DollarSign, Loader2, Lock, Tag, Gift } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { availablePromotionsAction, chargeServiceAction } from "@/actions/qr";
 import { formatPrice } from "@/lib/utils";
 import type { AvailablePromotionsResult, ApplicablePromotion } from "@/lib/strapi/qr";
-import type { Service } from "@/types/models";
+import type { PaymentMethod, Service } from "@/types/models";
+import { cn } from "@/lib/utils";
 
 /**
  * Cobro con descuentos. Reglas (decididas con el negocio):
@@ -39,6 +40,8 @@ export function ChargeDialog({ service }: { service: Service }) {
   const [manual, setManual] = React.useState("");
   const [extras, setExtras] = React.useState("");
   const [note, setNote] = React.useState("");
+  // Sin valor por defecto a propósito: el cajero tiene que decirlo cada vez.
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod | null>(null);
   const [charging, setCharging] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
@@ -58,6 +61,7 @@ export function ChargeDialog({ service }: { service: Service }) {
       setManual("");
       setExtras("");
       setNote("");
+      setPaymentMethod(null);
     }
   }
 
@@ -76,6 +80,10 @@ export function ChargeDialog({ service }: { service: Service }) {
   const total = Math.max(0, subtotal - promoDiscount - manualDiscount);
 
   async function onCharge() {
+    if (!paymentMethod) {
+      toast.error("Indica si el pago fue en efectivo o con tarjeta");
+      return;
+    }
     setCharging(true);
     const res = await chargeServiceAction({
       serviceId: service.id,
@@ -83,6 +91,7 @@ export function ChargeDialog({ service }: { service: Service }) {
       manualDiscount: manualDiscount > 0 ? manualDiscount : undefined,
       extrasCharge: extrasCharge > 0 ? extrasCharge : undefined,
       discountNote: note.trim() || undefined,
+      paymentMethod,
     });
     setCharging(false);
     if (!res.ok) return toast.error(res.error);
@@ -211,6 +220,25 @@ export function ChargeDialog({ service }: { service: Service }) {
               </section>
             )}
 
+            {/* Forma de pago */}
+            <section className="space-y-2">
+              <p className="text-sm font-medium">Forma de pago</p>
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Forma de pago">
+                <PaymentOption
+                  icon={Banknote}
+                  label="Efectivo"
+                  selected={paymentMethod === "cash"}
+                  onSelect={() => setPaymentMethod("cash")}
+                />
+                <PaymentOption
+                  icon={CreditCard}
+                  label="Tarjeta"
+                  selected={paymentMethod === "card"}
+                  onSelect={() => setPaymentMethod("card")}
+                />
+              </div>
+            </section>
+
             {/* Desglose */}
             <section className="space-y-1.5 rounded-lg bg-card/50 p-4 text-sm">
               <Line label="Subtotal" value={formatPrice(catalogSubtotal)} />
@@ -236,13 +264,21 @@ export function ChargeDialog({ service }: { service: Service }) {
               </div>
             </section>
 
-            <Button className="w-full" onClick={onCharge} disabled={charging}>
+            <Button className="w-full" onClick={onCharge} disabled={charging || !paymentMethod}>
               {charging ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : paymentMethod === "card" ? (
+                <CreditCard className="h-4 w-4" />
+              ) : paymentMethod === "cash" ? (
+                <Banknote className="h-4 w-4" />
               ) : (
                 <DollarSign className="h-4 w-4" />
               )}
-              Cobrar {formatPrice(total)}
+              {paymentMethod === "cash"
+                ? `Cobrar ${formatPrice(total)} en efectivo`
+                : paymentMethod === "card"
+                  ? `Cobrar ${formatPrice(total)} con tarjeta`
+                  : "Elige la forma de pago"}
             </Button>
           </div>
         )}
@@ -303,6 +339,36 @@ function PromoOption({
             : `+ ${formatPrice(-promo.discountAmount)}`}
         </Badge>
       )}
+    </button>
+  );
+}
+
+function PaymentOption({
+  icon: Icon,
+  label,
+  selected,
+  onSelect,
+}: {
+  icon: typeof Banknote;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors",
+        selected
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
     </button>
   );
 }

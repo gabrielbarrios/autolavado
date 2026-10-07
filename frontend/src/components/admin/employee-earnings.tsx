@@ -10,13 +10,25 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  LabelList,
 } from "recharts";
-import { DollarSign, Sparkles, Receipt, Percent, AlertTriangle } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+import {
+  DollarSign,
+  Sparkles,
+  Receipt,
+  Percent,
+  AlertTriangle,
+  Banknote,
+  CreditCard,
+  CalendarDays,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -26,8 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { employeeEarningsAction } from "@/actions/admin";
-import type { EarningsGranularity, EmployeeEarnings } from "@/lib/strapi/admin";
-import { formatPrice } from "@/lib/utils";
+import type { EarningsGranularity, EmployeeEarnings, PaymentSplit } from "@/lib/strapi/admin";
+import { cn, formatPrice } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /* Periodos                                                            */
@@ -49,21 +61,21 @@ const PRESETS: Record<EarningsGranularity, { value: string; label: string }[]> =
     { value: "yesterday", label: "Ayer" },
     { value: "last7", label: "Últimos 7 días" },
     { value: "last30", label: "Últimos 30 días" },
-    { value: "custom", label: "Rango personalizado" },
+    { value: "custom", label: "Fechas elegidas" },
   ],
   week: [
     { value: "thisWeek", label: "Esta semana" },
     { value: "lastWeek", label: "Semana pasada" },
     { value: "last4w", label: "Últimas 4 semanas" },
     { value: "last12w", label: "Últimas 12 semanas" },
-    { value: "custom", label: "Rango personalizado" },
+    { value: "custom", label: "Fechas elegidas" },
   ],
   month: [
     { value: "thisMonth", label: "Este mes" },
     { value: "lastMonth", label: "Mes pasado" },
     { value: "last6m", label: "Últimos 6 meses" },
     { value: "last12m", label: "Últimos 12 meses" },
-    { value: "custom", label: "Rango personalizado" },
+    { value: "custom", label: "Fechas elegidas" },
   ],
 };
 
@@ -97,14 +109,6 @@ function addMonths(d: Date, n: number): Date {
   const x = new Date(d);
   x.setMonth(x.getMonth() + n);
   return x;
-}
-
-/** YYYY-MM-DD local, para los inputs type="date". */
-function toInputDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 /** Interpreta YYYY-MM-DD como fecha local (new Date("YYYY-MM-DD") sería UTC). */
@@ -201,6 +205,34 @@ function rangeLabel(fromISO: string, toISO: string): string {
 const SERIES_COLORS = ["#22c55e", "#38bdf8", "#f59e0b", "#a78bfa", "#f472b6", "#2dd4bf", "#fb7185", "#facc15"];
 const UNASSIGNED_COLOR = "#78716c";
 
+/* Efectivo y tarjeta reutilizan las dos primeras series para que el ojo las asocie igual en ambas gráficas. */
+const PAYMENT_META: { key: keyof PaymentSplit; label: string; color: string }[] = [
+  { key: "cash", label: "Efectivo", color: "#22c55e" },
+  { key: "card", label: "Tarjeta", color: "#38bdf8" },
+  { key: "unknown", label: "Sin registrar", color: UNASSIGNED_COLOR },
+];
+
+/**
+ * Total sobre cada barra. Con muchos periodos (30 días en móvil) las barras
+ * son angostas y "$12,345" no cabe, así que se abrevia a "$12.3k".
+ */
+function barTotalLabel(value: number, compact: boolean): string {
+  if (!value) return "";
+  if (compact && Math.abs(value) >= 1000) {
+    const k = value / 1000;
+    return `$${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  return formatPrice(value);
+}
+
+/** Texto del botón del calendario: "3 oct 2026" o "1 – 7 oct 2026". */
+function dateRangeLabel(range: DateRange | undefined): string {
+  if (!range?.from) return "Elegir fechas";
+  const f = (x: Date) => x.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+  if (!range.to || range.to.getTime() === range.from.getTime()) return f(range.from);
+  return `${f(range.from)} – ${f(range.to)}`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Panel                                                               */
 /* ------------------------------------------------------------------ */
@@ -208,8 +240,12 @@ const UNASSIGNED_COLOR = "#78716c";
 export function EmployeeEarningsPanel() {
   const [granularity, setGranularity] = React.useState<EarningsGranularity>("day");
   const [preset, setPreset] = React.useState("last7");
-  const [customFrom, setCustomFrom] = React.useState(() => toInputDate(addDays(startOfDay(new Date()), -6)));
-  const [customTo, setCustomTo] = React.useState(() => toInputDate(new Date()));
+  // Días elegidos en el calendario (ambos inclusivos). Refleja también el
+  // preset activo, para que el botón siempre diga qué ventana se está viendo.
+  const [range, setRange] = React.useState<DateRange | undefined>(() => {
+    const today = startOfDay(new Date());
+    return { from: addDays(today, -6), to: today };
+  });
   const [data, setData] = React.useState<EmployeeEarnings | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
@@ -239,24 +275,31 @@ export function EmployeeEarningsPanel() {
   }, [load]);
 
   function applyPreset(g: EarningsGranularity, p: string) {
-    if (p === "custom") return applyCustom(g);
+    if (p === "custom") return applyRange(g, range);
     const b = presetBounds(p);
-    if (b) load(g, b.from, b.to);
+    if (!b) return;
+    // El calendario muestra la ventana del preset; `to` es exclusivo allá.
+    setRange({ from: b.from, to: addDays(b.to, -1) });
+    load(g, b.from, b.to);
   }
 
-  function applyCustom(g: EarningsGranularity) {
-    const from = fromInputDate(customFrom);
-    const toDay = fromInputDate(customTo);
-    if (!from || !toDay) {
-      setError("Elige una fecha de inicio y una de fin.");
+  /** Carga los días elegidos en el calendario; un solo día vale como rango de uno. */
+  function applyRange(g: EarningsGranularity, r: DateRange | undefined) {
+    if (!r?.from) {
+      setError("Elige al menos un día en el calendario.");
       return;
     }
-    if (toDay < from) {
-      setError("La fecha de fin debe ser igual o posterior a la de inicio.");
-      return;
-    }
-    // `to` exclusivo: el día de fin se incluye completo.
-    load(g, from, addDays(toDay, 1));
+    const from = startOfDay(r.from);
+    const last = startOfDay(r.to ?? r.from);
+    // `to` exclusivo: el último día se incluye completo.
+    load(g, from, addDays(last, 1));
+  }
+
+  function onRangeChange(next: DateRange | undefined) {
+    setRange(next);
+    if (!next?.from) return;
+    setPreset("custom");
+    applyRange(granularity, next);
   }
 
   function onGranularityChange(value: string) {
@@ -317,36 +360,10 @@ export function EmployeeEarningsPanel() {
             </Select>
           </div>
 
-          {preset === "custom" && (
-            <>
-              <div className="space-y-1.5">
-                <Label htmlFor="earn-from">Desde</Label>
-                <Input
-                  id="earn-from"
-                  type="date"
-                  value={customFrom}
-                  max={customTo}
-                  onChange={(e) => setCustomFrom(e.target.value)}
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="flex-1 space-y-1.5">
-                  <Label htmlFor="earn-to">Hasta</Label>
-                  <Input
-                    id="earn-to"
-                    type="date"
-                    value={customTo}
-                    min={customFrom}
-                    max={toInputDate(new Date())}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                  />
-                </div>
-                <Button type="button" variant="secondary" onClick={() => applyCustom(granularity)} disabled={isPending}>
-                  Aplicar
-                </Button>
-              </div>
-            </>
-          )}
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="earn-range">Fechas</Label>
+            <DateRangePicker id="earn-range" value={range} onChange={onRangeChange} disabled={isPending} />
+          </div>
         </div>
       </CardHeader>
 
@@ -368,8 +385,20 @@ export function EmployeeEarningsPanel() {
           </p>
         ) : (
           <div className={isPending ? "space-y-6 opacity-60 transition-opacity" : "space-y-6"}>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
               <MiniStat icon={DollarSign} label="Ganancias" value={formatPrice(data.totals.earnings)} />
+              <MiniStat
+                icon={Banknote}
+                label="Efectivo"
+                value={formatPrice(data.totals.byPayment.cash.earnings)}
+                hint={`${data.totals.byPayment.cash.washes} lavados`}
+              />
+              <MiniStat
+                icon={CreditCard}
+                label="Tarjeta"
+                value={formatPrice(data.totals.byPayment.card.earnings)}
+                hint={`${data.totals.byPayment.card.washes} lavados`}
+              />
               <MiniStat icon={Sparkles} label="Lavados cobrados" value={String(data.totals.washes)} />
               <MiniStat icon={Receipt} label="Ticket promedio" value={formatPrice(data.totals.avgTicket)} />
               <MiniStat
@@ -385,6 +414,7 @@ export function EmployeeEarningsPanel() {
             </div>
 
             <EarningsChart data={data} />
+            <PaymentChart data={data} />
             <EmployeeTable rows={data.byEmployee} />
             <PeriodTable data={data} />
           </div>
@@ -437,6 +467,7 @@ function EarningsChart({ data }: { data: EmployeeEarnings }) {
     const row: Record<string, string | number> = {
       periodo: bucketLabel(b.key, granularity),
       key: b.key,
+      total: Number(b.earnings.toFixed(2)),
     };
     for (const e of employees) row[e.key] = Number((b.byEmployee[e.key] ?? 0).toFixed(2));
     return row;
@@ -444,13 +475,14 @@ function EarningsChart({ data }: { data: EmployeeEarnings }) {
 
   // Muchos buckets (p. ej. 30 días) en móvil: mostrar solo algunas etiquetas.
   const interval = series.length > 14 ? Math.ceil(series.length / 8) - 1 : 0;
+  const compactLabels = series.length > 12;
 
   return (
     <section className="space-y-3">
       <h3 className="text-sm font-semibold">Ganancias por {granularity === "day" ? "día" : granularity === "week" ? "semana" : "mes"}</h3>
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 8, right: 16, bottom: 8, left: 8 }}>
+          <BarChart data={chartData} margin={{ top: 24, right: 16, bottom: 8, left: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
             <XAxis dataKey="periodo" tick={{ fontSize: 11 }} stroke="rgba(255,255,255,0.5)" interval={interval} />
             <YAxis tick={{ fontSize: 11 }} stroke="rgba(255,255,255,0.5)" />
@@ -468,20 +500,176 @@ function EarningsChart({ data }: { data: EmployeeEarnings }) {
               }}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            {employees.map((e, i) => (
-              <Bar
-                key={e.key}
-                dataKey={e.key}
-                name={e.name}
-                stackId="earnings"
-                fill={e.color}
-                radius={i === employees.length - 1 ? [4, 4, 0, 0] : undefined}
-              />
-            ))}
+            {employees.map((e, i) => {
+              const last = i === employees.length - 1;
+              return (
+                <Bar
+                  key={e.key}
+                  dataKey={e.key}
+                  name={e.name}
+                  stackId="earnings"
+                  fill={e.color}
+                  radius={last ? [4, 4, 0, 0] : undefined}
+                >
+                  {/* El total del periodo va sobre la última serie: ahí termina la pila. */}
+                  {last && (
+                    <LabelList
+                      dataKey="total"
+                      position="top"
+                      offset={6}
+                      fill="rgba(255,255,255,0.85)"
+                      fontSize={compactLabels ? 10 : 11}
+                      formatter={(v: number) => barTotalLabel(v, compactLabels)}
+                    />
+                  )}
+                </Bar>
+              );
+            })}
           </BarChart>
         </ResponsiveContainer>
       </div>
     </section>
+  );
+}
+
+/** Efectivo vs tarjeta por periodo. "Sin registrar" solo aparece si hay cobros viejos sin forma de pago. */
+function PaymentChart({ data }: { data: EmployeeEarnings }) {
+  const { series, granularity, totals } = data;
+  const metas = PAYMENT_META.filter((m) => m.key !== "unknown" || totals.byPayment.unknown.washes > 0);
+
+  const chartData = series.map((b) => {
+    const row: Record<string, string | number> = {
+      periodo: bucketLabel(b.key, granularity),
+      key: b.key,
+      total: Number(b.earnings.toFixed(2)),
+    };
+    for (const m of metas) row[m.key] = Number(b.byPayment[m.key].earnings.toFixed(2));
+    return row;
+  });
+
+  const interval = series.length > 14 ? Math.ceil(series.length / 8) - 1 : 0;
+  const compactLabels = series.length > 12;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold">Efectivo vs tarjeta</h3>
+        <p className="text-xs text-muted-foreground">
+          {formatPrice(totals.byPayment.cash.earnings)} en efectivo · {formatPrice(totals.byPayment.card.earnings)} con tarjeta
+          {totals.byPayment.unknown.washes > 0 && ` · ${formatPrice(totals.byPayment.unknown.earnings)} sin registrar`}
+        </p>
+      </div>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 24, right: 16, bottom: 8, left: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+            <XAxis dataKey="periodo" tick={{ fontSize: 11 }} stroke="rgba(255,255,255,0.5)" interval={interval} />
+            <YAxis tick={{ fontSize: 11 }} stroke="rgba(255,255,255,0.5)" />
+            <Tooltip
+              formatter={(value: number, name: string) => [formatPrice(value), name]}
+              labelFormatter={(_label, payload) => {
+                const key = payload?.[0]?.payload?.key as string | undefined;
+                return key ? bucketLongLabel(key, granularity) : String(_label);
+              }}
+              contentStyle={{
+                background: "#0b0b0c",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            {metas.map((m, i) => {
+              const last = i === metas.length - 1;
+              return (
+                <Bar
+                  key={m.key}
+                  dataKey={m.key}
+                  name={m.label}
+                  stackId="payment"
+                  fill={m.color}
+                  radius={last ? [4, 4, 0, 0] : undefined}
+                >
+                  {last && (
+                    <LabelList
+                      dataKey="total"
+                      position="top"
+                      offset={6}
+                      fill="rgba(255,255,255,0.85)"
+                      fontSize={compactLabels ? 10 : 11}
+                      formatter={(v: number) => barTotalLabel(v, compactLabels)}
+                    />
+                  )}
+                </Bar>
+              );
+            })}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Botón que abre un calendario de rango. Un clic marca un día; el segundo
+ * cierra el rango. Nunca deja elegir días futuros: no hay nada que cobrar ahí.
+ */
+function DateRangePicker({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id?: string;
+  value: DateRange | undefined;
+  onChange: (next: DateRange | undefined) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const today = startOfDay(new Date());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          className={cn("w-full justify-start font-normal", !value?.from && "text-muted-foreground")}
+        >
+          <CalendarDays className="h-4 w-4 shrink-0" />
+          <span className="truncate">{dateRangeLabel(value)}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <Calendar
+          mode="range"
+          selected={value}
+          onSelect={onChange}
+          defaultMonth={value?.from ?? today}
+          disabled={{ after: today }}
+          endMonth={today}
+          numberOfMonths={2}
+          classNames={{
+            months: "flex flex-col gap-4 sm:flex-row",
+            // `!` porque el día también lleva la clase `selected`, que pinta bg-primary.
+            range_middle:
+              "[&>button]:rounded-none! [&>button]:bg-primary/20! [&>button]:text-foreground! [&>button]:hover:bg-primary/30!",
+            range_start: "[&>button]:rounded-r-none",
+            range_end: "[&>button]:rounded-l-none",
+          }}
+        />
+        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+          <p className="text-xs text-muted-foreground">
+            {value?.from && !value?.to ? "Elige el último día" : "Un clic por día; dos para un rango."}
+          </p>
+          <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(false)}>
+            Listo
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -501,13 +689,15 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
 
       {/* Desktop: tabla */}
       <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
-        <table className="w-full min-w-[40rem] text-sm">
+        <table className="w-full min-w-[52rem] text-sm">
           <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Empleado</th>
               <th className="px-4 py-3 font-medium text-right">Lavados</th>
               <th className="px-4 py-3 font-medium text-right">Subtotal</th>
               <th className="px-4 py-3 font-medium text-right">Descuentos</th>
+              <th className="px-4 py-3 font-medium text-right">Efectivo</th>
+              <th className="px-4 py-3 font-medium text-right">Tarjeta</th>
               <th className="px-4 py-3 font-medium text-right">Ganancias</th>
               <th className="px-4 py-3 font-medium text-right">Ticket prom.</th>
             </tr>
@@ -534,6 +724,8 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
                     ? `−${formatPrice(r.promotionDiscount + r.manualDiscount)}`
                     : "—"}
                 </td>
+                <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.cash.earnings)}</td>
+                <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.card.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono font-semibold">{formatPrice(r.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatPrice(r.avgTicket)}</td>
               </tr>
@@ -589,8 +781,10 @@ function PeriodTable({ data }: { data: EmployeeEarnings }) {
             <tr>
               <th className="px-4 py-3 font-medium">Periodo</th>
               <th className="px-4 py-3 font-medium text-right">Lavados</th>
+              <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Efectivo</th>
+              <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Tarjeta</th>
               <th className="px-4 py-3 font-medium text-right">Ganancias</th>
-              <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Ticket prom.</th>
+              <th className="hidden px-4 py-3 font-medium text-right md:table-cell">Ticket prom.</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
@@ -598,8 +792,14 @@ function PeriodTable({ data }: { data: EmployeeEarnings }) {
               <tr key={b.key}>
                 <td className="px-4 py-3 capitalize">{bucketLongLabel(b.key, granularity)}</td>
                 <td className="px-4 py-3 text-right font-mono">{b.washes}</td>
+                <td className="hidden px-4 py-3 text-right font-mono text-muted-foreground sm:table-cell">
+                  {formatPrice(b.byPayment.cash.earnings)}
+                </td>
+                <td className="hidden px-4 py-3 text-right font-mono text-muted-foreground sm:table-cell">
+                  {formatPrice(b.byPayment.card.earnings)}
+                </td>
                 <td className="px-4 py-3 text-right font-mono font-semibold">{formatPrice(b.earnings)}</td>
-                <td className="hidden px-4 py-3 text-right font-mono sm:table-cell">
+                <td className="hidden px-4 py-3 text-right font-mono md:table-cell">
                   {formatPrice(b.earnings / b.washes)}
                 </td>
               </tr>

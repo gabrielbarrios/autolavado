@@ -182,6 +182,7 @@ export function VehicleForm({ vehicle, embedded = false, onSuccess, onCancel }: 
                 id="isUberTaxi"
                 checked={field.value}
                 onCheckedChange={field.onChange}
+                className="data-[state=checked]:bg-orange-500 focus-visible:ring-orange-500"
               />
             )}
           />

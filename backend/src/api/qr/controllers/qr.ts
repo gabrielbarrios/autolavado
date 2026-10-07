@@ -37,6 +37,28 @@ const SERVICE_PRICING_POPULATE = {
 /** Estados en los que un service sigue vivo en el tablero. */
 const ACTIVE_STATUSES = ['waiting', 'in_progress', 'to_pay'];
 
+/** Accepted values for `service.paymentMethod`; the cashier picks one when charging. */
+const PAYMENT_METHODS = ['cash', 'card'];
+
+/**
+ * Cash / card split used by the earnings report. `unknown` collects the
+ * services charged before `paymentMethod` existed, so the three always sum
+ * to the total and nothing silently disappears from the chart.
+ */
+const emptyPaymentSplit = () => ({
+  cash: { washes: 0, earnings: 0 },
+  card: { washes: 0, earnings: 0 },
+  unknown: { washes: 0, earnings: 0 },
+});
+const paymentKey = (method) => (PAYMENT_METHODS.includes(method) ? method : 'unknown');
+const roundPaymentSplit = (split) =>
+  Object.fromEntries(
+    Object.entries(split).map(([k, v]: [string, { washes: number; earnings: number }]) => [
+      k,
+      { washes: v.washes, earnings: Math.round(v.earnings * 100) / 100 },
+    ]),
+  );
+
 /** ¿El user (con role poblado) es super admin? */
 function isSuperAdmin(user) {
   const t = user?.role?.type;
@@ -682,9 +704,14 @@ export default {
    * que es lo que suman las ganancias por empleado.
    */
   async chargeService(ctx) {
-    const { serviceId, promotionId, manualDiscount, discountNote, extrasCharge } =
+    const { serviceId, promotionId, manualDiscount, discountNote, extrasCharge, paymentMethod } =
       ctx.request.body ?? {};
     if (!serviceId) return ctx.badRequest('serviceId requerido');
+    // The cashier must say how the customer paid: the earnings report splits
+    // cash from card, so a ticket without it would be unaccounted for.
+    if (!PAYMENT_METHODS.includes(paymentMethod)) {
+      return ctx.badRequest('Indica si el pago fue en efectivo o con tarjeta');
+    }
     const actingUserId = ctx.state.user?.id;
     if (!actingUserId) return ctx.unauthorized('Sesión requerida');
 
@@ -768,6 +795,7 @@ export default {
         discountNote: discountNote ? String(discountNote).slice(0, 255) : null,
         promotion: promotion ? promotion.id : null,
         totalAmount: finalAmount,
+        paymentMethod,
       },
     });
 
@@ -840,6 +868,7 @@ export default {
         promotionDiscount: round2(promotionDiscount),
         manualDiscount: manual,
         totalAmount: finalAmount,
+        paymentMethod,
         promotionTitle: promotion?.title ?? null,
       },
       promotionGenerated,
@@ -1057,6 +1086,7 @@ export default {
         washes: 0,
         earnings: 0,
         byEmployee: {},
+        byPayment: emptyPaymentSplit(),
       };
       series.push(row);
       byKey.set(key, row);
@@ -1064,7 +1094,15 @@ export default {
 
     const services = await strapi.db.query('api::service.service').findMany({
       where: { status: 'completed', date: { $gte: fromDate, $lt: toDate } },
-      select: ['id', 'date', 'totalAmount', 'subtotalAmount', 'promotionDiscount', 'manualDiscount'],
+      select: [
+        'id',
+        'date',
+        'totalAmount',
+        'subtotalAmount',
+        'promotionDiscount',
+        'manualDiscount',
+        'paymentMethod',
+      ],
       populate: { performedBy: { select: ['id', 'name', 'username', 'email'], populate: { role: true } } },
       orderBy: [{ date: 'asc' }],
       limit: 20000,
@@ -1072,11 +1110,15 @@ export default {
 
     const employees = new Map();
     const totals = { washes: 0, earnings: 0, subtotal: 0, promotionDiscount: 0, manualDiscount: 0 };
+    // Cash vs card. Services charged before the field existed land in
+    // `unknown` so the split still adds up to `earnings`.
+    const byPayment = emptyPaymentSplit();
 
     for (const s of services) {
       const amount = Number(s.totalAmount ?? 0);
       const promo = Number(s.promotionDiscount ?? 0);
       const manual = Number(s.manualDiscount ?? 0);
+      const pay = paymentKey(s.paymentMethod);
       // Servicios anteriores al desglose no traen subtotal: se reconstruye.
       const subtotal = s.subtotalAmount != null ? Number(s.subtotalAmount) : amount + promo + manual;
 
@@ -1092,6 +1134,7 @@ export default {
           subtotal: 0,
           promotionDiscount: 0,
           manualDiscount: 0,
+          byPayment: emptyPaymentSplit(),
         });
       }
       const e = employees.get(empKey);
@@ -1100,18 +1143,24 @@ export default {
       e.subtotal += subtotal;
       e.promotionDiscount += promo;
       e.manualDiscount += manual;
+      e.byPayment[pay].washes += 1;
+      e.byPayment[pay].earnings += amount;
 
       totals.washes += 1;
       totals.earnings += amount;
       totals.subtotal += subtotal;
       totals.promotionDiscount += promo;
       totals.manualDiscount += manual;
+      byPayment[pay].washes += 1;
+      byPayment[pay].earnings += amount;
 
       const row = byKey.get(bucketStart(toLocal(new Date(s.date))).toISOString().slice(0, 10));
       if (row) {
         row.washes += 1;
         row.earnings += amount;
         row.byEmployee[empKey] = (row.byEmployee[empKey] ?? 0) + amount;
+        row.byPayment[pay].washes += 1;
+        row.byPayment[pay].earnings += amount;
       }
     }
 
@@ -1124,6 +1173,7 @@ export default {
         promotionDiscount: r2(e.promotionDiscount),
         manualDiscount: r2(e.manualDiscount),
         avgTicket: e.washes > 0 ? r2(e.earnings / e.washes) : 0,
+        byPayment: roundPaymentSplit(e.byPayment),
       }))
       // El grupo "Sin acreditar" siempre al final.
       .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings);
@@ -1136,6 +1186,7 @@ export default {
         ...row,
         earnings: r2(row.earnings),
         byEmployee: Object.fromEntries(Object.entries(row.byEmployee).map(([k, v]) => [k, r2(v)])),
+        byPayment: roundPaymentSplit(row.byPayment),
       })),
       byEmployee,
       totals: {
@@ -1145,6 +1196,7 @@ export default {
         promotionDiscount: r2(totals.promotionDiscount),
         manualDiscount: r2(totals.manualDiscount),
         avgTicket: totals.washes > 0 ? r2(totals.earnings / totals.washes) : 0,
+        byPayment: roundPaymentSplit(byPayment),
       },
     };
   },

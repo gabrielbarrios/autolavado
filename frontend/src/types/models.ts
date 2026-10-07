@@ -129,6 +129,9 @@ export type ServiceStatus =
   | "completed"
   | "cancelled";
 
+/** How a service was paid at the counter. `null` on services charged before the field existed. */
+export type PaymentMethod = "cash" | "card";
+
 export interface Service {
   id: number;
   documentId?: string;
@@ -160,6 +163,7 @@ export interface Service {
   customerName?: string | null;
   vehicleType?: VehicleType;
   isUberTaxi?: boolean;
+  paymentMethod?: PaymentMethod | null;
   status?: ServiceStatus;
 }
 

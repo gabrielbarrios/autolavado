@@ -102,6 +102,14 @@
       "type": "boolean",
       "default": false
     },
+    "paymentMethod": {
+      "type": "enumeration",
+      "enum": [
+        "cash",
+        "card"
+      ],
+      "description": "How the customer paid at the counter. Null on services charged before the field existed."
+    },
     "status": {
       "type": "enumeration",
       "enum": [

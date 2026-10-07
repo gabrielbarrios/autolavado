@@ -109,6 +109,13 @@ export async function employeeTimes(fromISO: string, toISO: string): Promise<Emp
 
 export type EarningsGranularity = "day" | "week" | "month";
 
+/**
+ * Efectivo vs tarjeta. `unknown` son los servicios cobrados antes de que
+ * existiera `paymentMethod`; los tres suman siempre lo mismo que `earnings`.
+ */
+export type PaymentSplitKey = "cash" | "card" | "unknown";
+export type PaymentSplit = Record<PaymentSplitKey, { washes: number; earnings: number }>;
+
 export interface EmployeeEarningsBucket {
   /** YYYY-MM-DD del inicio del periodo en la zona horaria del navegador. */
   key: string;
@@ -118,6 +125,7 @@ export interface EmployeeEarningsBucket {
   earnings: number;
   /** Ganancias del periodo por empleado; la clave es el id o "unassigned". */
   byEmployee: Record<string, number>;
+  byPayment: PaymentSplit;
 }
 
 export interface EmployeeEarningsRow {
@@ -130,6 +138,7 @@ export interface EmployeeEarningsRow {
   promotionDiscount: number;
   manualDiscount: number;
   avgTicket: number;
+  byPayment: PaymentSplit;
 }
 
 export interface EmployeeEarnings {
@@ -145,6 +154,7 @@ export interface EmployeeEarnings {
     promotionDiscount: number;
     manualDiscount: number;
     avgTicket: number;
+    byPayment: PaymentSplit;
   };
 }
 

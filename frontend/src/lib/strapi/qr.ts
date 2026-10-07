@@ -10,6 +10,7 @@ import type {
   ServiceStatus,
   VehicleType,
   DiscountType,
+  PaymentMethod,
 } from "@/types/models";
 
 export interface QRScanResult {
@@ -158,6 +159,7 @@ export interface ChargeServiceResult {
     promotionDiscount: number;
     manualDiscount: number;
     totalAmount: number;
+    paymentMethod: PaymentMethod;
     promotionTitle: string | null;
   };
   promotionGenerated: Promotion | null;
@@ -216,6 +218,8 @@ export interface ChargeServicePayload {
   discountNote?: string;
   /** Monto capturado en caja por los servicios que se cotizan. */
   extrasCharge?: number;
+  /** Efectivo o tarjeta: obligatorio, el reporte de ganancias lo desglosa. */
+  paymentMethod: PaymentMethod;
 }
 
 /** to_pay → completed: la caja cobra al cliente y se dispara la fidelidad. */

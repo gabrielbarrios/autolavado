@@ -154,14 +154,24 @@ export function WalkInForm({
               </button>
             ))}
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card/40 p-3">
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-lg border p-3 transition-colors",
+              isUberTaxi ? "border-orange-500/70 bg-orange-500/10" : "border-border bg-card/40",
+            )}
+          >
             <div>
               <Label htmlFor="walk-uber" className="cursor-pointer">
                 ¿Es Uber / Taxi?
               </Label>
               <p className="text-xs text-muted-foreground">Aplica precio especial si está configurado.</p>
             </div>
-            <Switch id="walk-uber" checked={isUberTaxi} onCheckedChange={setIsUberTaxi} />
+            <Switch
+              id="walk-uber"
+              checked={isUberTaxi}
+              onCheckedChange={setIsUberTaxi}
+              className="data-[state=checked]:bg-orange-500 focus-visible:ring-orange-500"
+            />
           </div>
         </CardContent>
       </Card>

@@ -8,6 +8,8 @@ import { listVehicleTypes } from "@/lib/strapi/vehicle-types";
 
 export const metadata = { title: "Servicios" };
 
+const PAYMENT_LABEL = { cash: "Efectivo", card: "Tarjeta" } as const;
+
 export default async function ServiciosPage() {
   // Pantalla de administración: el empleado se queda en su dashboard.
   await requireAdmin();
@@ -108,7 +110,14 @@ export default async function ServiciosPage() {
                       <td className="px-4 py-3 text-muted-foreground">
                         {s.performedBy?.name ?? s.performedBy?.username ?? s.performedBy?.email ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">{formatPrice(s.totalAmount)}</td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {formatPrice(s.totalAmount)}
+                        {s.paymentMethod && (
+                          <span className="ml-2 font-sans text-[10px] uppercase text-muted-foreground">
+                            {PAYMENT_LABEL[s.paymentMethod]}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -142,9 +151,14 @@ export default async function ServiciosPage() {
                         </div>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{auto}</p>
                       </div>
-                      <p className="shrink-0 font-mono text-base font-semibold">
-                        {formatPrice(s.totalAmount)}
-                      </p>
+                      <div className="shrink-0 text-right">
+                        <p className="font-mono text-base font-semibold">{formatPrice(s.totalAmount)}</p>
+                        {s.paymentMethod && (
+                          <p className="text-[10px] uppercase text-muted-foreground">
+                            {PAYMENT_LABEL[s.paymentMethod]}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <dl className="grid grid-cols-2 gap-2 text-xs">
                       <div>

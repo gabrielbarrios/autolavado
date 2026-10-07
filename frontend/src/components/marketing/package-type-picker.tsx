@@ -61,6 +61,7 @@ export function PackageTypePicker({
             id="uber-taxi-toggle"
             checked={value.isUberTaxi}
             onCheckedChange={(checked) => onChange({ ...value, isUberTaxi: checked })}
+            className="data-[state=checked]:bg-orange-500 focus-visible:ring-orange-500"
           />
           <Label htmlFor="uber-taxi-toggle" className="cursor-pointer whitespace-nowrap text-sm">
             Es Uber / Taxi
