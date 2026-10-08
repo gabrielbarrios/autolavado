@@ -106,7 +106,8 @@
       "type": "enumeration",
       "enum": [
         "cash",
-        "card"
+        "card",
+        "transfer"
       ],
       "description": "How the customer paid at the counter. Null on services charged before the field existed."
     },

@@ -218,7 +218,7 @@ export interface ChargeServicePayload {
   discountNote?: string;
   /** Monto capturado en caja por los servicios que se cotizan. */
   extrasCharge?: number;
-  /** Efectivo o tarjeta: obligatorio, el reporte de ganancias lo desglosa. */
+  /** Efectivo, tarjeta o transferencia: obligatorio, el reporte de ganancias lo desglosa. */
   paymentMethod: PaymentMethod;
 }
 

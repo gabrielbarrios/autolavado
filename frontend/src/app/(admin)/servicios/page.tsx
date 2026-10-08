@@ -8,7 +8,7 @@ import { listVehicleTypes } from "@/lib/strapi/vehicle-types";
 
 export const metadata = { title: "Servicios" };
 
-const PAYMENT_LABEL = { cash: "Efectivo", card: "Tarjeta" } as const;
+const PAYMENT_LABEL = { cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia" } as const;
 
 export default async function ServiciosPage() {
   // Pantalla de administración: el empleado se queda en su dashboard.

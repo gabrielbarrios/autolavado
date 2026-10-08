@@ -10,7 +10,9 @@
  */
 import {
   computeAppointmentTotal,
+  computeItemPrice,
   computeTotal,
+  isVipUser,
   isVipUserId,
   APPOINTMENT_PRICING_POPULATE,
 } from '../../../utils/pricing';
@@ -38,16 +40,17 @@ const SERVICE_PRICING_POPULATE = {
 const ACTIVE_STATUSES = ['waiting', 'in_progress', 'to_pay'];
 
 /** Accepted values for `service.paymentMethod`; the cashier picks one when charging. */
-const PAYMENT_METHODS = ['cash', 'card'];
+const PAYMENT_METHODS = ['cash', 'card', 'transfer'];
 
 /**
- * Cash / card split used by the earnings report. `unknown` collects the
- * services charged before `paymentMethod` existed, so the three always sum
+ * Cash / card / transfer split used by the earnings report. `unknown` collects
+ * the services charged before `paymentMethod` existed, so the four always sum
  * to the total and nothing silently disappears from the chart.
  */
 const emptyPaymentSplit = () => ({
   cash: { washes: 0, earnings: 0 },
   card: { washes: 0, earnings: 0 },
+  transfer: { washes: 0, earnings: 0 },
   unknown: { washes: 0, earnings: 0 },
 });
 const paymentKey = (method) => (PAYMENT_METHODS.includes(method) ? method : 'unknown');
@@ -708,9 +711,9 @@ export default {
       ctx.request.body ?? {};
     if (!serviceId) return ctx.badRequest('serviceId requerido');
     // The cashier must say how the customer paid: the earnings report splits
-    // cash from card, so a ticket without it would be unaccounted for.
+    // cash, card and transfer, so a ticket without it would be unaccounted for.
     if (!PAYMENT_METHODS.includes(paymentMethod)) {
-      return ctx.badRequest('Indica si el pago fue en efectivo o con tarjeta');
+      return ctx.badRequest('Indica si el pago fue en efectivo, con tarjeta o por transferencia');
     }
     const actingUserId = ctx.state.user?.id;
     if (!actingUserId) return ctx.unauthorized('Sesión requerida');
@@ -1006,7 +1009,9 @@ export default {
   /**
    * GET /api/qr/employee-earnings  (solo super admin)
    * Ganancias de los servicios cobrados en una ventana, agrupadas por día,
-   * semana o mes y desglosadas por empleado.
+   * semana o mes y desglosadas por empleado. Incluye `extras`: cuántos
+   * servicios extra se hicieron, quién los hizo y cuánto generó cada uno
+   * (a precio de catálogo, antes de descuentos).
    *
    * Query:
    *  - from, to      instantes ISO (calculados en el navegador)
@@ -1087,6 +1092,7 @@ export default {
         earnings: 0,
         byEmployee: {},
         byPayment: emptyPaymentSplit(),
+        extras: { count: 0, earnings: 0 },
       };
       series.push(row);
       byKey.set(key, row);
@@ -1102,17 +1108,52 @@ export default {
         'promotionDiscount',
         'manualDiscount',
         'paymentMethod',
+        'extrasCharge',
+        'vehicleType',
+        'isUberTaxi',
       ],
-      populate: { performedBy: { select: ['id', 'name', 'username', 'email'], populate: { role: true } } },
+      populate: {
+        performedBy: { select: ['id', 'name', 'username', 'email'], populate: { role: true } },
+        // Extras breakdown: each extra is priced the way it was quoted (vehicle
+        // type, Uber/taxi, VIP), so the report says how much each one brought in.
+        extraServices: { select: ['id', 'name', 'quoteOnRequest', 'price', 'uberTaxiPrice'], populate: { pricing: true } },
+        vehicle: { select: ['id', 'vehicleType', 'isUberTaxi'] },
+        user: { select: ['id'], populate: { role: { select: ['id', 'type'] } } },
+      },
       orderBy: [{ date: 'asc' }],
       limit: 20000,
     });
 
     const employees = new Map();
     const totals = { washes: 0, earnings: 0, subtotal: 0, promotionDiscount: 0, manualDiscount: 0 };
-    // Cash vs card. Services charged before the field existed land in
-    // `unknown` so the split still adds up to `earnings`.
+    // Cash / card / transfer. Services charged before the field existed land
+    // in `unknown` so the split still adds up to `earnings`.
     const byPayment = emptyPaymentSplit();
+
+    // Extra services sold in the window: how many, who did them and what each
+    // one brought in. Amounts are catalog prices (quoted extras take their
+    // share of `extrasCharge`), i.e. before promotions and manual discounts.
+    const extrasByEmployee = new Map();
+    const extrasByItem = new Map();
+    const extrasTotals = { count: 0, earnings: 0 };
+    const emptyExtrasEntry = (id, name) => ({ id, name, count: 0, earnings: 0 });
+
+    /** Price of each extra on this service, mirroring what the cashier saw. */
+    const priceServiceExtras = (s) => {
+      const list = Array.isArray(s.extraServices) ? s.extraServices : [];
+      if (list.length === 0) return [];
+      const vehicleLike = s.vehicle ?? { vehicleType: s.vehicleType, isUberTaxi: s.isUberTaxi };
+      const isVip = isVipUser(s.user);
+      const quoted = list.filter((e) => e.quoteOnRequest);
+      // The counter captured one lump sum for every quoted extra on the ticket:
+      // it is split evenly, there is no finer record of it.
+      const quotedShare = quoted.length > 0 ? Number(s.extrasCharge ?? 0) / quoted.length : 0;
+      return list.map((e) => ({
+        id: e.id,
+        name: e.name ?? `Extra #${e.id}`,
+        amount: e.quoteOnRequest ? quotedShare : computeItemPrice(e, vehicleLike, isVip),
+      }));
+    };
 
     for (const s of services) {
       const amount = Number(s.totalAmount ?? 0);
@@ -1162,6 +1203,35 @@ export default {
         row.byPayment[pay].washes += 1;
         row.byPayment[pay].earnings += amount;
       }
+
+      // --- Extras ---
+      const extras = priceServiceExtras(s);
+      if (extras.length > 0) {
+        if (!extrasByEmployee.has(empKey)) {
+          extrasByEmployee.set(empKey, { ...emptyExtrasEntry(empId, e.name), items: new Map() });
+        }
+        const emp = extrasByEmployee.get(empKey);
+        for (const x of extras) {
+          emp.count += 1;
+          emp.earnings += x.amount;
+          if (!emp.items.has(x.id)) emp.items.set(x.id, emptyExtrasEntry(x.id, x.name));
+          const item = emp.items.get(x.id);
+          item.count += 1;
+          item.earnings += x.amount;
+
+          if (!extrasByItem.has(x.id)) extrasByItem.set(x.id, emptyExtrasEntry(x.id, x.name));
+          const global = extrasByItem.get(x.id);
+          global.count += 1;
+          global.earnings += x.amount;
+
+          extrasTotals.count += 1;
+          extrasTotals.earnings += x.amount;
+          if (row) {
+            row.extras.count += 1;
+            row.extras.earnings += x.amount;
+          }
+        }
+      }
     }
 
     const r2 = (n) => Math.round(n * 100) / 100;
@@ -1178,6 +1248,19 @@ export default {
       // El grupo "Sin acreditar" siempre al final.
       .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings);
 
+    const roundExtras = (x) => ({ ...x, earnings: r2(x.earnings) });
+    const sortExtras = (list) => list.sort((a, b) => b.earnings - a.earnings || b.count - a.count);
+    const extras = {
+      totals: roundExtras(extrasTotals),
+      byExtra: sortExtras([...extrasByItem.values()].map(roundExtras)),
+      byEmployee: [...extrasByEmployee.values()]
+        .map((emp) => ({
+          ...roundExtras(emp),
+          items: sortExtras([...emp.items.values()].map(roundExtras)),
+        }))
+        .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings),
+    };
+
     ctx.body = {
       from: fromDate.toISOString(),
       to: toDate.toISOString(),
@@ -1187,8 +1270,10 @@ export default {
         earnings: r2(row.earnings),
         byEmployee: Object.fromEntries(Object.entries(row.byEmployee).map(([k, v]) => [k, r2(v)])),
         byPayment: roundPaymentSplit(row.byPayment),
+        extras: roundExtras(row.extras),
       })),
       byEmployee,
+      extras,
       totals: {
         ...totals,
         earnings: r2(totals.earnings),

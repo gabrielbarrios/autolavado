@@ -110,11 +110,35 @@ export async function employeeTimes(fromISO: string, toISO: string): Promise<Emp
 export type EarningsGranularity = "day" | "week" | "month";
 
 /**
- * Efectivo vs tarjeta. `unknown` son los servicios cobrados antes de que
- * existiera `paymentMethod`; los tres suman siempre lo mismo que `earnings`.
+ * Efectivo, tarjeta y transferencia. `unknown` son los servicios cobrados antes
+ * de que existiera `paymentMethod`; los cuatro suman siempre lo mismo que `earnings`.
  */
-export type PaymentSplitKey = "cash" | "card" | "unknown";
+export type PaymentSplitKey = "cash" | "card" | "transfer" | "unknown";
 export type PaymentSplit = Record<PaymentSplitKey, { washes: number; earnings: number }>;
+
+/** Cuántos extras y cuánto generaron (a precio de catálogo, antes de descuentos). */
+export interface ExtrasTotals {
+  count: number;
+  earnings: number;
+}
+
+export interface ExtrasItemRow extends ExtrasTotals {
+  id: number;
+  name: string;
+}
+
+/** Extras de un empleado en la ventana, con el detalle de cada servicio extra. */
+export interface ExtrasEmployeeRow extends ExtrasTotals {
+  id: number | null;
+  name: string;
+  items: ExtrasItemRow[];
+}
+
+export interface ExtrasBreakdown {
+  totals: ExtrasTotals;
+  byExtra: ExtrasItemRow[];
+  byEmployee: ExtrasEmployeeRow[];
+}
 
 export interface EmployeeEarningsBucket {
   /** YYYY-MM-DD del inicio del periodo en la zona horaria del navegador. */
@@ -126,6 +150,8 @@ export interface EmployeeEarningsBucket {
   /** Ganancias del periodo por empleado; la clave es el id o "unassigned". */
   byEmployee: Record<string, number>;
   byPayment: PaymentSplit;
+  /** Servicios extra vendidos en el periodo. */
+  extras: ExtrasTotals;
 }
 
 export interface EmployeeEarningsRow {
@@ -147,6 +173,8 @@ export interface EmployeeEarnings {
   granularity: EarningsGranularity;
   series: EmployeeEarningsBucket[];
   byEmployee: EmployeeEarningsRow[];
+  /** Servicios extra: cuántos, quién los hizo y cuánto generó cada uno. */
+  extras: ExtrasBreakdown;
   totals: {
     washes: number;
     earnings: number;

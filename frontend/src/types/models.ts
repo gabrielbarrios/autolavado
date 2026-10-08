@@ -130,7 +130,7 @@ export type ServiceStatus =
   | "cancelled";
 
 /** How a service was paid at the counter. `null` on services charged before the field existed. */
-export type PaymentMethod = "cash" | "card";
+export type PaymentMethod = "cash" | "card" | "transfer";
 
 export interface Service {
   id: number;

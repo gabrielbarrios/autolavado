@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Banknote, CreditCard, DollarSign, Loader2, Lock, Tag, Gift } from "lucide-react";
+import { Banknote, CreditCard, DollarSign, Landmark, Loader2, Lock, Tag, Gift } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -81,7 +81,7 @@ export function ChargeDialog({ service }: { service: Service }) {
 
   async function onCharge() {
     if (!paymentMethod) {
-      toast.error("Indica si el pago fue en efectivo o con tarjeta");
+      toast.error("Indica si el pago fue en efectivo, con tarjeta o por transferencia");
       return;
     }
     setCharging(true);
@@ -223,7 +223,7 @@ export function ChargeDialog({ service }: { service: Service }) {
             {/* Forma de pago */}
             <section className="space-y-2">
               <p className="text-sm font-medium">Forma de pago</p>
-              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Forma de pago">
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Forma de pago">
                 <PaymentOption
                   icon={Banknote}
                   label="Efectivo"
@@ -235,6 +235,12 @@ export function ChargeDialog({ service }: { service: Service }) {
                   label="Tarjeta"
                   selected={paymentMethod === "card"}
                   onSelect={() => setPaymentMethod("card")}
+                />
+                <PaymentOption
+                  icon={Landmark}
+                  label="Transferencia"
+                  selected={paymentMethod === "transfer"}
+                  onSelect={() => setPaymentMethod("transfer")}
                 />
               </div>
             </section>
@@ -271,6 +277,8 @@ export function ChargeDialog({ service }: { service: Service }) {
                 <CreditCard className="h-4 w-4" />
               ) : paymentMethod === "cash" ? (
                 <Banknote className="h-4 w-4" />
+              ) : paymentMethod === "transfer" ? (
+                <Landmark className="h-4 w-4" />
               ) : (
                 <DollarSign className="h-4 w-4" />
               )}
@@ -278,7 +286,9 @@ export function ChargeDialog({ service }: { service: Service }) {
                 ? `Cobrar ${formatPrice(total)} en efectivo`
                 : paymentMethod === "card"
                   ? `Cobrar ${formatPrice(total)} con tarjeta`
-                  : "Elige la forma de pago"}
+                  : paymentMethod === "transfer"
+                    ? `Cobrar ${formatPrice(total)} por transferencia`
+                    : "Elige la forma de pago"}
             </Button>
           </div>
         )}

@@ -335,7 +335,8 @@ async function washAndCharge(staffJwt, { userId, vehicleId, packageId, washerId,
     body: { serviceId, performedByAdminId: washerId },
   });
   await api('/api/qr/finish-service', { method: 'POST', jwt: staffJwt, body: { serviceId } });
-  return api('/api/qr/charge-service', { method: 'POST', jwt: staffJwt, body: { serviceId } });
+  // El cobro exige forma de pago desde que el reporte la desglosa.
+  return api('/api/qr/charge-service', { method: 'POST', jwt: staffJwt, body: { serviceId, paymentMethod: 'cash' } });
 }
 
 /** Deja un servicio en el tablero en el estado pedido, sin cobrarlo. */

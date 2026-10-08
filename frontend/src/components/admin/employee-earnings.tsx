@@ -21,7 +21,10 @@ import {
   AlertTriangle,
   Banknote,
   CreditCard,
+  Landmark,
   CalendarDays,
+  ChevronDown,
+  PlusCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { employeeEarningsAction } from "@/actions/admin";
-import type { EarningsGranularity, EmployeeEarnings, PaymentSplit } from "@/lib/strapi/admin";
+import type { EarningsGranularity, EmployeeEarnings, ExtrasBreakdown, PaymentSplit } from "@/lib/strapi/admin";
 import { cn, formatPrice } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -205,10 +208,11 @@ function rangeLabel(fromISO: string, toISO: string): string {
 const SERIES_COLORS = ["#22c55e", "#38bdf8", "#f59e0b", "#a78bfa", "#f472b6", "#2dd4bf", "#fb7185", "#facc15"];
 const UNASSIGNED_COLOR = "#78716c";
 
-/* Efectivo y tarjeta reutilizan las dos primeras series para que el ojo las asocie igual en ambas gráficas. */
+/* Efectivo, tarjeta y transferencia reutilizan las tres primeras series para que el ojo las asocie igual en ambas gráficas. */
 const PAYMENT_META: { key: keyof PaymentSplit; label: string; color: string }[] = [
   { key: "cash", label: "Efectivo", color: "#22c55e" },
   { key: "card", label: "Tarjeta", color: "#38bdf8" },
+  { key: "transfer", label: "Transferencia", color: "#f59e0b" },
   { key: "unknown", label: "Sin registrar", color: UNASSIGNED_COLOR },
 ];
 
@@ -385,7 +389,7 @@ export function EmployeeEarningsPanel() {
           </p>
         ) : (
           <div className={isPending ? "space-y-6 opacity-60 transition-opacity" : "space-y-6"}>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <MiniStat icon={DollarSign} label="Ganancias" value={formatPrice(data.totals.earnings)} />
               <MiniStat
                 icon={Banknote}
@@ -399,7 +403,19 @@ export function EmployeeEarningsPanel() {
                 value={formatPrice(data.totals.byPayment.card.earnings)}
                 hint={`${data.totals.byPayment.card.washes} lavados`}
               />
+              <MiniStat
+                icon={Landmark}
+                label="Transferencia"
+                value={formatPrice(data.totals.byPayment.transfer.earnings)}
+                hint={`${data.totals.byPayment.transfer.washes} lavados`}
+              />
               <MiniStat icon={Sparkles} label="Lavados cobrados" value={String(data.totals.washes)} />
+              <MiniStat
+                icon={PlusCircle}
+                label="Servicios extras"
+                value={String(data.extras.totals.count)}
+                hint={`${formatPrice(data.extras.totals.earnings)} generados`}
+              />
               <MiniStat icon={Receipt} label="Ticket promedio" value={formatPrice(data.totals.avgTicket)} />
               <MiniStat
                 icon={Percent}
@@ -416,6 +432,7 @@ export function EmployeeEarningsPanel() {
             <EarningsChart data={data} />
             <PaymentChart data={data} />
             <EmployeeTable rows={data.byEmployee} />
+            <ExtrasSection extras={data.extras} />
             <PeriodTable data={data} />
           </div>
         )}
@@ -532,7 +549,7 @@ function EarningsChart({ data }: { data: EmployeeEarnings }) {
   );
 }
 
-/** Efectivo vs tarjeta por periodo. "Sin registrar" solo aparece si hay cobros viejos sin forma de pago. */
+/** Forma de pago por periodo. "Sin registrar" solo aparece si hay cobros viejos sin forma de pago. */
 function PaymentChart({ data }: { data: EmployeeEarnings }) {
   const { series, granularity, totals } = data;
   const metas = PAYMENT_META.filter((m) => m.key !== "unknown" || totals.byPayment.unknown.washes > 0);
@@ -553,9 +570,10 @@ function PaymentChart({ data }: { data: EmployeeEarnings }) {
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold">Efectivo vs tarjeta</h3>
+        <h3 className="text-sm font-semibold">Por forma de pago</h3>
         <p className="text-xs text-muted-foreground">
-          {formatPrice(totals.byPayment.cash.earnings)} en efectivo · {formatPrice(totals.byPayment.card.earnings)} con tarjeta
+          {formatPrice(totals.byPayment.cash.earnings)} en efectivo · {formatPrice(totals.byPayment.card.earnings)} con tarjeta ·{" "}
+          {formatPrice(totals.byPayment.transfer.earnings)} por transferencia
           {totals.byPayment.unknown.washes > 0 && ` · ${formatPrice(totals.byPayment.unknown.earnings)} sin registrar`}
         </p>
       </div>
@@ -689,7 +707,7 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
 
       {/* Desktop: tabla */}
       <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
-        <table className="w-full min-w-[52rem] text-sm">
+        <table className="w-full min-w-[58rem] text-sm">
           <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Empleado</th>
@@ -698,6 +716,7 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
               <th className="px-4 py-3 font-medium text-right">Descuentos</th>
               <th className="px-4 py-3 font-medium text-right">Efectivo</th>
               <th className="px-4 py-3 font-medium text-right">Tarjeta</th>
+              <th className="px-4 py-3 font-medium text-right">Transferencia</th>
               <th className="px-4 py-3 font-medium text-right">Ganancias</th>
               <th className="px-4 py-3 font-medium text-right">Ticket prom.</th>
             </tr>
@@ -726,6 +745,7 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.cash.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.card.earnings)}</td>
+                <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.transfer.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono font-semibold">{formatPrice(r.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatPrice(r.avgTicket)}</td>
               </tr>
@@ -765,6 +785,96 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
   );
 }
 
+/**
+ * Servicios extras del periodo: cuántos se hicieron, quién los hizo y cuánto
+ * generó cada uno. Cada empleado se despliega para ver el detalle por extra.
+ * Los montos son a precio de catálogo (lo cotizado al cliente), antes de
+ * promociones y descuentos manuales.
+ */
+function ExtrasSection({ extras }: { extras: ExtrasBreakdown }) {
+  const [openId, setOpenId] = React.useState<string | null>(null);
+  if (extras.totals.count === 0) return null;
+
+  const keyOf = (id: number | null) => (id === null ? "unassigned" : String(id));
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold">Servicios extras</h3>
+        <p className="text-xs text-muted-foreground">
+          {extras.totals.count} extras · {formatPrice(extras.totals.earnings)} a precio de catálogo, antes de descuentos
+        </p>
+      </div>
+
+      {/* Qué extras se vendieron en total */}
+      <div className="flex flex-wrap gap-2">
+        {extras.byExtra.map((x) => (
+          <Badge key={x.id} variant="outline" className="gap-1.5 py-1 font-normal">
+            <span className="font-medium">{x.name}</span>
+            <span className="text-muted-foreground">
+              ×{x.count} · {formatPrice(x.earnings)}
+            </span>
+          </Badge>
+        ))}
+      </div>
+
+      {/* Quién los hizo, desplegable por empleado */}
+      <div className="divide-y divide-border/40 rounded-lg border border-border/50">
+        {extras.byEmployee.map((emp) => {
+          const key = keyOf(emp.id);
+          const open = openId === key;
+          return (
+            <div key={key} className={emp.id === null ? "bg-amber-500/5" : undefined}>
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : key)}
+                aria-expanded={open}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-card/60"
+              >
+                <ChevronDown
+                  className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
+                />
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 truncate font-medium",
+                    emp.id === null && "text-amber-800 dark:text-amber-200",
+                  )}
+                >
+                  {emp.name}
+                </span>
+                <span className="shrink-0 font-mono text-muted-foreground">
+                  {emp.count} {emp.count === 1 ? "extra" : "extras"}
+                </span>
+                <span className="w-24 shrink-0 text-right font-mono font-semibold">{formatPrice(emp.earnings)}</span>
+              </button>
+              {open && (
+                <table className="w-full border-t border-border/40 text-sm">
+                  <thead className="text-left text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-2 pl-11 font-medium">Servicio extra</th>
+                      <th className="px-4 py-2 font-medium text-right">Cantidad</th>
+                      <th className="px-4 py-2 font-medium text-right">Generado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {emp.items.map((x) => (
+                      <tr key={x.id}>
+                        <td className="px-4 py-2 pl-11">{x.name}</td>
+                        <td className="px-4 py-2 text-right font-mono">{x.count}</td>
+                        <td className="px-4 py-2 text-right font-mono">{formatPrice(x.earnings)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 /** Números exactos por periodo, para quien no quiera leer la gráfica. */
 function PeriodTable({ data }: { data: EmployeeEarnings }) {
   const { series, granularity } = data;
@@ -776,13 +886,15 @@ function PeriodTable({ data }: { data: EmployeeEarnings }) {
     <section className="space-y-3">
       <h3 className="text-sm font-semibold">Detalle por periodo</h3>
       <div className="overflow-x-auto rounded-lg border border-border/50">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[40rem] text-sm">
           <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Periodo</th>
               <th className="px-4 py-3 font-medium text-right">Lavados</th>
               <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Efectivo</th>
               <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Tarjeta</th>
+              <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Transferencia</th>
+              <th className="hidden px-4 py-3 font-medium text-right md:table-cell">Extras</th>
               <th className="px-4 py-3 font-medium text-right">Ganancias</th>
               <th className="hidden px-4 py-3 font-medium text-right md:table-cell">Ticket prom.</th>
             </tr>
@@ -797,6 +909,12 @@ function PeriodTable({ data }: { data: EmployeeEarnings }) {
                 </td>
                 <td className="hidden px-4 py-3 text-right font-mono text-muted-foreground sm:table-cell">
                   {formatPrice(b.byPayment.card.earnings)}
+                </td>
+                <td className="hidden px-4 py-3 text-right font-mono text-muted-foreground sm:table-cell">
+                  {formatPrice(b.byPayment.transfer.earnings)}
+                </td>
+                <td className="hidden px-4 py-3 text-right font-mono text-muted-foreground md:table-cell">
+                  {b.extras.count > 0 ? `${b.extras.count} · ${formatPrice(b.extras.earnings)}` : "—"}
                 </td>
                 <td className="px-4 py-3 text-right font-mono font-semibold">{formatPrice(b.earnings)}</td>
                 <td className="hidden px-4 py-3 text-right font-mono md:table-cell">
