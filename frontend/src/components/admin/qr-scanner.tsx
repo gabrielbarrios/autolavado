@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Check, ChevronDown, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { Camera, Check, ChevronDown, Loader2, RotateCcw, Search, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   scanQRAction,
+  searchCustomersAction,
+  selectCustomerAction,
   registerVisitAction,
   redeemPromotionAction,
   completeAppointmentFromQRAction,
@@ -27,7 +29,7 @@ import {
   vehicleTypeLabel,
 } from "@/lib/pricing";
 import type { AppointmentStatus, ExtraService, Package } from "@/types/models";
-import type { QRScanResult } from "@/lib/strapi/qr";
+import type { CustomerSearchHit, QRScanResult } from "@/lib/strapi/qr";
 import { useVehicleTypes } from "@/components/shared/vehicle-types-provider";
 
 const APPT_STATUS_VARIANT = {
@@ -123,6 +125,14 @@ export function QrScanner({
   const vehicleTypes = useVehicleTypes();
   const [scanning, setScanning] = React.useState(false);
   const [manualToken, setManualToken] = React.useState("");
+  // Manual lookup: by the QR token itself, or by name / email when the
+  // customer has no QR at hand. The second one lists the matches first and
+  // only loads the full counter view once the cashier picks one.
+  const [lookupMode, setLookupMode] = React.useState<"token" | "customer">("token");
+  const [customerQuery, setCustomerQuery] = React.useState("");
+  const [customerHits, setCustomerHits] = React.useState<CustomerSearchHit[] | null>(null);
+  const [searching, setSearching] = React.useState(false);
+  const [selectingId, setSelectingId] = React.useState<number | null>(null);
   const [result, setResult] = React.useState<QRScanResult | null>(null);
   // La tarifa la define el CLIENTE escaneado, no el admin que escanea.
   const priceCtx = React.useMemo(
@@ -136,11 +146,6 @@ export function QrScanner({
   const [selectedExtras, setSelectedExtras] = React.useState<Set<number>>(new Set());
   const [showAllAppts, setShowAllAppts] = React.useState(false);
   const scannerRef = React.useRef<Html5QrcodeLike | null>(null);
-
-  // Reset toggle al cambiar de cliente.
-  React.useEffect(() => {
-    setShowAllAppts(false);
-  }, [result?.user.id]);
 
   function toggleExtra(id: number) {
     setSelectedExtras((prev) => {
@@ -179,15 +184,51 @@ export function QrScanner({
     }
   }
 
+  // Every way of identifying a customer (camera, token, name search) lands
+  // here so the right-hand card always starts from a clean form.
+  function applyScan(data: QRScanResult) {
+    setResult(data);
+    setVehicleId(data.vehicles[0]?.id ?? null);
+    setSelectedExtras(new Set());
+    setNotes("");
+    setShowAllAppts(false);
+    toast.success(`Cliente identificado: ${data.user.name ?? data.user.email}`);
+  }
+
   async function handleScan(token: string) {
     const res = await scanQRAction(token);
     if (!res.ok) {
       toast.error(res.error);
       return;
     }
-    setResult(res.data ?? null);
-    setVehicleId(res.data?.vehicles[0]?.id ?? null);
-    toast.success(`Cliente identificado: ${res.data?.user.name ?? res.data?.user.email}`);
+    if (res.data) applyScan(res.data);
+  }
+
+  async function searchCustomers() {
+    const q = customerQuery.trim();
+    if (q.length < 2) {
+      toast.error("Escribe al menos 2 caracteres");
+      return;
+    }
+    setSearching(true);
+    const res = await searchCustomersAction(q);
+    setSearching(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    setCustomerHits(res.data ?? []);
+  }
+
+  async function selectCustomer(hit: CustomerSearchHit) {
+    setSelectingId(hit.id);
+    const res = await selectCustomerAction(hit.id);
+    setSelectingId(null);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    if (res.data) applyScan(res.data);
   }
 
   async function submit() {
@@ -231,6 +272,8 @@ export function QrScanner({
   function reset() {
     setResult(null);
     setManualToken("");
+    setCustomerQuery("");
+    setCustomerHits(null);
     setVehicleId(null);
     setNotes("");
     setSelectedExtras(new Set());
@@ -250,19 +293,143 @@ export function QrScanner({
             </Button>
           )}
           <div className="relative my-4 text-center text-xs text-muted-foreground">
-            <span className="relative z-10 bg-card px-2">o ingresa el token manualmente</span>
+            <span className="relative z-10 bg-card px-2">o busca al cliente manualmente</span>
             <div className="absolute left-0 right-0 top-1/2 h-px bg-border" />
           </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="qr-token..."
-              value={manualToken}
-              onChange={(e) => setManualToken(e.target.value)}
-            />
-            <Button onClick={() => handleScan(manualToken)} disabled={!manualToken}>
-              Buscar
-            </Button>
+
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted/40 p-1" role="tablist">
+            {(
+              [
+                { key: "token", label: "Por token" },
+                { key: "customer", label: "Por nombre o email" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={lookupMode === tab.key}
+                onClick={() => setLookupMode(tab.key)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  lookupMode === tab.key
+                    ? "bg-background shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+
+          {lookupMode === "token" ? (
+            <div className="flex gap-2">
+              <Input
+                placeholder="qr-token..."
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && manualToken) void handleScan(manualToken);
+                }}
+              />
+              <Button onClick={() => handleScan(manualToken)} disabled={!manualToken}>
+                Buscar
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nombre o correo del cliente…"
+                  value={customerQuery}
+                  onChange={(e) => setCustomerQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void searchCustomers();
+                  }}
+                />
+                <Button onClick={searchCustomers} disabled={searching || customerQuery.trim().length < 2}>
+                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Buscar
+                </Button>
+              </div>
+
+              {customerHits && customerHits.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Ningún cliente coincide con &ldquo;{customerQuery.trim()}&rdquo;.
+                </p>
+              )}
+
+              {customerHits && customerHits.length > 0 && (
+                <div className="max-h-96 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-card/20 p-2">
+                  <p className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {customerHits.length} resultado{customerHits.length > 1 ? "s" : ""}
+                    {customerHits.length >= 20 && " · afina la búsqueda para ver más"}
+                  </p>
+                  {customerHits.map((hit) => {
+                    const active = result?.user.id === hit.id;
+                    const loading = selectingId === hit.id;
+                    return (
+                      <button
+                        key={hit.id}
+                        type="button"
+                        onClick={() => selectCustomer(hit)}
+                        disabled={selectingId !== null}
+                        className={cn(
+                          "flex w-full items-start gap-3 rounded-md border p-2 text-left text-xs transition-colors",
+                          active
+                            ? "border-primary bg-primary/10"
+                            : "border-border/40 bg-background/60 hover:border-primary/60",
+                          selectingId !== null && !loading && "opacity-60",
+                        )}
+                      >
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                          {loading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <UserRound className="h-3.5 w-3.5" />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-x-1.5">
+                            <span className="truncate text-sm font-semibold">
+                              {hit.name || hit.username}
+                            </span>
+                            {hit.role === "vip" && (
+                              <Badge variant="info" className="text-[10px]">
+                                VIP
+                              </Badge>
+                            )}
+                          </span>
+                          <span className="block truncate text-muted-foreground">{hit.email}</span>
+                          {hit.phone && (
+                            <span className="block text-muted-foreground">{hit.phone}</span>
+                          )}
+                          {hit.vehicles.length > 0 ? (
+                            <span className="mt-1 flex flex-wrap gap-1">
+                              {hit.vehicles.map((v) => (
+                                <span
+                                  key={v.id}
+                                  className="rounded-full border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                                >
+                                  {v.brand} {v.model}
+                                  {v.plate ? ` · ${v.plate}` : ""}
+                                  {v.isUberTaxi ? " · Uber/Taxi" : ""}
+                                </span>
+                              ))}
+                            </span>
+                          ) : (
+                            <span className="mt-1 block text-[10px] text-muted-foreground">
+                              Sin autos registrados
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -273,7 +440,7 @@ export function QrScanner({
         <CardContent className="space-y-4">
           {!result ? (
             <p className="text-sm text-muted-foreground">
-              Escanea un QR o ingresa el token del cliente para empezar.
+              Escanea un QR, ingresa el token o busca al cliente por nombre o email para empezar.
             </p>
           ) : (
             <>

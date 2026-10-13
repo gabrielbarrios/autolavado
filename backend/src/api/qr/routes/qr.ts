@@ -7,6 +7,12 @@ export default {
       config: { policies: [], middlewares: [] },
     },
     {
+      method: 'GET',
+      path: '/qr/search-customers',
+      handler: 'qr.searchCustomers',
+      config: { policies: [], middlewares: [] },
+    },
+    {
       method: 'POST',
       path: '/qr/register-visit',
       handler: 'qr.registerVisit',

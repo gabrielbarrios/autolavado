@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { requireStaff } from "@/lib/auth/guards";
 import {
   scanQR,
+  scanUser,
+  searchCustomers,
+  type CustomerSearchHit,
   registerVisit,
   walkInService,
   appointmentToBoard,
@@ -37,6 +40,39 @@ export async function scanQRAction(qrToken: string): Promise<ActionResult<QRScan
     return { ok: true, data };
   } catch (err) {
     return { ok: false, error: err instanceof StrapiError ? err.message : "QR no válido" };
+  }
+}
+
+/** Name / email lookup for the counter when the customer has no QR at hand. */
+export async function searchCustomersAction(
+  q: string,
+): Promise<ActionResult<CustomerSearchHit[]>> {
+  await requireStaff();
+  const term = q?.trim() ?? "";
+  if (term.length < 2) return { ok: false, error: "Escribe al menos 2 caracteres" };
+  try {
+    const data = await searchCustomers(term);
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo buscar clientes",
+    };
+  }
+}
+
+/** Loads the full counter view (vehicles, loyalty, appointments) for a searched customer. */
+export async function selectCustomerAction(userId: number): Promise<ActionResult<QRScanResult>> {
+  await requireStaff();
+  if (!userId) return { ok: false, error: "Cliente inválido" };
+  try {
+    const data = await scanUser(userId);
+    return { ok: true, data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudo cargar el cliente",
+    };
   }
 }
 

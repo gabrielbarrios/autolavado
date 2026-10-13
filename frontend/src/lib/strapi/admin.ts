@@ -68,8 +68,12 @@ export interface EmployeeTimeRow {
   finishedAt: string;
   /** Segundos que el auto estuvo en status "trabajando". */
   seconds: number;
+  /** `completed` = ya cobrado; `to_pay` = terminado pero aún en caja; `cancelled`. */
   status: string;
+  /** Total del ticket (paquete + extras − descuentos). Definitivo solo si `completed`. */
   totalAmount: number;
+  /** Nombres de los servicios extra que llevó el lavado. */
+  extras: string[];
   employee: { id: number; name: string } | null;
   vehicle: string;
   customer: string | null;

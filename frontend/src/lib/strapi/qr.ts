@@ -33,6 +33,46 @@ export async function scanQR(qrToken: string): Promise<QRScanResult> {
   });
 }
 
+/**
+ * Same payload as `scanQR` but for a customer picked from `searchCustomers`:
+ * the counter identified them by name/email instead of a QR code.
+ */
+export async function scanUser(userId: number): Promise<QRScanResult> {
+  return strapiServerFetch<QRScanResult>("/api/qr/scan", {
+    method: "POST",
+    body: { userId },
+  });
+}
+
+/** A vehicle as returned by the customer search: just enough to tell owners apart. */
+export interface CustomerSearchVehicle {
+  id: number;
+  brand: string;
+  model: string;
+  plate: string | null;
+  vehicleType?: VehicleType;
+  isUberTaxi: boolean;
+}
+
+export interface CustomerSearchHit {
+  id: number;
+  name: string | null;
+  username: string;
+  email: string;
+  phone: string | null;
+  role: string | null;
+  vehicles: CustomerSearchVehicle[];
+}
+
+/** Customers whose name, email or username contains `q` (case-insensitive). */
+export async function searchCustomers(q: string): Promise<CustomerSearchHit[]> {
+  const res = await strapiServerFetch<{ customers: CustomerSearchHit[] }>(
+    "/api/qr/search-customers",
+    { query: { q }, cache: "no-store" },
+  );
+  return res.customers ?? [];
+}
+
 export interface RegisterVisitPayload {
   userId: number;
   vehicleId: number;

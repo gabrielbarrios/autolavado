@@ -108,12 +108,18 @@ async function resolvePerformedBy(actingUserId, performedByAdminId) {
 }
 
 export default {
+  /**
+   * Identifies a customer at the counter. Accepts either the QR token (camera
+   * or manual input) or a `userId` picked from `searchCustomers`, so a customer
+   * who forgot their phone can still be served by looking them up by name.
+   */
   async scan(ctx) {
-    const { qrToken } = ctx.request.body ?? {};
-    if (!qrToken) return ctx.badRequest('qrToken requerido');
+    const { qrToken, userId } = ctx.request.body ?? {};
+    if (!qrToken && !userId) return ctx.badRequest('qrToken o userId requerido');
 
+    const filters = qrToken ? { qrToken } : { id: Number(userId) };
     const users = await strapi.entityService.findMany('plugin::users-permissions.user', {
-      filters: { qrToken },
+      filters,
       populate: { avatar: true, role: true },
       limit: 1,
     });
@@ -171,6 +177,78 @@ export default {
       activePromotions,
       todayAppointments,
       appointments: allAppointments,
+    };
+  },
+
+  /**
+   * Customer lookup for the counter when there is no QR to scan: matches
+   * name, email or username (case-insensitive, partial) and returns each hit
+   * with a compact list of their vehicles so the cashier can tell two
+   * customers with the same name apart. Selecting one then goes through
+   * `scan` with `userId`.
+   */
+  async searchCustomers(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+    const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: actingUserId },
+      populate: { role: true },
+    });
+    if (!isAnyAdmin(acting)) return ctx.forbidden('Solo el personal');
+
+    const q = String(ctx.query?.q ?? '').trim();
+    if (q.length < 2) return ctx.badRequest('Escribe al menos 2 caracteres');
+
+    // Only the customer base: staff accounts have no cars to wash and would
+    // just be noise next to a customer with the same name.
+    const users = await strapi.db.query('plugin::users-permissions.user').findMany({
+      where: {
+        blocked: { $ne: true },
+        role: { type: { $in: ['authenticated', 'vip'] } },
+        $or: [
+          { name: { $containsi: q } },
+          { email: { $containsi: q } },
+          { username: { $containsi: q } },
+        ],
+      },
+      populate: { role: true },
+      orderBy: { name: 'asc' },
+      limit: 20,
+    });
+
+    const ids = users.map((u) => u.id);
+    const vehicles = ids.length
+      ? await strapi.db.query('api::vehicle.vehicle').findMany({
+          where: { user: { id: { $in: ids } } },
+          populate: { user: { select: ['id'] } },
+          orderBy: { createdAt: 'asc' },
+        })
+      : [];
+    const vehiclesByUser = new Map();
+    for (const v of vehicles) {
+      const uid = v.user?.id;
+      if (!uid) continue;
+      if (!vehiclesByUser.has(uid)) vehiclesByUser.set(uid, []);
+      vehiclesByUser.get(uid).push({
+        id: v.id,
+        brand: v.brand,
+        model: v.model,
+        plate: v.plate,
+        vehicleType: v.vehicleType,
+        isUberTaxi: !!v.isUberTaxi,
+      });
+    }
+
+    ctx.body = {
+      customers: users.map((u) => ({
+        id: u.id,
+        name: u.name ?? null,
+        username: u.username,
+        email: u.email,
+        phone: u.phone ?? null,
+        role: u.role?.type ?? null,
+        vehicles: vehiclesByUser.get(u.id) ?? [],
+      })),
     };
   },
 
@@ -921,7 +999,7 @@ export default {
 
     const services = await strapi.db.query('api::service.service').findMany({
       where: { startedAt: { $gte: fromDate, $lt: toDate } },
-      populate: { performedBy: true, vehicle: true, package: true, user: true },
+      populate: { performedBy: true, vehicle: true, package: true, user: true, extraServices: true },
       orderBy: [{ startedAt: 'asc' }],
       limit: 500,
     });
@@ -955,7 +1033,10 @@ export default {
         finishedAt: s.finishedAt,
         seconds,
         status: s.status,
+        // What the ticket adds up to: package + extras − discounts. Final only
+        // once the cashier charged it (status `completed`).
         totalAmount: Number(s.totalAmount ?? 0),
+        extras: (s.extraServices ?? []).map((e) => e.name).filter(Boolean),
         employee: s.performedBy
           ? { id: s.performedBy.id, name: s.performedBy.name ?? s.performedBy.username }
           : null,

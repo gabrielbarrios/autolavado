@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { employeeTimesAction } from "@/actions/admin";
-import type { EmployeeTimes as EmployeeTimesData } from "@/lib/strapi/admin";
+import { formatPrice } from "@/lib/utils";
+import type { EmployeeTimes as EmployeeTimesData, EmployeeTimeRow } from "@/lib/strapi/admin";
 
 /** Hoy + los 7 días anteriores. Etiquetas relativas: no dependen de la zona horaria. */
 const DAY_OPTIONS = [
@@ -48,6 +49,29 @@ function formatDuration(seconds: number): string {
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")} min`;
+}
+
+/**
+ * Amount charged for the wash (package + extras − discounts). Only a
+ * `completed` service went through the cashier; anything else is still an
+ * estimate or was cancelled, and the label says so.
+ */
+function ChargeCell({ row, align = "right" }: { row: EmployeeTimeRow; align?: "right" | "left" }) {
+  const cls = align === "right" ? "text-right" : "text-left";
+  if (row.status === "cancelled") {
+    return <p className={`${cls} text-xs text-muted-foreground`}>Cancelado</p>;
+  }
+  const pending = row.status !== "completed";
+  return (
+    <div className={cls}>
+      <p className={`font-mono font-semibold ${pending ? "text-muted-foreground" : ""}`}>
+        {formatPrice(row.totalAmount)}
+      </p>
+      {pending && (
+        <p className="text-[10px] text-amber-700 dark:text-amber-300">Pendiente de cobro</p>
+      )}
+    </div>
+  );
 }
 
 function formatClock(iso: string): string {
@@ -262,7 +286,7 @@ function CarDetail({ rows }: { rows: EmployeeTimesData["rows"] }) {
 
       {/* Desktop: tabla */}
       <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
-        <table className="w-full min-w-[44rem] text-sm">
+        <table className="w-full min-w-[52rem] text-sm">
           <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Horario</th>
@@ -270,6 +294,7 @@ function CarDetail({ rows }: { rows: EmployeeTimesData["rows"] }) {
               <th className="px-4 py-3 font-medium">Cliente</th>
               <th className="px-4 py-3 font-medium">Empleado</th>
               <th className="px-4 py-3 font-medium text-right">Duración</th>
+              <th className="px-4 py-3 font-medium text-right">Cobro</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
@@ -281,11 +306,17 @@ function CarDetail({ rows }: { rows: EmployeeTimesData["rows"] }) {
                 <td className="px-4 py-3">
                   <p className="font-medium">{r.vehicle}</p>
                   {r.package && <p className="text-xs text-muted-foreground">{r.package}</p>}
+                  {r.extras.length > 0 && (
+                    <p className="text-xs text-muted-foreground">+ {r.extras.join(", ")}</p>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{r.customer ?? "—"}</td>
                 <td className="px-4 py-3">{r.employee?.name ?? "Sin acreditar"}</td>
                 <td className="px-4 py-3 text-right font-mono font-semibold">
                   {formatDuration(r.seconds)}
+                </td>
+                <td className="px-4 py-3">
+                  <ChargeCell row={r} />
                 </td>
               </tr>
             ))}
@@ -309,8 +340,20 @@ function CarDetail({ rows }: { rows: EmployeeTimesData["rows"] }) {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
               <Field label="Empleado" value={r.employee?.name ?? "Sin acreditar"} />
               <Field label="Cliente" value={r.customer ?? "—"} />
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Cobro</dt>
+                <dd>
+                  <ChargeCell row={r} align="left" />
+                </dd>
+              </div>
             </dl>
-            {r.package && <p className="text-xs text-muted-foreground">{r.package}</p>}
+            {(r.package || r.extras.length > 0) && (
+              <p className="text-xs text-muted-foreground">
+                {r.package}
+                {r.package && r.extras.length > 0 && " · "}
+                {r.extras.length > 0 && `+ ${r.extras.join(", ")}`}
+              </p>
+            )}
           </div>
         ))}
       </div>

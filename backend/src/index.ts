@@ -72,6 +72,7 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
   'api::loyalty-progress.loyalty-progress': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::qr.qr': [
     'scan',
+    'searchCustomers',
     'registerVisit',
     'walkInService',
     'inProgressServices',
@@ -127,6 +128,7 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
   // El mostrador completo. Sin employeeStats/employeeTimes: eso es del dueño.
   'api::qr.qr': [
     'scan',
+    'searchCustomers',
     'registerVisit',
     'walkInService',
     'inProgressServices',
