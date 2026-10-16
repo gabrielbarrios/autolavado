@@ -1,16 +1,16 @@
-import { requireAdmin } from "@/lib/auth/guards";
+import { requireStaff } from "@/lib/auth/guards";
 import { listStaff } from "@/lib/strapi/admin";
 import { JobsPanel } from "@/components/admin/jobs-panel";
 
 export const metadata = { title: "Trabajos" };
 
 /**
- * Admin and super admin: what was charged in a period and which cars were
- * attended, filterable by employee. The employee never gets here
- * (`requireAdmin`), and the backend checks the role again on /api/qr/jobs.
+ * Everyone on staff (employee, admin, super admin): what was charged in a
+ * period and which cars were attended, filterable by employee. The backend
+ * checks the role again on /api/qr/jobs.
  */
 export default async function TrabajosPage() {
-  await requireAdmin();
+  await requireStaff();
   const staff = await listStaff().catch(() => []);
 
   return (

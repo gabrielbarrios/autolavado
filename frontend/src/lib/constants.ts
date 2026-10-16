@@ -44,6 +44,7 @@ export const EMPLOYEE_ROUTES = [
   "/en-progreso",
   "/reservaciones",
   "/extras-admin",
+  "/trabajos",
 ] as const;
 
 /**

@@ -144,6 +144,8 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
     'availablePromotions',
     'staff',
     'setExtras',
+    // Pantalla "Trabajos" (/trabajos): la ve todo el personal.
+    'jobs',
   ],
 };
 

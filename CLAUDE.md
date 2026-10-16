@@ -68,7 +68,7 @@ Five roles, all of them users-permissions roles created idempotently by `bootstr
 
 The `(admin)` layout is gated by **`requireStaff()`** — employees, admins and super admins all get in. Which page each one sees is decided **inside the page**:
 
-- Employee-visible pages (dashboard, escanear, walk-in, en-progreso, reservaciones, extras-admin) need no extra guard beyond `requireStaff()`. `extras-admin` is the one catalog screen an employee gets: they can create an extra service, not edit or delete it. The list is `EMPLOYEE_ROUTES` in [frontend/src/lib/constants.ts](frontend/src/lib/constants.ts), and it also drives the sidebar in `AdminShell`.
+- Employee-visible pages (dashboard, escanear, walk-in, en-progreso, reservaciones, extras-admin, trabajos) need no extra guard beyond `requireStaff()`. `extras-admin` is the one catalog screen an employee gets: they can create an extra service, not edit or delete it. The list is `EMPLOYEE_ROUTES` in [frontend/src/lib/constants.ts](frontend/src/lib/constants.ts), and it also drives the sidebar in `AdminShell`.
 - Every other `(admin)` page **must call `await requireAdmin()` first** — hiding the nav item is not access control. A new admin page without that call is reachable by an employee who types the URL.
 - `requireSuperAdmin()` for the owner-only pages (empleados).
 

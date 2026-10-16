@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAdmin, requireSuperAdmin } from "@/lib/auth/guards";
+import { requireStaff, requireSuperAdmin } from "@/lib/auth/guards";
 import {
   employeeEarnings,
   employeeTimes,
@@ -52,7 +52,7 @@ export async function employeeEarningsAction(
 
 /**
  * "Trabajos": earnings plus the list of charged cars, optionally for one
- * employee. Admin and super admin; the backend checks the role again.
+ * employee. Any staff member; the backend checks the role again.
  */
 export async function jobsAction(
   fromISO: string,
@@ -61,7 +61,7 @@ export async function jobsAction(
   tzOffset: number,
   employeeId: number | null,
 ): Promise<ActionResult<JobsReport>> {
-  await requireAdmin();
+  await requireStaff();
   try {
     return { ok: true, data: await jobsReport(fromISO, toISO, granularity, tzOffset, employeeId) };
   } catch (err) {

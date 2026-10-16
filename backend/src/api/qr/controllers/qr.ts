@@ -84,12 +84,6 @@ function isAnyAdmin(user) {
   return t === 'admin' || t === 'superadmin' || t === 'employee';
 }
 
-/** Admin or super admin: the owners' side of the panel (reports, catalog). Not the employee. */
-function isAdminOrSuperAdmin(user) {
-  const t = user?.role?.type;
-  return t === 'admin' || t === 'superadmin';
-}
-
 /**
  * Parses the `from` / `to` ISO instants every report takes. The window is
  * computed in the browser (its day boundaries, not the server's UTC ones).
@@ -1454,7 +1448,7 @@ export default {
   },
 
   /**
-   * GET /api/qr/jobs  (admin y super admin)
+   * GET /api/qr/jobs  (todo el personal: empleado, admin y super admin)
    * The "Trabajos" screen: the same earnings report as `employeeEarnings`
    * (totals, payment split, extras, series for the chart) plus `jobs`, one
    * row per charged car (schedule, vehicle, customer, employee, duration,
@@ -1470,7 +1464,7 @@ export default {
       where: { id: actingUserId },
       populate: { role: true },
     });
-    if (!isAdminOrSuperAdmin(acting)) return ctx.forbidden('Solo administradores');
+    if (!isAnyAdmin(acting)) return ctx.forbidden('Solo el personal');
 
     const window = parseReportWindow(ctx.query, REPORT_MAX_SPAN_MS);
     if ('error' in window) return ctx.badRequest(window.error);

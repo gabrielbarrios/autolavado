@@ -21,10 +21,9 @@ const NAV = [
   { href: "/promociones-admin", label: "Promociones", icon: Gift },
   { href: "/reservaciones", label: "Reservaciones", icon: Calendar },
   { href: "/servicios", label: "Servicios", icon: Wrench },
+  // Ganancias y autos atendidos, con filtro por empleado. Lo ve todo el personal.
+  { href: "/trabajos", label: "Trabajos", icon: Briefcase },
 ];
-
-// Admin y super admin: ganancias y autos atendidos, con filtro por empleado.
-const ADMIN_NAV = [{ href: "/trabajos", label: "Trabajos", icon: Briefcase }];
 
 // Solo super admin: supervisión de empleados (admins).
 const SUPERADMIN_NAV = [{ href: "/empleados", label: "Empleados", icon: ShieldCheck }];
@@ -52,12 +51,7 @@ export function AdminShell({
     role === "employee"
       ? NAV.filter((item) => (EMPLOYEE_ROUTES as readonly string[]).includes(item.href))
       : NAV;
-  const nav =
-    role === "superadmin"
-      ? [...base, ...ADMIN_NAV, ...SUPERADMIN_NAV]
-      : role === "admin"
-        ? [...base, ...ADMIN_NAV]
-        : base;
+  const nav = role === "superadmin" ? [...base, ...SUPERADMIN_NAV] : base;
 
   return (
     <DashboardShell
