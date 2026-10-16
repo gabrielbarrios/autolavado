@@ -59,7 +59,7 @@ const PERIOD_OPTIONS: { value: string; label: string }[] = [
   { value: "custom", label: "Fechas elegidas" },
 ];
 
-const DEFAULT_PERIOD = "last7";
+const DEFAULT_PERIOD = "today";
 const ALL_EMPLOYEES = "all";
 
 /** Rows shown in the car list before the "Mostrar más" button. */
@@ -125,7 +125,7 @@ export function JobsPanel({ staff }: { staff: StaffMember[] }) {
   // preset so the button always says which window is being shown.
   const [range, setRange] = React.useState<DateRange | undefined>(() => {
     const today = startOfDay(new Date());
-    return { from: addDays(today, -6), to: today };
+    return { from: today, to: today };
   });
   const [data, setData] = React.useState<JobsReport | null>(null);
   const [error, setError] = React.useState<string | null>(null);
