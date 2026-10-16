@@ -84,6 +84,337 @@ function isAnyAdmin(user) {
   return t === 'admin' || t === 'superadmin' || t === 'employee';
 }
 
+/** Admin or super admin: the owners' side of the panel (reports, catalog). Not the employee. */
+function isAdminOrSuperAdmin(user) {
+  const t = user?.role?.type;
+  return t === 'admin' || t === 'superadmin';
+}
+
+/**
+ * Parses the `from` / `to` ISO instants every report takes. The window is
+ * computed in the browser (its day boundaries, not the server's UTC ones).
+ * Returns the error message to send as 400, or the parsed dates.
+ */
+function parseReportWindow(query, maxSpanMs) {
+  const { from, to } = query ?? {};
+  const fromDate = new Date(String(from ?? ''));
+  const toDate = new Date(String(to ?? ''));
+  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    return { error: 'from y to deben ser fechas ISO válidas' };
+  }
+  if (toDate <= fromDate) return { error: 'to debe ser posterior a from' };
+  if (toDate.getTime() - fromDate.getTime() > maxSpanMs) {
+    return { error: 'La ventana no puede pasar de dos años' };
+  }
+  return { fromDate, toDate };
+}
+
+/** Up to two years per report: enough to compare months without pulling the whole history. */
+const REPORT_MAX_SPAN_MS = 2 * 366 * 24 * 60 * 60 * 1000;
+
+/** Label for the car on a ticket: the registered vehicle, else the walk-in's type. */
+function describeServiceVehicle(s) {
+  if (s.vehicle) {
+    const base = [s.vehicle.brand, s.vehicle.model].filter(Boolean).join(' ');
+    return s.vehicle.plate ? `${base} · ${s.vehicle.plate}` : base || 'Auto';
+  }
+  if (s.vehicleType) return s.vehicleType;
+  return 'Auto';
+}
+
+/**
+ * Earnings of the services charged in a window, bucketed by day / week /
+ * month and broken down by employee and payment method. Shared by the
+ * super admin's employee report and the admins' "Trabajos" screen, which
+ * adds the employee filter and the per-car list (`withJobs`).
+ *
+ *  - granularity  'day' | 'week' | 'month'
+ *  - tzOffset     minutes from the browser's `Date.prototype.getTimezoneOffset()`.
+ *                 The server runs in UTC; the offset makes the day / week
+ *                 (Monday) / month cuts the viewer's, not the server's.
+ *  - employeeId   only services credited to that user (`performedBy`).
+ */
+async function buildEarningsReport({ fromDate, toDate, granularity, tzOffset: rawTz, employeeId = null, withJobs = false }) {
+  // getTimezoneOffset() es positivo al oeste de UTC (México: 360). Restarlo
+  // convierte un instante UTC en la "hora de pared" del navegador.
+  let tzOffset = Number(rawTz ?? 0);
+  if (!Number.isFinite(tzOffset) || Math.abs(tzOffset) > 14 * 60) tzOffset = 0;
+  const toLocal = (d) => new Date(d.getTime() - tzOffset * 60 * 1000);
+  const toUtc = (local) => new Date(local.getTime() + tzOffset * 60 * 1000);
+
+  /** Inicio del bucket (en hora local, representada como UTC) que contiene `local`. */
+  const bucketStart = (local) => {
+    const y = local.getUTCFullYear();
+    const m = local.getUTCMonth();
+    const d = local.getUTCDate();
+    if (granularity === 'month') return new Date(Date.UTC(y, m, 1));
+    if (granularity === 'week') {
+      // Semana de lunes a domingo.
+      const dow = (local.getUTCDay() + 6) % 7;
+      return new Date(Date.UTC(y, m, d - dow));
+    }
+    return new Date(Date.UTC(y, m, d));
+  };
+  const nextBucket = (start) => {
+    const y = start.getUTCFullYear();
+    const m = start.getUTCMonth();
+    const d = start.getUTCDate();
+    if (granularity === 'month') return new Date(Date.UTC(y, m + 1, 1));
+    if (granularity === 'week') return new Date(Date.UTC(y, m, d + 7));
+    return new Date(Date.UTC(y, m, d + 1));
+  };
+
+  // Serie completa de buckets de la ventana, aunque estén en cero.
+  const series = [];
+  const byKey = new Map();
+  const localFrom = toLocal(fromDate);
+  const localTo = toLocal(toDate);
+  for (let start = bucketStart(localFrom); start < localTo; start = nextBucket(start)) {
+    const end = nextBucket(start);
+    const key = start.toISOString().slice(0, 10);
+    const row = {
+      key,
+      start: toUtc(start).toISOString(),
+      end: toUtc(end).toISOString(),
+      washes: 0,
+      earnings: 0,
+      byEmployee: {},
+      byPayment: emptyPaymentSplit(),
+      extras: { count: 0, earnings: 0 },
+    };
+    series.push(row);
+    byKey.set(key, row);
+  }
+
+  const where: Record<string, unknown> = { status: 'completed', date: { $gte: fromDate, $lt: toDate } };
+  if (employeeId) where.performedBy = { id: employeeId };
+
+  const services = await strapi.db.query('api::service.service').findMany({
+    where,
+    select: [
+      'id',
+      'date',
+      'startedAt',
+      'finishedAt',
+      'totalAmount',
+      'subtotalAmount',
+      'promotionDiscount',
+      'manualDiscount',
+      'paymentMethod',
+      'extrasCharge',
+      'vehicleType',
+      'isUberTaxi',
+      'customerName',
+    ],
+    populate: {
+      performedBy: { select: ['id', 'name', 'username', 'email'], populate: { role: true } },
+      // Extras breakdown: each extra is priced the way it was quoted (vehicle
+      // type, Uber/taxi, VIP), so the report says how much each one brought in.
+      extraServices: { select: ['id', 'name', 'quoteOnRequest', 'price', 'uberTaxiPrice'], populate: { pricing: true } },
+      vehicle: { select: ['id', 'vehicleType', 'isUberTaxi', 'brand', 'model', 'plate'] },
+      user: { select: ['id', 'name', 'username'], populate: { role: { select: ['id', 'type'] } } },
+      package: { select: ['id', 'name'] },
+    },
+    orderBy: [{ date: 'asc' }],
+    limit: 20000,
+  });
+
+  const employees = new Map();
+  const totals = { washes: 0, earnings: 0, subtotal: 0, promotionDiscount: 0, manualDiscount: 0 };
+  // Cash / card / transfer. Services charged before the field existed land
+  // in `unknown` so the split still adds up to `earnings`.
+  const byPayment = emptyPaymentSplit();
+
+  // Extra services sold in the window: how many, who did them and what each
+  // one brought in. Amounts are catalog prices (quoted extras take their
+  // share of `extrasCharge`), i.e. before promotions and manual discounts.
+  const extrasByEmployee = new Map();
+  const extrasByItem = new Map();
+  const extrasTotals = { count: 0, earnings: 0 };
+  const emptyExtrasEntry = (id, name) => ({ id, name, count: 0, earnings: 0 });
+
+  /** Price of each extra on this service, mirroring what the cashier saw. */
+  const priceServiceExtras = (s) => {
+    const list = Array.isArray(s.extraServices) ? s.extraServices : [];
+    if (list.length === 0) return [];
+    const vehicleLike = s.vehicle ?? { vehicleType: s.vehicleType, isUberTaxi: s.isUberTaxi };
+    const isVip = isVipUser(s.user);
+    const quoted = list.filter((e) => e.quoteOnRequest);
+    // The counter captured one lump sum for every quoted extra on the ticket:
+    // it is split evenly, there is no finer record of it.
+    const quotedShare = quoted.length > 0 ? Number(s.extrasCharge ?? 0) / quoted.length : 0;
+    return list.map((e) => ({
+      id: e.id,
+      name: e.name ?? `Extra #${e.id}`,
+      amount: e.quoteOnRequest ? quotedShare : computeItemPrice(e, vehicleLike, isVip),
+    }));
+  };
+
+  // One row per charged car, for the "Trabajos" list. Only built on request.
+  const jobs = [];
+
+  for (const s of services) {
+    const amount = Number(s.totalAmount ?? 0);
+    const promo = Number(s.promotionDiscount ?? 0);
+    const manual = Number(s.manualDiscount ?? 0);
+    const pay = paymentKey(s.paymentMethod);
+    // Servicios anteriores al desglose no traen subtotal: se reconstruye.
+    const subtotal = s.subtotalAmount != null ? Number(s.subtotalAmount) : amount + promo + manual;
+
+    const empId = s.performedBy?.id ?? null;
+    const empKey = empId ?? 'unassigned';
+    if (!employees.has(empKey)) {
+      employees.set(empKey, {
+        id: empId,
+        name: s.performedBy ? s.performedBy.name ?? s.performedBy.username ?? s.performedBy.email : 'Sin acreditar',
+        role: s.performedBy?.role?.type ?? null,
+        washes: 0,
+        earnings: 0,
+        subtotal: 0,
+        promotionDiscount: 0,
+        manualDiscount: 0,
+        extras: { count: 0, earnings: 0 },
+        byPayment: emptyPaymentSplit(),
+      });
+    }
+    const e = employees.get(empKey);
+    e.washes += 1;
+    e.earnings += amount;
+    e.subtotal += subtotal;
+    e.promotionDiscount += promo;
+    e.manualDiscount += manual;
+    e.byPayment[pay].washes += 1;
+    e.byPayment[pay].earnings += amount;
+
+    totals.washes += 1;
+    totals.earnings += amount;
+    totals.subtotal += subtotal;
+    totals.promotionDiscount += promo;
+    totals.manualDiscount += manual;
+    byPayment[pay].washes += 1;
+    byPayment[pay].earnings += amount;
+
+    const row = byKey.get(bucketStart(toLocal(new Date(s.date))).toISOString().slice(0, 10));
+    if (row) {
+      row.washes += 1;
+      row.earnings += amount;
+      row.byEmployee[empKey] = (row.byEmployee[empKey] ?? 0) + amount;
+      row.byPayment[pay].washes += 1;
+      row.byPayment[pay].earnings += amount;
+    }
+
+    // --- Extras ---
+    const extras = priceServiceExtras(s);
+    if (extras.length > 0) {
+      if (!extrasByEmployee.has(empKey)) {
+        extrasByEmployee.set(empKey, { ...emptyExtrasEntry(empId, e.name), items: new Map() });
+      }
+      const emp = extrasByEmployee.get(empKey);
+      for (const x of extras) {
+        emp.count += 1;
+        emp.earnings += x.amount;
+        e.extras.count += 1;
+        e.extras.earnings += x.amount;
+        if (!emp.items.has(x.id)) emp.items.set(x.id, emptyExtrasEntry(x.id, x.name));
+        const item = emp.items.get(x.id);
+        item.count += 1;
+        item.earnings += x.amount;
+
+        if (!extrasByItem.has(x.id)) extrasByItem.set(x.id, emptyExtrasEntry(x.id, x.name));
+        const global = extrasByItem.get(x.id);
+        global.count += 1;
+        global.earnings += x.amount;
+
+        extrasTotals.count += 1;
+        extrasTotals.earnings += x.amount;
+        if (row) {
+          row.extras.count += 1;
+          row.extras.earnings += x.amount;
+        }
+      }
+    }
+
+    if (withJobs) {
+      // Time on the board: from "trabajando" to "terminado". Older services
+      // (or ones that skipped the board) may lack either stamp.
+      const seconds =
+        s.startedAt && s.finishedAt
+          ? Math.max(0, Math.round((new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime()) / 1000))
+          : null;
+      jobs.push({
+        id: s.id,
+        date: s.date,
+        startedAt: s.startedAt ?? null,
+        finishedAt: s.finishedAt ?? null,
+        seconds,
+        vehicle: describeServiceVehicle(s),
+        customer: s.user?.name ?? s.user?.username ?? s.customerName ?? null,
+        employee: empId === null ? null : { id: empId, name: e.name },
+        package: s.package?.name ?? null,
+        extras: extras.map((x) => x.name),
+        paymentMethod: PAYMENT_METHODS.includes(s.paymentMethod) ? s.paymentMethod : null,
+        totalAmount: Math.round(amount * 100) / 100,
+        discount: Math.round((promo + manual) * 100) / 100,
+      });
+    }
+  }
+
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const byEmployee = [...employees.values()]
+    .map((e) => ({
+      ...e,
+      earnings: r2(e.earnings),
+      subtotal: r2(e.subtotal),
+      promotionDiscount: r2(e.promotionDiscount),
+      manualDiscount: r2(e.manualDiscount),
+      avgTicket: e.washes > 0 ? r2(e.earnings / e.washes) : 0,
+      extras: { count: e.extras.count, earnings: r2(e.extras.earnings) },
+      byPayment: roundPaymentSplit(e.byPayment),
+    }))
+    // El grupo "Sin acreditar" siempre al final.
+    .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings);
+
+  const roundExtras = (x) => ({ ...x, earnings: r2(x.earnings) });
+  const sortExtras = (list) => list.sort((a, b) => b.earnings - a.earnings || b.count - a.count);
+  const extras = {
+    totals: roundExtras(extrasTotals),
+    byExtra: sortExtras([...extrasByItem.values()].map(roundExtras)),
+    byEmployee: [...extrasByEmployee.values()]
+      .map((emp) => ({
+        ...roundExtras(emp),
+        items: sortExtras([...emp.items.values()].map(roundExtras)),
+      }))
+      .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings),
+  };
+
+  const report: Record<string, unknown> = {
+    from: fromDate.toISOString(),
+    to: toDate.toISOString(),
+    granularity,
+    series: series.map((row) => ({
+      ...row,
+      earnings: r2(row.earnings),
+      byEmployee: Object.fromEntries(Object.entries(row.byEmployee).map(([k, v]) => [k, r2(v)])),
+      byPayment: roundPaymentSplit(row.byPayment),
+      extras: roundExtras(row.extras),
+    })),
+    byEmployee,
+    extras,
+    totals: {
+      ...totals,
+      earnings: r2(totals.earnings),
+      subtotal: r2(totals.subtotal),
+      promotionDiscount: r2(totals.promotionDiscount),
+      manualDiscount: r2(totals.manualDiscount),
+      avgTicket: totals.washes > 0 ? r2(totals.earnings / totals.washes) : 0,
+      byPayment: roundPaymentSplit(byPayment),
+    },
+  };
+  // Newest first: the list is read from "what just got charged" backwards.
+  if (withJobs) report.jobs = jobs.reverse();
+  return report;
+}
+
 /**
  * Resuelve a quién se le acredita un servicio (performedBy).
  * - Por defecto: quien ejecuta la acción (JWT).
@@ -1092,7 +1423,8 @@ export default {
    * Ganancias de los servicios cobrados en una ventana, agrupadas por día,
    * semana o mes y desglosadas por empleado. Incluye `extras`: cuántos
    * servicios extra se hicieron, quién los hizo y cuánto generó cada uno
-   * (a precio de catálogo, antes de descuentos).
+   * (a precio de catálogo, antes de descuentos). The number crunching lives
+   * in `buildEarningsReport`, shared with `jobs`.
    *
    * Query:
    *  - from, to      instantes ISO (calculados en el navegador)
@@ -1110,261 +1442,53 @@ export default {
     });
     if (!isSuperAdmin(acting)) return ctx.forbidden('Solo el super admin');
 
-    const { from, to, granularity: rawGranularity, tzOffset: rawTz } = ctx.query ?? {};
-    const fromDate = new Date(String(from ?? ''));
-    const toDate = new Date(String(to ?? ''));
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      return ctx.badRequest('from y to deben ser fechas ISO válidas');
-    }
-    if (toDate <= fromDate) return ctx.badRequest('to debe ser posterior a from');
+    const window = parseReportWindow(ctx.query, REPORT_MAX_SPAN_MS);
+    if ('error' in window) return ctx.badRequest(window.error);
 
-    // Hasta dos años por consulta: suficiente para comparar meses sin traer toda la historia.
-    const MAX_SPAN_MS = 2 * 366 * 24 * 60 * 60 * 1000;
-    if (toDate.getTime() - fromDate.getTime() > MAX_SPAN_MS) {
-      return ctx.badRequest('La ventana no puede pasar de dos años');
-    }
-
+    const { granularity: rawGranularity, tzOffset } = ctx.query ?? {};
     const granularity = ['day', 'week', 'month'].includes(String(rawGranularity))
       ? String(rawGranularity)
       : 'day';
 
-    // getTimezoneOffset() es positivo al oeste de UTC (México: 360). Restarlo
-    // convierte un instante UTC en la "hora de pared" del navegador.
-    let tzOffset = Number(rawTz ?? 0);
-    if (!Number.isFinite(tzOffset) || Math.abs(tzOffset) > 14 * 60) tzOffset = 0;
-    const toLocal = (d) => new Date(d.getTime() - tzOffset * 60 * 1000);
-    const toUtc = (local) => new Date(local.getTime() + tzOffset * 60 * 1000);
+    ctx.body = await buildEarningsReport({ ...window, granularity, tzOffset });
+  },
 
-    /** Inicio del bucket (en hora local, representada como UTC) que contiene `local`. */
-    const bucketStart = (local) => {
-      const y = local.getUTCFullYear();
-      const m = local.getUTCMonth();
-      const d = local.getUTCDate();
-      if (granularity === 'month') return new Date(Date.UTC(y, m, 1));
-      if (granularity === 'week') {
-        // Semana de lunes a domingo.
-        const dow = (local.getUTCDay() + 6) % 7;
-        return new Date(Date.UTC(y, m, d - dow));
-      }
-      return new Date(Date.UTC(y, m, d));
-    };
-    const nextBucket = (start) => {
-      const y = start.getUTCFullYear();
-      const m = start.getUTCMonth();
-      const d = start.getUTCDate();
-      if (granularity === 'month') return new Date(Date.UTC(y, m + 1, 1));
-      if (granularity === 'week') return new Date(Date.UTC(y, m, d + 7));
-      return new Date(Date.UTC(y, m, d + 1));
-    };
-
-    // Serie completa de buckets de la ventana, aunque estén en cero.
-    const series = [];
-    const byKey = new Map();
-    const localFrom = toLocal(fromDate);
-    const localTo = toLocal(toDate);
-    for (let start = bucketStart(localFrom); start < localTo; start = nextBucket(start)) {
-      const end = nextBucket(start);
-      const key = start.toISOString().slice(0, 10);
-      const row = {
-        key,
-        start: toUtc(start).toISOString(),
-        end: toUtc(end).toISOString(),
-        washes: 0,
-        earnings: 0,
-        byEmployee: {},
-        byPayment: emptyPaymentSplit(),
-        extras: { count: 0, earnings: 0 },
-      };
-      series.push(row);
-      byKey.set(key, row);
-    }
-
-    const services = await strapi.db.query('api::service.service').findMany({
-      where: { status: 'completed', date: { $gte: fromDate, $lt: toDate } },
-      select: [
-        'id',
-        'date',
-        'totalAmount',
-        'subtotalAmount',
-        'promotionDiscount',
-        'manualDiscount',
-        'paymentMethod',
-        'extrasCharge',
-        'vehicleType',
-        'isUberTaxi',
-      ],
-      populate: {
-        performedBy: { select: ['id', 'name', 'username', 'email'], populate: { role: true } },
-        // Extras breakdown: each extra is priced the way it was quoted (vehicle
-        // type, Uber/taxi, VIP), so the report says how much each one brought in.
-        extraServices: { select: ['id', 'name', 'quoteOnRequest', 'price', 'uberTaxiPrice'], populate: { pricing: true } },
-        vehicle: { select: ['id', 'vehicleType', 'isUberTaxi'] },
-        user: { select: ['id'], populate: { role: { select: ['id', 'type'] } } },
-      },
-      orderBy: [{ date: 'asc' }],
-      limit: 20000,
+  /**
+   * GET /api/qr/jobs  (admin y super admin)
+   * The "Trabajos" screen: the same earnings report as `employeeEarnings`
+   * (totals, payment split, extras, series for the chart) plus `jobs`, one
+   * row per charged car (schedule, vehicle, customer, employee, duration,
+   * amount). Optionally narrowed to one employee.
+   *
+   * Query: from, to, granularity, tzOffset as in employeeEarnings, plus
+   *  - employeeId   numeric user id; only services credited to them.
+   */
+  async jobs(ctx) {
+    const actingUserId = ctx.state.user?.id;
+    if (!actingUserId) return ctx.unauthorized('Sesión requerida');
+    const acting = await strapi.db.query('plugin::users-permissions.user').findOne({
+      where: { id: actingUserId },
+      populate: { role: true },
     });
+    if (!isAdminOrSuperAdmin(acting)) return ctx.forbidden('Solo administradores');
 
-    const employees = new Map();
-    const totals = { washes: 0, earnings: 0, subtotal: 0, promotionDiscount: 0, manualDiscount: 0 };
-    // Cash / card / transfer. Services charged before the field existed land
-    // in `unknown` so the split still adds up to `earnings`.
-    const byPayment = emptyPaymentSplit();
+    const window = parseReportWindow(ctx.query, REPORT_MAX_SPAN_MS);
+    if ('error' in window) return ctx.badRequest(window.error);
 
-    // Extra services sold in the window: how many, who did them and what each
-    // one brought in. Amounts are catalog prices (quoted extras take their
-    // share of `extrasCharge`), i.e. before promotions and manual discounts.
-    const extrasByEmployee = new Map();
-    const extrasByItem = new Map();
-    const extrasTotals = { count: 0, earnings: 0 };
-    const emptyExtrasEntry = (id, name) => ({ id, name, count: 0, earnings: 0 });
+    const { granularity: rawGranularity, tzOffset, employeeId: rawEmployee } = ctx.query ?? {};
+    const granularity = ['day', 'week', 'month'].includes(String(rawGranularity))
+      ? String(rawGranularity)
+      : 'day';
 
-    /** Price of each extra on this service, mirroring what the cashier saw. */
-    const priceServiceExtras = (s) => {
-      const list = Array.isArray(s.extraServices) ? s.extraServices : [];
-      if (list.length === 0) return [];
-      const vehicleLike = s.vehicle ?? { vehicleType: s.vehicleType, isUberTaxi: s.isUberTaxi };
-      const isVip = isVipUser(s.user);
-      const quoted = list.filter((e) => e.quoteOnRequest);
-      // The counter captured one lump sum for every quoted extra on the ticket:
-      // it is split evenly, there is no finer record of it.
-      const quotedShare = quoted.length > 0 ? Number(s.extrasCharge ?? 0) / quoted.length : 0;
-      return list.map((e) => ({
-        id: e.id,
-        name: e.name ?? `Extra #${e.id}`,
-        amount: e.quoteOnRequest ? quotedShare : computeItemPrice(e, vehicleLike, isVip),
-      }));
-    };
-
-    for (const s of services) {
-      const amount = Number(s.totalAmount ?? 0);
-      const promo = Number(s.promotionDiscount ?? 0);
-      const manual = Number(s.manualDiscount ?? 0);
-      const pay = paymentKey(s.paymentMethod);
-      // Servicios anteriores al desglose no traen subtotal: se reconstruye.
-      const subtotal = s.subtotalAmount != null ? Number(s.subtotalAmount) : amount + promo + manual;
-
-      const empId = s.performedBy?.id ?? null;
-      const empKey = empId ?? 'unassigned';
-      if (!employees.has(empKey)) {
-        employees.set(empKey, {
-          id: empId,
-          name: s.performedBy ? s.performedBy.name ?? s.performedBy.username ?? s.performedBy.email : 'Sin acreditar',
-          role: s.performedBy?.role?.type ?? null,
-          washes: 0,
-          earnings: 0,
-          subtotal: 0,
-          promotionDiscount: 0,
-          manualDiscount: 0,
-          byPayment: emptyPaymentSplit(),
-        });
-      }
-      const e = employees.get(empKey);
-      e.washes += 1;
-      e.earnings += amount;
-      e.subtotal += subtotal;
-      e.promotionDiscount += promo;
-      e.manualDiscount += manual;
-      e.byPayment[pay].washes += 1;
-      e.byPayment[pay].earnings += amount;
-
-      totals.washes += 1;
-      totals.earnings += amount;
-      totals.subtotal += subtotal;
-      totals.promotionDiscount += promo;
-      totals.manualDiscount += manual;
-      byPayment[pay].washes += 1;
-      byPayment[pay].earnings += amount;
-
-      const row = byKey.get(bucketStart(toLocal(new Date(s.date))).toISOString().slice(0, 10));
-      if (row) {
-        row.washes += 1;
-        row.earnings += amount;
-        row.byEmployee[empKey] = (row.byEmployee[empKey] ?? 0) + amount;
-        row.byPayment[pay].washes += 1;
-        row.byPayment[pay].earnings += amount;
-      }
-
-      // --- Extras ---
-      const extras = priceServiceExtras(s);
-      if (extras.length > 0) {
-        if (!extrasByEmployee.has(empKey)) {
-          extrasByEmployee.set(empKey, { ...emptyExtrasEntry(empId, e.name), items: new Map() });
-        }
-        const emp = extrasByEmployee.get(empKey);
-        for (const x of extras) {
-          emp.count += 1;
-          emp.earnings += x.amount;
-          if (!emp.items.has(x.id)) emp.items.set(x.id, emptyExtrasEntry(x.id, x.name));
-          const item = emp.items.get(x.id);
-          item.count += 1;
-          item.earnings += x.amount;
-
-          if (!extrasByItem.has(x.id)) extrasByItem.set(x.id, emptyExtrasEntry(x.id, x.name));
-          const global = extrasByItem.get(x.id);
-          global.count += 1;
-          global.earnings += x.amount;
-
-          extrasTotals.count += 1;
-          extrasTotals.earnings += x.amount;
-          if (row) {
-            row.extras.count += 1;
-            row.extras.earnings += x.amount;
-          }
-        }
+    let employeeId = null;
+    if (rawEmployee !== undefined && rawEmployee !== '' && rawEmployee !== 'all') {
+      employeeId = Number(rawEmployee);
+      if (!Number.isInteger(employeeId) || employeeId <= 0) {
+        return ctx.badRequest('employeeId debe ser un id numérico');
       }
     }
 
-    const r2 = (n) => Math.round(n * 100) / 100;
-    const byEmployee = [...employees.values()]
-      .map((e) => ({
-        ...e,
-        earnings: r2(e.earnings),
-        subtotal: r2(e.subtotal),
-        promotionDiscount: r2(e.promotionDiscount),
-        manualDiscount: r2(e.manualDiscount),
-        avgTicket: e.washes > 0 ? r2(e.earnings / e.washes) : 0,
-        byPayment: roundPaymentSplit(e.byPayment),
-      }))
-      // El grupo "Sin acreditar" siempre al final.
-      .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings);
-
-    const roundExtras = (x) => ({ ...x, earnings: r2(x.earnings) });
-    const sortExtras = (list) => list.sort((a, b) => b.earnings - a.earnings || b.count - a.count);
-    const extras = {
-      totals: roundExtras(extrasTotals),
-      byExtra: sortExtras([...extrasByItem.values()].map(roundExtras)),
-      byEmployee: [...extrasByEmployee.values()]
-        .map((emp) => ({
-          ...roundExtras(emp),
-          items: sortExtras([...emp.items.values()].map(roundExtras)),
-        }))
-        .sort((a, b) => (a.id === null) - (b.id === null) || b.earnings - a.earnings),
-    };
-
-    ctx.body = {
-      from: fromDate.toISOString(),
-      to: toDate.toISOString(),
-      granularity,
-      series: series.map((row) => ({
-        ...row,
-        earnings: r2(row.earnings),
-        byEmployee: Object.fromEntries(Object.entries(row.byEmployee).map(([k, v]) => [k, r2(v)])),
-        byPayment: roundPaymentSplit(row.byPayment),
-        extras: roundExtras(row.extras),
-      })),
-      byEmployee,
-      extras,
-      totals: {
-        ...totals,
-        earnings: r2(totals.earnings),
-        subtotal: r2(totals.subtotal),
-        promotionDiscount: r2(totals.promotionDiscount),
-        manualDiscount: r2(totals.manualDiscount),
-        avgTicket: totals.washes > 0 ? r2(totals.earnings / totals.washes) : 0,
-        byPayment: roundPaymentSplit(byPayment),
-      },
-    };
+    ctx.body = await buildEarningsReport({ ...window, granularity, tzOffset, employeeId, withJobs: true });
   },
 
   /**

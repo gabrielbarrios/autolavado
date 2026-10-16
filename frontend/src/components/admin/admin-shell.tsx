@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock, ShieldCheck, Cookie } from "lucide-react";
+import { LayoutDashboard, QrCode, Users, Package, ShoppingBag, Gift, Calendar, Wrench, Sparkles, UserPlus, Clock, ShieldCheck, Cookie, Briefcase } from "lucide-react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
 import { NewAppointmentWatcher } from "@/components/admin/new-appointment-watcher";
 import { logoutAction } from "@/actions/auth";
@@ -22,6 +22,9 @@ const NAV = [
   { href: "/reservaciones", label: "Reservaciones", icon: Calendar },
   { href: "/servicios", label: "Servicios", icon: Wrench },
 ];
+
+// Admin y super admin: ganancias y autos atendidos, con filtro por empleado.
+const ADMIN_NAV = [{ href: "/trabajos", label: "Trabajos", icon: Briefcase }];
 
 // Solo super admin: supervisión de empleados (admins).
 const SUPERADMIN_NAV = [{ href: "/empleados", label: "Empleados", icon: ShieldCheck }];
@@ -49,7 +52,12 @@ export function AdminShell({
     role === "employee"
       ? NAV.filter((item) => (EMPLOYEE_ROUTES as readonly string[]).includes(item.href))
       : NAV;
-  const nav = role === "superadmin" ? [...base, ...SUPERADMIN_NAV] : base;
+  const nav =
+    role === "superadmin"
+      ? [...base, ...ADMIN_NAV, ...SUPERADMIN_NAV]
+      : role === "admin"
+        ? [...base, ...ADMIN_NAV]
+        : base;
 
   return (
     <DashboardShell

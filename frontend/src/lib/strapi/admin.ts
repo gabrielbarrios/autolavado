@@ -111,7 +111,8 @@ export async function employeeTimes(fromISO: string, toISO: string): Promise<Emp
   });
 }
 
-export type EarningsGranularity = "day" | "week" | "month";
+export type { EarningsGranularity } from "@/lib/report-dates";
+import type { EarningsGranularity } from "@/lib/report-dates";
 
 /**
  * Efectivo, tarjeta y transferencia. `unknown` son los servicios cobrados antes
@@ -168,6 +169,8 @@ export interface EmployeeEarningsRow {
   promotionDiscount: number;
   manualDiscount: number;
   avgTicket: number;
+  /** Extra services this employee sold in the window (catalog price, before discounts). */
+  extras: ExtrasTotals;
   byPayment: PaymentSplit;
 }
 
@@ -203,6 +206,51 @@ export async function employeeEarnings(
 ): Promise<EmployeeEarnings> {
   return strapiServerFetch<EmployeeEarnings>("/api/qr/employee-earnings", {
     query: { from: fromISO, to: toISO, granularity, tzOffset },
+    cache: "no-store",
+  });
+}
+
+/** One charged car on the "Trabajos" list. */
+export interface JobRow {
+  id: number;
+  /** When it was charged (ISO). */
+  date: string;
+  /** Board stamps: waiting→in_progress and in_progress→to_pay. Null if it skipped the board. */
+  startedAt: string | null;
+  finishedAt: string | null;
+  /** Seconds between the two stamps; null when either is missing. */
+  seconds: number | null;
+  vehicle: string;
+  customer: string | null;
+  employee: { id: number; name: string } | null;
+  package: string | null;
+  extras: string[];
+  paymentMethod: "cash" | "card" | "transfer" | null;
+  /** What actually came in: package + extras − discounts. */
+  totalAmount: number;
+  discount: number;
+}
+
+/** The earnings report plus the per-car list; optionally narrowed to one employee. */
+export interface JobsReport extends EmployeeEarnings {
+  jobs: JobRow[];
+}
+
+export async function jobsReport(
+  fromISO: string,
+  toISO: string,
+  granularity: EarningsGranularity,
+  tzOffset: number,
+  employeeId: number | null,
+): Promise<JobsReport> {
+  return strapiServerFetch<JobsReport>("/api/qr/jobs", {
+    query: {
+      from: fromISO,
+      to: toISO,
+      granularity,
+      tzOffset,
+      ...(employeeId ? { employeeId } : {}),
+    },
     cache: "no-store",
   });
 }

@@ -86,6 +86,8 @@ const ADMIN_PERMISSIONS: Record<string, string[]> = {
     'availablePromotions',
     'staff',
     'setExtras',
+    // Pantalla "Trabajos": ganancias y lista de autos cobrados, con filtro por empleado.
+    'jobs',
   ],
 };
 

@@ -1,12 +1,14 @@
 "use server";
 
-import { requireSuperAdmin } from "@/lib/auth/guards";
+import { requireAdmin, requireSuperAdmin } from "@/lib/auth/guards";
 import {
   employeeEarnings,
   employeeTimes,
+  jobsReport,
   type EarningsGranularity,
   type EmployeeEarnings,
   type EmployeeTimes,
+  type JobsReport,
 } from "@/lib/strapi/admin";
 import { StrapiError } from "@/lib/strapi/client";
 import type { ActionResult } from "./auth";
@@ -44,6 +46,28 @@ export async function employeeEarningsAction(
     return {
       ok: false,
       error: err instanceof StrapiError ? err.message : "No se pudieron cargar las ganancias",
+    };
+  }
+}
+
+/**
+ * "Trabajos": earnings plus the list of charged cars, optionally for one
+ * employee. Admin and super admin; the backend checks the role again.
+ */
+export async function jobsAction(
+  fromISO: string,
+  toISO: string,
+  granularity: EarningsGranularity,
+  tzOffset: number,
+  employeeId: number | null,
+): Promise<ActionResult<JobsReport>> {
+  await requireAdmin();
+  try {
+    return { ok: true, data: await jobsReport(fromISO, toISO, granularity, tzOffset, employeeId) };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof StrapiError ? err.message : "No se pudieron cargar los trabajos",
     };
   }
 }

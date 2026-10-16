@@ -104,6 +104,12 @@ export default {
     },
     {
       method: 'GET',
+      path: '/qr/jobs',
+      handler: 'qr.jobs',
+      config: { policies: [], middlewares: [] },
+    },
+    {
+      method: 'GET',
       path: '/qr/available-promotions',
       handler: 'qr.availablePromotions',
       config: { policies: [], middlewares: [] },

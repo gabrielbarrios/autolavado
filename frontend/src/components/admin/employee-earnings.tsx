@@ -22,16 +22,12 @@ import {
   Banknote,
   CreditCard,
   Landmark,
-  CalendarDays,
   ChevronDown,
   PlusCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -43,170 +39,29 @@ import {
 import { employeeEarningsAction } from "@/actions/admin";
 import type { EarningsGranularity, EmployeeEarnings, ExtrasBreakdown, PaymentSplit } from "@/lib/strapi/admin";
 import { cn, formatPrice } from "@/lib/utils";
-
-/* ------------------------------------------------------------------ */
-/* Periodos                                                            */
-/* ------------------------------------------------------------------ */
-
-const GRANULARITY_OPTIONS: { value: EarningsGranularity; label: string }[] = [
-  { value: "day", label: "Por día" },
-  { value: "week", label: "Por semana" },
-  { value: "month", label: "Por mes" },
-];
-
-/**
- * Presets por granularidad. Cada uno devuelve la ventana [from, to) en la
- * zona horaria del navegador; "custom" usa los dos inputs de fecha.
- */
-const PRESETS: Record<EarningsGranularity, { value: string; label: string }[]> = {
-  day: [
-    { value: "today", label: "Hoy" },
-    { value: "yesterday", label: "Ayer" },
-    { value: "last7", label: "Últimos 7 días" },
-    { value: "last30", label: "Últimos 30 días" },
-    { value: "custom", label: "Fechas elegidas" },
-  ],
-  week: [
-    { value: "thisWeek", label: "Esta semana" },
-    { value: "lastWeek", label: "Semana pasada" },
-    { value: "last4w", label: "Últimas 4 semanas" },
-    { value: "last12w", label: "Últimas 12 semanas" },
-    { value: "custom", label: "Fechas elegidas" },
-  ],
-  month: [
-    { value: "thisMonth", label: "Este mes" },
-    { value: "lastMonth", label: "Mes pasado" },
-    { value: "last6m", label: "Últimos 6 meses" },
-    { value: "last12m", label: "Últimos 12 meses" },
-    { value: "custom", label: "Fechas elegidas" },
-  ],
-};
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-/** Lunes de la semana de `d`. */
-function startOfWeek(d: Date): Date {
-  const x = startOfDay(d);
-  const dow = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - dow);
-  return x;
-}
-
-function startOfMonth(d: Date): Date {
-  const x = startOfDay(d);
-  x.setDate(1);
-  return x;
-}
-
-function addDays(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
-}
-
-function addMonths(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setMonth(x.getMonth() + n);
-  return x;
-}
-
-/** Interpreta YYYY-MM-DD como fecha local (new Date("YYYY-MM-DD") sería UTC). */
-function fromInputDate(value: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!m) return null;
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function presetBounds(preset: string): { from: Date; to: Date } | null {
-  const now = new Date();
-  const today = startOfDay(now);
-  switch (preset) {
-    case "today":
-      return { from: today, to: addDays(today, 1) };
-    case "yesterday":
-      return { from: addDays(today, -1), to: today };
-    case "last7":
-      return { from: addDays(today, -6), to: addDays(today, 1) };
-    case "last30":
-      return { from: addDays(today, -29), to: addDays(today, 1) };
-    case "thisWeek": {
-      const from = startOfWeek(now);
-      return { from, to: addDays(from, 7) };
-    }
-    case "lastWeek": {
-      const to = startOfWeek(now);
-      return { from: addDays(to, -7), to };
-    }
-    case "last4w":
-      return { from: addDays(startOfWeek(now), -21), to: addDays(startOfWeek(now), 7) };
-    case "last12w":
-      return { from: addDays(startOfWeek(now), -77), to: addDays(startOfWeek(now), 7) };
-    case "thisMonth": {
-      const from = startOfMonth(now);
-      return { from, to: addMonths(from, 1) };
-    }
-    case "lastMonth": {
-      const to = startOfMonth(now);
-      return { from: addMonths(to, -1), to };
-    }
-    case "last6m":
-      return { from: addMonths(startOfMonth(now), -5), to: addMonths(startOfMonth(now), 1) };
-    case "last12m":
-      return { from: addMonths(startOfMonth(now), -11), to: addMonths(startOfMonth(now), 1) };
-    default:
-      return null;
-  }
-}
+import {
+  GRANULARITY_OPTIONS,
+  PRESETS,
+  addDays,
+  bucketLabel,
+  bucketLongLabel,
+  presetBounds,
+  rangeLabel,
+  startOfDay,
+} from "@/lib/report-dates";
+import { DateRangePicker } from "@/components/admin/date-range-picker";
 
 /* ------------------------------------------------------------------ */
 /* Formato                                                             */
 /* ------------------------------------------------------------------ */
 
-const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-/** Etiqueta corta del periodo para el eje y las tablas. */
-function bucketLabel(key: string, granularity: EarningsGranularity): string {
-  const d = fromInputDate(key);
-  if (!d) return key;
-  if (granularity === "month") return `${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-  if (granularity === "week") {
-    const end = addDays(d, 6);
-    return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} – ${end.getDate()} ${MONTHS_SHORT[end.getMonth()]}`;
-  }
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Etiqueta larga (tooltip y tabla). */
-function bucketLongLabel(key: string, granularity: EarningsGranularity): string {
-  const d = fromInputDate(key);
-  if (!d) return key;
-  if (granularity === "month") {
-    return d.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
-  }
-  if (granularity === "week") {
-    const end = addDays(d, 6);
-    const f = (x: Date) => x.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
-    return `Semana del ${f(d)} al ${f(end)}`;
-  }
-  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
-}
-
-function rangeLabel(fromISO: string, toISO: string): string {
-  const f = (x: Date) => x.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
-  const from = new Date(fromISO);
-  // `to` es exclusivo: el último día incluido es el anterior.
-  const last = addDays(new Date(toISO), -1);
-  return from.getTime() >= last.getTime() ? f(from) : `${f(from)} – ${f(last)}`;
-}
-
 /* Paleta para las barras apiladas por empleado. */
 const SERIES_COLORS = ["#22c55e", "#38bdf8", "#f59e0b", "#a78bfa", "#f472b6", "#2dd4bf", "#fb7185", "#facc15"];
 const UNASSIGNED_COLOR = "#78716c";
+
+/** Share of their earnings each employee gets: the "30%" column in "Por empleado". */
+const EMPLOYEE_SHARE = 0.3;
+const EMPLOYEE_SHARE_LABEL = `${Math.round(EMPLOYEE_SHARE * 100)}%`;
 
 /* Efectivo, tarjeta y transferencia reutilizan las tres primeras series para que el ojo las asocie igual en ambas gráficas. */
 const PAYMENT_META: { key: keyof PaymentSplit; label: string; color: string }[] = [
@@ -227,14 +82,6 @@ function barTotalLabel(value: number, compact: boolean): string {
     return `$${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
   }
   return formatPrice(value);
-}
-
-/** Texto del botón del calendario: "3 oct 2026" o "1 – 7 oct 2026". */
-function dateRangeLabel(range: DateRange | undefined): string {
-  if (!range?.from) return "Elegir fechas";
-  const f = (x: Date) => x.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
-  if (!range.to || range.to.getTime() === range.from.getTime()) return f(range.from);
-  return `${f(range.from)} – ${f(range.to)}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -628,69 +475,6 @@ function PaymentChart({ data }: { data: EmployeeEarnings }) {
   );
 }
 
-/**
- * Botón que abre un calendario de rango. Un clic marca un día; el segundo
- * cierra el rango. Nunca deja elegir días futuros: no hay nada que cobrar ahí.
- */
-function DateRangePicker({
-  id,
-  value,
-  onChange,
-  disabled,
-}: {
-  id?: string;
-  value: DateRange | undefined;
-  onChange: (next: DateRange | undefined) => void;
-  disabled?: boolean;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const today = startOfDay(new Date());
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          className={cn("w-full justify-start font-normal", !value?.from && "text-muted-foreground")}
-        >
-          <CalendarDays className="h-4 w-4 shrink-0" />
-          <span className="truncate">{dateRangeLabel(value)}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0">
-        <Calendar
-          mode="range"
-          selected={value}
-          onSelect={onChange}
-          defaultMonth={value?.from ?? today}
-          disabled={{ after: today }}
-          endMonth={today}
-          numberOfMonths={2}
-          classNames={{
-            months: "flex flex-col gap-4 sm:flex-row",
-            // `!` porque el día también lleva la clase `selected`, que pinta bg-primary.
-            range_middle:
-              "[&>button]:rounded-none! [&>button]:bg-primary/20! [&>button]:text-foreground! [&>button]:hover:bg-primary/30!",
-            range_start: "[&>button]:rounded-r-none",
-            range_end: "[&>button]:rounded-l-none",
-          }}
-        />
-        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
-          <p className="text-xs text-muted-foreground">
-            {value?.from && !value?.to ? "Elige el último día" : "Un clic por día; dos para un rango."}
-          </p>
-          <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(false)}>
-            Listo
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 function roleLabel(role: string | null): string | null {
   if (role === "superadmin") return "Super Admin";
   if (role === "admin") return "Admin";
@@ -707,7 +491,7 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
 
       {/* Desktop: tabla */}
       <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
-        <table className="w-full min-w-[58rem] text-sm">
+        <table className="w-full min-w-[64rem] text-sm">
           <thead className="border-b border-border/60 bg-card/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Empleado</th>
@@ -718,6 +502,7 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
               <th className="px-4 py-3 font-medium text-right">Tarjeta</th>
               <th className="px-4 py-3 font-medium text-right">Transferencia</th>
               <th className="px-4 py-3 font-medium text-right">Ganancias</th>
+              <th className="px-4 py-3 font-medium text-right">{EMPLOYEE_SHARE_LABEL}</th>
               <th className="px-4 py-3 font-medium text-right">Ticket prom.</th>
             </tr>
           </thead>
@@ -747,6 +532,7 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
                 <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.card.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono text-muted-foreground">{formatPrice(r.byPayment.transfer.earnings)}</td>
                 <td className="px-4 py-3 text-right font-mono font-semibold">{formatPrice(r.earnings)}</td>
+                <td className="px-4 py-3 text-right font-mono text-primary">{formatPrice(r.earnings * EMPLOYEE_SHARE)}</td>
                 <td className="px-4 py-3 text-right font-mono">{formatPrice(r.avgTicket)}</td>
               </tr>
             ))}
@@ -770,8 +556,9 @@ function EmployeeTable({ rows }: { rows: EmployeeEarnings["byEmployee"] }) {
               </div>
               <span className="shrink-0 font-mono text-sm font-semibold">{formatPrice(r.earnings)}</span>
             </div>
-            <dl className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <Field label="Lavados" value={String(r.washes)} />
+              <Field label={EMPLOYEE_SHARE_LABEL} value={formatPrice(r.earnings * EMPLOYEE_SHARE)} />
               <Field label="Ticket prom." value={formatPrice(r.avgTicket)} />
               <Field
                 label="Descuentos"
