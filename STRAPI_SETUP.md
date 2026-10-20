@@ -146,7 +146,7 @@ Un registro **por auto** de cada cliente (desde 2026-09-21): cada auto acumula s
 - `heroVideo` — Media (single)
 - `faqs` — Component (repeatable) → `shared.faq`
 - `testimonials` — Component (repeatable) → `shared.testimonial`
-- `contactInfo` — Component (single) → `shared.contact-info`
+- `contactInfo` — Component (single) → `shared.contact-info`. Dentro, `socialLinks` es un Component (repeatable) → `shared.social-link` con `network` (enum: facebook, instagram, tiktok, youtube, x, threads, linkedin), `url` y `customName` (opcional; si viene, el sitio lo muestra en lugar del @usuario de la URL)
 
 ### Extender el User de Users & Permissions
 

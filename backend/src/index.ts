@@ -421,6 +421,76 @@ async function ensureRolePermissions(roleType: string, map: Record<string, strin
   }
 }
 
+/**
+ * Step 2 of 2 of the social-links migration (step 1 is
+ * database/migrations/2026.10.19T00.00.00.stash-legacy-social-links.js).
+ *
+ * `shared.contact-info` used to have flat facebook/instagram/tiktok columns;
+ * they became the repeatable `socialLinks` component. The migration stashed
+ * the old URLs in the core store before Strapi dropped the columns; this runs
+ * after the schema sync, so the component tables exist now, and turns the
+ * stash into `shared.social-link` rows. The stash is deleted on success, so
+ * it only ever runs once; a contact info that already has links is skipped.
+ */
+async function restoreLegacySocialLinks() {
+  const knex = strapi.db.connection;
+  const STORE = 'strapi_core_store_settings';
+  const STORE_KEY = 'autolavado.legacy_social_links';
+  const CONTACT_TABLE = 'components_shared_contact_infos';
+  const LINKS_TABLE = 'components_shared_social_links';
+  const JOIN_TABLE = 'components_shared_contact_infos_cmps';
+
+  const row = await knex(STORE).where({ key: STORE_KEY }).first();
+  if (!row?.value) return;
+
+  let links: Array<{ contactInfoId: number; network: string; url: string }> = [];
+  try {
+    links = JSON.parse(row.value);
+  } catch {
+    links = [];
+  }
+
+  if (!(await knex.schema.hasTable(LINKS_TABLE)) || !(await knex.schema.hasTable(JOIN_TABLE))) {
+    strapi.log.warn('[bootstrap] Tablas de redes sociales aún no existen; se reintenta en el siguiente arranque');
+    return;
+  }
+
+  const byContact = new Map<number, typeof links>();
+  for (const link of links) {
+    if (!byContact.has(link.contactInfoId)) byContact.set(link.contactInfoId, []);
+    byContact.get(link.contactInfoId).push(link);
+  }
+
+  let n = 0;
+  await knex.transaction(async (trx) => {
+    for (const [contactInfoId, items] of byContact) {
+      const contact = await trx(CONTACT_TABLE).where({ id: contactInfoId }).first();
+      if (!contact) continue;
+      const already = await trx(JOIN_TABLE).where({ entity_id: contactInfoId, field: 'socialLinks' }).first();
+      if (already) continue;
+
+      let order = 1;
+      for (const item of items) {
+        const [inserted] = await trx(LINKS_TABLE)
+          .insert({ network: item.network, url: item.url, custom_name: null })
+          .returning('id');
+        const cmpId = typeof inserted === 'object' ? inserted.id : inserted;
+        await trx(JOIN_TABLE).insert({
+          entity_id: contactInfoId,
+          cmp_id: cmpId,
+          component_type: 'shared.social-link',
+          field: 'socialLinks',
+          order: order++,
+        });
+        n++;
+      }
+    }
+    await trx(STORE).where({ key: STORE_KEY }).delete();
+  });
+
+  if (n > 0) strapi.log.info(`[bootstrap] ${n} red(es) social(es) migradas al componente socialLinks`);
+}
+
 export default {
   register({ strapi }: { strapi: Core.Strapi }) {
     // Lifecycle: genera un qrToken UUID al crear cualquier user
@@ -605,6 +675,11 @@ export default {
       await backfillServiceStatus();
     } catch (err) {
       strapi.log.error('[bootstrap] Error backfilling service status:', err);
+    }
+    try {
+      await restoreLegacySocialLinks();
+    } catch (err) {
+      strapi.log.error('[bootstrap] Error migrating legacy social links:', err);
     }
     try {
       // Traduce las etiquetas del Content Manager. Va al final porque depende de

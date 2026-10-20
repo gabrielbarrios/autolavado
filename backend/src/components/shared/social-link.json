@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_shared_social_links",
+  "info": {
+    "displayName": "Social Link",
+    "icon": "link",
+    "description": "Una red social del negocio"
+  },
+  "options": {},
+  "attributes": {
+    "network": {
+      "type": "enumeration",
+      "enum": ["facebook", "instagram", "tiktok", "youtube", "x", "threads", "linkedin"],
+      "required": true
+    },
+    "url": {
+      "type": "string",
+      "required": true
+    },
+    "customName": {
+      "type": "string"
+    }
+  }
+}

@@ -131,7 +131,7 @@ export default async function ContactoPage() {
         </Card>
       </div>
 
-      {(c?.facebook || c?.instagram || c?.tiktok || c?.whatsapp) && (
+      {((c?.socialLinks?.length ?? 0) > 0 || c?.whatsapp) && (
         <section className="mt-10" aria-labelledby="social-heading">
           <div className="mb-6 flex items-center justify-center gap-2">
             <Share2 className="h-5 w-5 text-primary" />

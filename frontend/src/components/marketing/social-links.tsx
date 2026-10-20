@@ -1,18 +1,19 @@
-import type { ContactInfo } from "@/types/models";
+import type { ContactInfo, SocialLink } from "@/types/models";
 import { cn } from "@/lib/utils";
+import { SOCIAL_NETWORKS } from "@/components/marketing/social-networks";
 
 /**
- * Redes sociales del negocio con icono grande. Toma las URLs de
- * `siteSetting.contactInfo`; solo se muestran las que estén capturadas.
+ * Redes sociales del negocio con icono grande. Toma
+ * `siteSetting.contactInfo.socialLinks` (repetible en Strapi) y, aparte, el
+ * WhatsApp del mismo bloque. Debajo del nombre de la red va el `customName`
+ * capturado en Strapi; si no hay, el @usuario sacado de la URL.
  */
 
-type SocialKey = "facebook" | "instagram" | "tiktok" | "whatsapp";
-
 interface SocialItem {
-  key: SocialKey;
+  key: string;
   label: string;
   href: string;
-  /** Texto secundario: el @usuario sacado de la URL, o el número. */
+  /** Texto secundario: customName, el @usuario de la URL, o el número. */
   handle: string | null;
   /** Clases del círculo del icono (color de marca). */
   color: string;
@@ -32,32 +33,6 @@ function handleFromUrl(url: string): string | null {
   }
 }
 
-function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M13.5 21.9v-7.4h2.5l.4-3h-2.9V9.6c0-.9.3-1.5 1.5-1.5h1.6V5.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5v7.4h3z" />
-    </svg>
-  );
-}
-
-function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function TikTokIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M16.6 5.8a4.3 4.3 0 0 1-1-2.8h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9.1a7.4 7.4 0 0 0 4.3 1.4V7.4a4.3 4.3 0 0 1-3.3-1.6z" />
-    </svg>
-  );
-}
-
 function WhatsAppIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
@@ -66,40 +41,24 @@ function WhatsAppIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function itemFromLink(link: SocialLink): SocialItem | null {
+  const meta = SOCIAL_NETWORKS[link.network];
+  if (!meta || !link.url) return null;
+  const custom = link.customName?.trim();
+  return {
+    key: `${link.network}-${link.id}`,
+    label: meta.label,
+    href: link.url,
+    handle: custom || handleFromUrl(link.url),
+    color: meta.color,
+    icon: <meta.Icon className="h-9 w-9" />,
+  };
+}
+
 function buildItems(c: ContactInfo | undefined): SocialItem[] {
   if (!c) return [];
-  const items: SocialItem[] = [];
+  const items = (c.socialLinks ?? []).map(itemFromLink).filter((i): i is SocialItem => i !== null);
 
-  if (c.instagram) {
-    items.push({
-      key: "instagram",
-      label: "Instagram",
-      href: c.instagram,
-      handle: handleFromUrl(c.instagram),
-      color: "bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white",
-      icon: <InstagramIcon className="h-9 w-9" />,
-    });
-  }
-  if (c.facebook) {
-    items.push({
-      key: "facebook",
-      label: "Facebook",
-      href: c.facebook,
-      handle: handleFromUrl(c.facebook),
-      color: "bg-[#1877f2] text-white",
-      icon: <FacebookIcon className="h-10 w-10" />,
-    });
-  }
-  if (c.tiktok) {
-    items.push({
-      key: "tiktok",
-      label: "TikTok",
-      href: c.tiktok,
-      handle: handleFromUrl(c.tiktok),
-      color: "bg-black text-white ring-1 ring-white/20",
-      icon: <TikTokIcon className="h-9 w-9" />,
-    });
-  }
   if (c.whatsapp) {
     items.push({
       key: "whatsapp",

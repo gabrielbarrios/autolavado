@@ -14,7 +14,7 @@ export async function getSiteSetting(): Promise<SiteSetting | null> {
         "populate[closedDates]": "true",
         "populate[faqs]": "true",
         "populate[testimonials][populate]": "avatar",
-        "populate[contactInfo]": "true",
+        "populate[contactInfo][populate]": "socialLinks",
       },
       cache: "no-store",
     });

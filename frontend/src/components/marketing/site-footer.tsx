@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Facebook, Instagram, MessageCircle, Music2 } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { SOCIAL_NETWORKS, SocialNetworkIcon } from "@/components/marketing/social-networks";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { dayLabel, hoursByDay, WEEK_DAYS, formatTime } from "@/lib/business-hours";
 import { STORE_ENABLED } from "@/lib/constants";
@@ -63,21 +64,20 @@ export function SiteFooter({ setting }: { setting?: SiteSetting | null }) {
               {contact?.email && <li>{contact.email}</li>}
             </ul>
             <div className="mt-4 flex gap-3 text-muted-foreground">
-              {contact?.facebook && (
-                <a href={contact.facebook} aria-label="Facebook" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">
-                  <Facebook className="h-4 w-4" />
-                </a>
-              )}
-              {contact?.instagram && (
-                <a href={contact.instagram} aria-label="Instagram" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">
-                  <Instagram className="h-4 w-4" />
-                </a>
-              )}
-              {contact?.tiktok && (
-                <a href={contact.tiktok} aria-label="TikTok" className="hover:text-foreground" target="_blank" rel="noopener noreferrer">
-                  <Music2 className="h-4 w-4" />
-                </a>
-              )}
+              {(contact?.socialLinks ?? [])
+                .filter((s) => s.url && SOCIAL_NETWORKS[s.network])
+                .map((s) => (
+                  <a
+                    key={s.id}
+                    href={s.url}
+                    aria-label={s.customName || SOCIAL_NETWORKS[s.network].label}
+                    className="hover:text-foreground"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <SocialNetworkIcon network={s.network} className="h-4 w-4" />
+                  </a>
+                ))}
               {contact?.whatsapp && (
                 <a
                   href={`https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`}

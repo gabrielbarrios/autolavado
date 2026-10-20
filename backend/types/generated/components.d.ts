@@ -49,11 +49,9 @@ export interface SharedContactInfo extends Struct.ComponentSchema {
   attributes: {
     address: Schema.Attribute.String;
     email: Schema.Attribute.Email;
-    facebook: Schema.Attribute.String;
-    instagram: Schema.Attribute.String;
     mapUrl: Schema.Attribute.String;
     phone: Schema.Attribute.String;
-    tiktok: Schema.Attribute.String;
+    socialLinks: Schema.Attribute.Component<'shared.social-link', true>;
     whatsapp: Schema.Attribute.String;
   };
 }
@@ -100,6 +98,23 @@ export interface SharedLoyaltyReward extends Struct.ComponentSchema {
         number
       > &
       Schema.Attribute.DefaultTo<30>;
+  };
+}
+
+export interface SharedSocialLink extends Struct.ComponentSchema {
+  collectionName: 'components_shared_social_links';
+  info: {
+    description: 'Una red social del negocio';
+    displayName: 'Social Link';
+    icon: 'link';
+  };
+  attributes: {
+    customName: Schema.Attribute.String;
+    network: Schema.Attribute.Enumeration<
+      ['facebook', 'instagram', 'tiktok', 'youtube', 'x', 'threads', 'linkedin']
+    > &
+      Schema.Attribute.Required;
+    url: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -169,6 +184,7 @@ declare module '@strapi/strapi' {
       'shared.contact-info': SharedContactInfo;
       'shared.faq': SharedFaq;
       'shared.loyalty-reward': SharedLoyaltyReward;
+      'shared.social-link': SharedSocialLink;
       'shared.testimonial': SharedTestimonial;
       'shared.vehicle-type-price': SharedVehicleTypePrice;
     }

@@ -284,6 +284,27 @@ export const ADMIN_LABELS: Record<string, ContentTypeLabels> = {
  * aparte del de content types.
  */
 const COMPONENT_LABELS: Record<string, ContentTypeLabels> = {
+  'shared.contact-info': {
+    labels: {
+      address: 'Dirección',
+      phone: 'Teléfono',
+      whatsapp: 'WhatsApp',
+      email: 'Correo',
+      mapUrl: 'URL del mapa (Google Maps)',
+      socialLinks: 'Redes sociales',
+    },
+  },
+
+  'shared.social-link': {
+    labels: {
+      network: 'Red social',
+      url: 'URL del perfil',
+      customName: 'Nombre personalizado (se muestra en lugar del @usuario)',
+    },
+    // Lo que se ve en cada fila colapsada del repetible.
+    mainField: 'network',
+  },
+
   'shared.loyalty-reward': {
     labels: {
       active: 'Activar',

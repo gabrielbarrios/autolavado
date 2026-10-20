@@ -373,15 +373,25 @@ export interface Testimonial {
   avatar?: StrapiMedia | null;
 }
 
+/** Values of the `network` enum in `shared.social-link` (Strapi). */
+export type SocialNetwork = "facebook" | "instagram" | "tiktok" | "youtube" | "x" | "threads" | "linkedin";
+
+/** Una red social del negocio (repetible dentro de Datos de contacto). */
+export interface SocialLink {
+  id: number;
+  network: SocialNetwork;
+  url: string;
+  /** Si viene, se muestra en lugar del @usuario sacado de la URL. */
+  customName?: string | null;
+}
+
 export interface ContactInfo {
   address?: string;
   phone?: string;
   whatsapp?: string;
   email?: string;
   mapUrl?: string;
-  facebook?: string;
-  instagram?: string;
-  tiktok?: string;
+  socialLinks?: SocialLink[];
 }
 
 export type WeekDay = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
