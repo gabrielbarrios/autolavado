@@ -19,7 +19,10 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform",
+        // Blue thumb while off (a background-colored thumb disappears on the
+        // dark track); white while on so it still reads over a colored track.
+        "pointer-events-none block h-5 w-5 rounded-full shadow-lg ring-0 transition-[transform,background-color]",
+        "data-[state=unchecked]:bg-primary data-[state=checked]:bg-white",
         "data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
       )}
     />

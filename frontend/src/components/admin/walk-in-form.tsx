@@ -111,29 +111,6 @@ export function WalkInForm({
     <form onSubmit={onSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            Cliente (opcional)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="customerName">Nombre del cliente</Label>
-            <Input
-              id="customerName"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Solo para tu registro (opcional)"
-            />
-            <p className="text-xs text-muted-foreground">
-              Este servicio NO acumula fidelidad. Sirve para registrar visitantes sin cuenta.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Tipo de auto</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -172,6 +149,29 @@ export function WalkInForm({
               onCheckedChange={setIsUberTaxi}
               className="data-[state=checked]:bg-orange-500 focus-visible:ring-orange-500"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-primary" />
+            Cliente (opcional)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="customerName">Nombre del cliente</Label>
+            <Input
+              id="customerName"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Solo para tu registro (opcional)"
+            />
+            <p className="text-xs text-muted-foreground">
+              Este servicio NO acumula fidelidad. Sirve para registrar visitantes sin cuenta.
+            </p>
           </div>
         </CardContent>
       </Card>

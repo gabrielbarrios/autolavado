@@ -119,7 +119,10 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
   'api::snack-category.snack-category': ['find', 'findOne'],
   'api::site-setting.site-setting': ['find'],
 
-  'api::vehicle.vehicle': ['find', 'findOne'],
+  // An employee is also a customer of the car wash: they can register their
+  // own cars from /autos. The vehicle controller scopes every write to the
+  // JWT user, so this does not let them touch a customer's vehicles.
+  'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
   'api::appointment.appointment': ['find', 'findOne', 'update', 'availableSlots'],
   'api::visit.visit': ['find', 'findOne'],
   'api::service.service': ['find', 'findOne'],
