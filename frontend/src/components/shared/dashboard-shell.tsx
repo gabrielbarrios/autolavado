@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { LayoutDashboard, Menu, X } from "lucide-react";
 import { SiteLogo } from "@/components/shared/site-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { PendingAppointmentsBadge } from "@/components/admin/pending-appointments-badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,8 @@ export interface DashboardShellProps {
    * móvil. Sin él no se muestra nada.
    */
   dashboardHref?: string;
+  /** Staff only: shows the red pending-appointments counter in the top bar. */
+  showPendingAppointments?: boolean;
   /** A dónde lleva el logo de la barra superior. Por defecto la portada (/). */
   logoHref?: string;
   children: React.ReactNode;
@@ -42,6 +45,7 @@ export function DashboardShell({
   user,
   brand,
   dashboardHref,
+  showPendingAppointments = false,
   logoHref = "/",
   children,
   onLogout,
@@ -60,6 +64,7 @@ export function DashboardShell({
             <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
           </div>
           <ThemeToggle />
+          {showPendingAppointments && <PendingAppointmentsBadge />}
           {dashboardHref && (
             <Button asChild size="sm" variant="premium">
               <Link href={dashboardHref} aria-label="Ir al dashboard">

@@ -57,6 +57,7 @@ export function ClienteShell({
       brand={brand}
       user={{ name: user.name, email: user.email, role: ROLE_LABELS[role] ?? "cliente" }}
       dashboardHref={isStaff ? "/dashboard" : undefined}
+      showPendingAppointments={isStaff}
       onLogout={() => logoutAction()}
     >
       {children}

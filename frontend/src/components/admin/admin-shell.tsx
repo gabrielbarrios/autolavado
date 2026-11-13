@@ -59,6 +59,7 @@ export function AdminShell({
       brand={brand}
       // Dentro del panel el logo regresa al dashboard, no a la portada pública.
       logoHref="/dashboard"
+      showPendingAppointments
       user={{ name: user.name, email: user.email, role: ROLE_LABELS[role] ?? role }}
       onLogout={() => logoutAction()}
     >

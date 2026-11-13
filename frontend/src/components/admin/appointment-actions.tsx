@@ -1,5 +1,6 @@
 "use client";
 
+import { notifyAppointmentsChanged } from "@/components/admin/pending-appointments-badge";
 import * as React from "react";
 import Link from "next/link";
 import { Check, X, CheckCircle2, CalendarSync, CarFront, Loader2 } from "lucide-react";
@@ -38,6 +39,7 @@ export function AppointmentActions({
       return;
     }
     toast.success("Actualizado");
+    notifyAppointmentsChanged();
     router.refresh();
   }
 
@@ -50,6 +52,7 @@ export function AppointmentActions({
       return;
     }
     toast.success("Mandado al tablero — un empleado ya puede iniciar el lavado");
+    notifyAppointmentsChanged();
     router.refresh();
   }
 
