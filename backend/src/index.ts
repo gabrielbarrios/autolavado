@@ -123,7 +123,10 @@ const EMPLOYEE_PERMISSIONS: Record<string, string[]> = {
   // own cars from /autos. The vehicle controller scopes every write to the
   // JWT user, so this does not let them touch a customer's vehicles.
   'api::vehicle.vehicle': ['find', 'findOne', 'create', 'update', 'delete'],
-  'api::appointment.appointment': ['find', 'findOne', 'update', 'availableSlots'],
+  // `create` is the employee booking a wash for their own car from /reservar:
+  // the controller forces user = JWT user, status = pending, and rejects a
+  // vehicle that is not theirs, so it cannot book on a customer's behalf.
+  'api::appointment.appointment': ['find', 'findOne', 'create', 'update', 'availableSlots'],
   'api::visit.visit': ['find', 'findOne'],
   'api::service.service': ['find', 'findOne'],
   // `update` es para marcar una promo como usada al cobrar; no puede crearlas.
